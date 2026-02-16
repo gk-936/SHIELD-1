@@ -5,6 +5,7 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
+import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
 import android.os.Environment;
@@ -13,7 +14,6 @@ import android.util.Log;
 import androidx.core.app.NotificationCompat;
 import com.dearmoon.shield.MainActivity;
 import com.dearmoon.shield.R;
-import com.dearmoon.shield.collectors.MediaStoreCollector;
 import com.dearmoon.shield.collectors.FileSystemCollector;
 import com.dearmoon.shield.collectors.HoneyfileCollector;
 import com.dearmoon.shield.data.TelemetryStorage;
@@ -32,9 +32,10 @@ public class ShieldProtectionService extends Service {
     private TelemetryStorage storage;
     private UnifiedDetectionEngine detectionEngine;
     private HoneyfileCollector honeyfileCollector;
-    private MediaStoreCollector mediaStoreCollector;
     private SnapshotManager snapshotManager;
     private List<FileSystemCollector> fileSystemCollectors = new ArrayList<>();
+    private NetworkGuardService networkGuard;
+    private boolean networkMonitoringStarted = false;
 
     @Override
     public void onCreate() {
@@ -46,11 +47,14 @@ public class ShieldProtectionService extends Service {
         detectionEngine = new UnifiedDetectionEngine(this);
         snapshotManager = new SnapshotManager(this);
 
-        // Initialize collectors (MediaStoreCollector disabled to prevent duplicates)
+        // Initialize collectors
         initializeCollectors();
 
         // Start as foreground service
         startForeground(NOTIFICATION_ID, createNotification());
+        
+        // Start integrated network monitoring
+        startNetworkMonitoring();
     }
 
     private void initializeCollectors() {
@@ -139,10 +143,8 @@ public class ShieldProtectionService extends Service {
     public void onDestroy() {
         Log.i(TAG, "ShieldProtectionService destroyed");
 
-        // Stop MediaStore collector (disabled)
-        // if (mediaStoreCollector != null) {
-        //     mediaStoreCollector.stopWatching();
-        // }
+        // Stop network monitoring
+        stopNetworkMonitoring();
 
         // Stop all file system collectors
         for (FileSystemCollector collector : fileSystemCollectors) {
@@ -176,5 +178,41 @@ public class ShieldProtectionService extends Service {
     @Override
     public IBinder onBind(Intent intent) {
         return null;
+    }
+    
+    private void startNetworkMonitoring() {
+        if (networkMonitoringStarted) {
+            Log.d(TAG, "Network monitoring already started");
+            return;
+        }
+        
+        try {
+            Intent vpnIntent = new Intent(this, NetworkGuardService.class);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                startForegroundService(vpnIntent);
+            } else {
+                startService(vpnIntent);
+            }
+            networkMonitoringStarted = true;
+            Log.i(TAG, "Network monitoring started automatically");
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to start network monitoring", e);
+        }
+    }
+    
+    private void stopNetworkMonitoring() {
+        if (!networkMonitoringStarted) {
+            return;
+        }
+        
+        try {
+            Intent vpnIntent = new Intent(this, NetworkGuardService.class);
+            vpnIntent.setAction(NetworkGuardService.ACTION_STOP);
+            startService(vpnIntent);
+            networkMonitoringStarted = false;
+            Log.i(TAG, "Network monitoring stopped");
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to stop network monitoring", e);
+        }
     }
 }

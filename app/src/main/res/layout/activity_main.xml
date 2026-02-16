@@ -86,18 +86,6 @@
             app:backgroundTint="@null"
             android:layout_marginBottom="24dp" />
 
-        <!-- VPN Service Toggle -->
-        <Button
-            android:id="@+id/btnVpn"
-            android:layout_width="match_parent"
-            android:layout_height="80dp"
-            android:text="Network Guard"
-            android:textSize="18sp"
-            android:textColor="@color/text_primary"
-            android:background="@drawable/bg_glass_button_inactive"
-            app:backgroundTint="@null"
-            android:layout_marginBottom="24dp" />
-
         <!-- Network Blocking Toggle -->
         <Button
             android:id="@+id/btnBlockingToggle"
