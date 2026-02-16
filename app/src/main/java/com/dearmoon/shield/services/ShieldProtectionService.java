@@ -1,5 +1,7 @@
 package com.dearmoon.shield.services;
 
+import android.os.Handler;
+import android.os.Looper;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -36,6 +38,9 @@ public class ShieldProtectionService extends Service {
     private List<FileSystemCollector> fileSystemCollectors = new ArrayList<>();
     private NetworkGuardService networkGuard;
     private boolean networkMonitoringStarted = false;
+    private Handler cleanupHandler;
+    private static final long CLEANUP_INTERVAL_MS = 24 * 60 * 60 * 1000; // 24 hours
+    private static final int RETENTION_DAYS = 7;
 
     @Override
     public void onCreate() {
@@ -55,6 +60,32 @@ public class ShieldProtectionService extends Service {
         
         // Start integrated network monitoring
         startNetworkMonitoring();
+        
+        // Schedule periodic database cleanup
+        cleanupHandler = new Handler(android.os.Looper.getMainLooper());
+        scheduleCleanup();
+    }
+    
+    private void scheduleCleanup() {
+        cleanupHandler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                performDatabaseCleanup();
+                scheduleCleanup(); // Reschedule
+            }
+        }, CLEANUP_INTERVAL_MS);
+    }
+    
+    private void performDatabaseCleanup() {
+        new Thread(() -> {
+            try {
+                com.dearmoon.shield.data.EventDatabase db = storage.getDatabase();
+                int deleted = db.cleanupOldEvents(RETENTION_DAYS);
+                Log.i(TAG, "Database cleanup completed: " + deleted + " events removed");
+            } catch (Exception e) {
+                Log.e(TAG, "Database cleanup failed", e);
+            }
+        }).start();
     }
 
     private void initializeCollectors() {
@@ -142,6 +173,11 @@ public class ShieldProtectionService extends Service {
     @Override
     public void onDestroy() {
         Log.i(TAG, "ShieldProtectionService destroyed");
+
+        // Stop cleanup handler
+        if (cleanupHandler != null) {
+            cleanupHandler.removeCallbacksAndMessages(null);
+        }
 
         // Stop network monitoring
         stopNetworkMonitoring();

@@ -232,98 +232,177 @@ public class EventDatabase extends SQLiteOpenHelper {
         
         Log.d(TAG, "getAllEvents called with eventType=" + eventType + ", limit=" + limit);
         
-        String query;
         if ("ALL".equals(eventType)) {
-            query = "SELECT * FROM (" +
-                    "SELECT *, 'FILE_SYSTEM' as source FROM " + TABLE_FILE_SYSTEM +
-                    " UNION ALL SELECT *, 'HONEYFILE_ACCESS' as source FROM " + TABLE_HONEYFILE +
-                    " UNION ALL SELECT *, 'NETWORK' as source FROM " + TABLE_NETWORK +
-                    ") ORDER BY " + COL_TIMESTAMP + " DESC LIMIT " + limit;
+            // Use SQL UNION with explicit column selection for efficiency
+            String query = "SELECT timestamp, 'FILE_SYSTEM' as eventType, operation, file_path, file_extension, file_size_after, " +
+                    "NULL as access_type, NULL as calling_uid, NULL as package_name, " +
+                    "NULL as destination_ip, NULL as destination_port, NULL as protocol, NULL as bytes_sent, NULL as bytes_received, NULL as app_uid " +
+                    "FROM " + TABLE_FILE_SYSTEM +
+                    " UNION ALL " +
+                    "SELECT timestamp, 'HONEYFILE_ACCESS' as eventType, NULL, file_path, NULL, NULL, " +
+                    "access_type, calling_uid, package_name, " +
+                    "NULL, NULL, NULL, NULL, NULL, NULL " +
+                    "FROM " + TABLE_HONEYFILE +
+                    " UNION ALL " +
+                    "SELECT timestamp, 'NETWORK' as eventType, NULL, NULL, NULL, NULL, " +
+                    "NULL, NULL, NULL, " +
+                    "destination_ip, destination_port, protocol, bytes_sent, bytes_received, app_uid " +
+                    "FROM " + TABLE_NETWORK +
+                    " ORDER BY timestamp DESC LIMIT " + limit;
+            
+            Cursor cursor = null;
+            try {
+                cursor = db.rawQuery(query, null);
+                events = parseUnifiedCursor(cursor);
+            } finally {
+                if (cursor != null) cursor.close();
+            }
         } else if ("FILE_SYSTEM".equals(eventType)) {
-            query = "SELECT * FROM " + TABLE_FILE_SYSTEM + " ORDER BY " + COL_TIMESTAMP + " DESC LIMIT " + limit;
+            events = queryTable(db, TABLE_FILE_SYSTEM, "FILE_SYSTEM", limit);
         } else if ("HONEYFILE_ACCESS".equals(eventType)) {
-            query = "SELECT * FROM " + TABLE_HONEYFILE + " ORDER BY " + COL_TIMESTAMP + " DESC LIMIT " + limit;
+            events = queryTable(db, TABLE_HONEYFILE, "HONEYFILE_ACCESS", limit);
         } else if ("NETWORK".equals(eventType)) {
-            query = "SELECT * FROM " + TABLE_NETWORK + " ORDER BY " + COL_TIMESTAMP + " DESC LIMIT " + limit;
+            events = queryTable(db, TABLE_NETWORK, "NETWORK", limit);
         } else {
             Log.w(TAG, "Unknown event type: " + eventType);
-            return events;
         }
-
-        Cursor cursor = db.rawQuery(query, null);
-        Log.d(TAG, "Query returned " + cursor.getCount() + " rows");
-        events = cursorToJsonList(cursor, eventType);
-        cursor.close();
         
-        Log.i(TAG, "getAllEvents returning " + events.size() + " events for type: " + eventType);
+        Log.i(TAG, "getAllEvents returning " + events.size() + " events");
         return events;
+    }
+    
+    private List<JSONObject> parseUnifiedCursor(Cursor cursor) {
+        List<JSONObject> results = new ArrayList<>();
+        while (cursor.moveToNext()) {
+            try {
+                JSONObject json = new JSONObject();
+                json.put("timestamp", cursor.getLong(0));
+                String eventType = cursor.getString(1);
+                json.put("eventType", eventType);
+                
+                if ("FILE_SYSTEM".equals(eventType)) {
+                    json.put("operation", cursor.getString(2));
+                    json.put("filePath", cursor.getString(3));
+                    json.put("fileExtension", cursor.getString(4));
+                    json.put("fileSizeAfter", cursor.getLong(5));
+                } else if ("HONEYFILE_ACCESS".equals(eventType)) {
+                    json.put("filePath", cursor.getString(3));
+                    json.put("accessType", cursor.getString(6));
+                    json.put("callingUid", cursor.getInt(7));
+                    json.put("packageName", cursor.getString(8));
+                } else if ("NETWORK".equals(eventType)) {
+                    json.put("destinationIp", cursor.getString(9));
+                    json.put("destinationPort", cursor.getInt(10));
+                    json.put("protocol", cursor.getString(11));
+                    json.put("bytesSent", cursor.getLong(12));
+                    json.put("bytesReceived", cursor.getLong(13));
+                    json.put("appUid", cursor.getInt(14));
+                }
+                results.add(json);
+            } catch (Exception e) {
+                Log.e(TAG, "Error parsing unified row", e);
+            }
+        }
+        return results;
+    }
+    
+    private List<JSONObject> queryTable(SQLiteDatabase db, String tableName, String eventType, int limit) {
+        List<JSONObject> results = new ArrayList<>();
+        Cursor cursor = null;
+        
+        try {
+            cursor = db.query(tableName, null, null, null, null, null, 
+                    COL_TIMESTAMP + " DESC", String.valueOf(limit));
+            
+            Log.d(TAG, "Table " + tableName + " returned " + cursor.getCount() + " rows");
+            
+            while (cursor.moveToNext()) {
+                try {
+                    JSONObject json = new JSONObject();
+                    json.put("timestamp", cursor.getLong(cursor.getColumnIndexOrThrow(COL_TIMESTAMP)));
+                    json.put("eventType", eventType);
+                    
+                    // Parse columns based on event type
+                    if ("FILE_SYSTEM".equals(eventType)) {
+                        int opIdx = cursor.getColumnIndex("operation");
+                        int pathIdx = cursor.getColumnIndex("file_path");
+                        int extIdx = cursor.getColumnIndex("file_extension");
+                        int sizeIdx = cursor.getColumnIndex("file_size_after");
+                        
+                        json.put("operation", opIdx >= 0 && !cursor.isNull(opIdx) ? cursor.getString(opIdx) : "UNKNOWN");
+                        json.put("filePath", pathIdx >= 0 && !cursor.isNull(pathIdx) ? cursor.getString(pathIdx) : "Unknown");
+                        json.put("fileExtension", extIdx >= 0 && !cursor.isNull(extIdx) ? cursor.getString(extIdx) : "N/A");
+                        json.put("fileSizeAfter", sizeIdx >= 0 && !cursor.isNull(sizeIdx) ? cursor.getLong(sizeIdx) : 0);
+                    } else if ("HONEYFILE_ACCESS".equals(eventType)) {
+                        int pathIdx = cursor.getColumnIndex("file_path");
+                        int accessIdx = cursor.getColumnIndex("access_type");
+                        int uidIdx = cursor.getColumnIndex("calling_uid");
+                        int pkgIdx = cursor.getColumnIndex("package_name");
+                        
+                        json.put("filePath", pathIdx >= 0 && !cursor.isNull(pathIdx) ? cursor.getString(pathIdx) : "Unknown");
+                        json.put("accessType", accessIdx >= 0 && !cursor.isNull(accessIdx) ? cursor.getString(accessIdx) : "UNKNOWN");
+                        json.put("callingUid", uidIdx >= 0 && !cursor.isNull(uidIdx) ? cursor.getInt(uidIdx) : -1);
+                        json.put("packageName", pkgIdx >= 0 && !cursor.isNull(pkgIdx) ? cursor.getString(pkgIdx) : "unknown");
+                    } else if ("NETWORK".equals(eventType)) {
+                        int ipIdx = cursor.getColumnIndex("destination_ip");
+                        int portIdx = cursor.getColumnIndex("destination_port");
+                        int protoIdx = cursor.getColumnIndex("protocol");
+                        int sentIdx = cursor.getColumnIndex("bytes_sent");
+                        int recvIdx = cursor.getColumnIndex("bytes_received");
+                        int uidIdx = cursor.getColumnIndex("app_uid");
+                        
+                        json.put("destinationIp", ipIdx >= 0 && !cursor.isNull(ipIdx) ? cursor.getString(ipIdx) : "0.0.0.0");
+                        json.put("destinationPort", portIdx >= 0 && !cursor.isNull(portIdx) ? cursor.getInt(portIdx) : 0);
+                        json.put("protocol", protoIdx >= 0 && !cursor.isNull(protoIdx) ? cursor.getString(protoIdx) : "UNKNOWN");
+                        json.put("bytesSent", sentIdx >= 0 && !cursor.isNull(sentIdx) ? cursor.getLong(sentIdx) : 0);
+                        json.put("bytesReceived", recvIdx >= 0 && !cursor.isNull(recvIdx) ? cursor.getLong(recvIdx) : 0);
+                        json.put("appUid", uidIdx >= 0 && !cursor.isNull(uidIdx) ? cursor.getInt(uidIdx) : -1);
+                    }
+                    
+                    results.add(json);
+                } catch (Exception e) {
+                    Log.e(TAG, "Error parsing row from " + tableName + ": " + e.getMessage(), e);
+                }
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error querying table " + tableName + ": " + e.getMessage(), e);
+        } finally {
+            if (cursor != null) {
+                cursor.close();
+            }
+        }
+        
+        return results;
     }
 
     public List<JSONObject> getAllDetectionResults(int limit) {
         List<JSONObject> results = new ArrayList<>();
         SQLiteDatabase db = getReadableDatabase();
+        Cursor cursor = null;
         
-        Cursor cursor = db.query(TABLE_DETECTION, null, null, null, null, null, 
-                COL_TIMESTAMP + " DESC", String.valueOf(limit));
-        
-        while (cursor.moveToNext()) {
-            try {
-                JSONObject json = new JSONObject();
-                json.put("timestamp", cursor.getLong(cursor.getColumnIndexOrThrow(COL_TIMESTAMP)));
-                json.put("file_path", cursor.getString(cursor.getColumnIndexOrThrow("file_path")));
-                json.put("entropy", cursor.getDouble(cursor.getColumnIndexOrThrow("entropy")));
-                json.put("kl_divergence", cursor.getDouble(cursor.getColumnIndexOrThrow("kl_divergence")));
-                json.put("sprt_state", cursor.getString(cursor.getColumnIndexOrThrow("sprt_state")));
-                json.put("confidence_score", cursor.getInt(cursor.getColumnIndexOrThrow("confidence_score")));
-                results.add(json);
-            } catch (Exception e) {
-                Log.e(TAG, "Error parsing detection result", e);
+        try {
+            cursor = db.query(TABLE_DETECTION, null, null, null, null, null, 
+                    COL_TIMESTAMP + " DESC", String.valueOf(limit));
+            
+            while (cursor.moveToNext()) {
+                try {
+                    JSONObject json = new JSONObject();
+                    json.put("timestamp", cursor.getLong(cursor.getColumnIndexOrThrow(COL_TIMESTAMP)));
+                    json.put("file_path", cursor.getString(cursor.getColumnIndexOrThrow("file_path")));
+                    json.put("entropy", cursor.getDouble(cursor.getColumnIndexOrThrow("entropy")));
+                    json.put("kl_divergence", cursor.getDouble(cursor.getColumnIndexOrThrow("kl_divergence")));
+                    json.put("sprt_state", cursor.getString(cursor.getColumnIndexOrThrow("sprt_state")));
+                    json.put("confidence_score", cursor.getInt(cursor.getColumnIndexOrThrow("confidence_score")));
+                    results.add(json);
+                } catch (Exception e) {
+                    Log.e(TAG, "Error parsing detection result", e);
+                }
             }
+        } finally {
+            if (cursor != null) cursor.close();
         }
-        cursor.close();
         
         return results;
-    }
-
-    private List<JSONObject> cursorToJsonList(Cursor cursor, String eventType) {
-        List<JSONObject> list = new ArrayList<>();
-        
-        while (cursor.moveToNext()) {
-            try {
-                JSONObject json = new JSONObject();
-                json.put("timestamp", cursor.getLong(cursor.getColumnIndexOrThrow(COL_TIMESTAMP)));
-                
-                // For ALL queries, determine actual event type from the row
-                String actualEventType = cursor.getString(cursor.getColumnIndexOrThrow(COL_EVENT_TYPE));
-                json.put("eventType", actualEventType);
-                
-                // Parse columns based on ACTUAL event type, not query filter
-                if ("FILE_SYSTEM".equals(actualEventType)) {
-                    json.put("operation", cursor.getString(cursor.getColumnIndexOrThrow("operation")));
-                    json.put("filePath", cursor.getString(cursor.getColumnIndexOrThrow("file_path")));
-                    json.put("fileExtension", cursor.getString(cursor.getColumnIndexOrThrow("file_extension")));
-                    json.put("fileSizeAfter", cursor.getLong(cursor.getColumnIndexOrThrow("file_size_after")));
-                } else if ("HONEYFILE_ACCESS".equals(actualEventType)) {
-                    json.put("filePath", cursor.getString(cursor.getColumnIndexOrThrow("file_path")));
-                    json.put("accessType", cursor.getString(cursor.getColumnIndexOrThrow("access_type")));
-                    json.put("callingUid", cursor.getInt(cursor.getColumnIndexOrThrow("calling_uid")));
-                    json.put("packageName", cursor.getString(cursor.getColumnIndexOrThrow("package_name")));
-                } else if ("NETWORK".equals(actualEventType)) {
-                    json.put("destinationIp", cursor.getString(cursor.getColumnIndexOrThrow("destination_ip")));
-                    json.put("destinationPort", cursor.getInt(cursor.getColumnIndexOrThrow("destination_port")));
-                    json.put("protocol", cursor.getString(cursor.getColumnIndexOrThrow("protocol")));
-                    json.put("bytesSent", cursor.getLong(cursor.getColumnIndexOrThrow("bytes_sent")));
-                    json.put("bytesReceived", cursor.getLong(cursor.getColumnIndexOrThrow("bytes_received")));
-                    json.put("appUid", cursor.getInt(cursor.getColumnIndexOrThrow("app_uid")));
-                }
-                
-                list.add(json);
-            } catch (Exception e) {
-                Log.e(TAG, "Error parsing cursor row: " + e.getMessage(), e);
-            }
-        }
-        
-        return list;
     }
 
     public synchronized long insertLockerShieldEvent(com.dearmoon.shield.lockerguard.LockerShieldEvent event) {
@@ -377,6 +456,26 @@ public class EventDatabase extends SQLiteOpenHelper {
         db.delete(TABLE_LOCKER_SHIELD, null, null);
         db.delete(TABLE_CORRELATION, null, null);
         Log.i(TAG, "All events cleared from database");
+    }
+    
+    public synchronized int cleanupOldEvents(int retentionDays) {
+        SQLiteDatabase db = getWritableDatabase();
+        long cutoffTime = System.currentTimeMillis() - (retentionDays * 24L * 60 * 60 * 1000);
+        
+        int deleted = 0;
+        deleted += db.delete(TABLE_FILE_SYSTEM, COL_TIMESTAMP + " < ?", new String[]{String.valueOf(cutoffTime)});
+        deleted += db.delete(TABLE_HONEYFILE, COL_TIMESTAMP + " < ?", new String[]{String.valueOf(cutoffTime)});
+        deleted += db.delete(TABLE_NETWORK, COL_TIMESTAMP + " < ?", new String[]{String.valueOf(cutoffTime)});
+        deleted += db.delete(TABLE_DETECTION, COL_TIMESTAMP + " < ?", new String[]{String.valueOf(cutoffTime)});
+        deleted += db.delete(TABLE_LOCKER_SHIELD, COL_TIMESTAMP + " < ?", new String[]{String.valueOf(cutoffTime)});
+        deleted += db.delete(TABLE_CORRELATION, COL_TIMESTAMP + " < ?", new String[]{String.valueOf(cutoffTime)});
+        
+        Log.i(TAG, "Cleaned up " + deleted + " events older than " + retentionDays + " days");
+        
+        // Vacuum database to reclaim space
+        db.execSQL("VACUUM");
+        
+        return deleted;
     }
 
     public int getEventCount() {

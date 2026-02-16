@@ -8,6 +8,8 @@ import com.dearmoon.shield.data.TelemetryStorage;
 import com.dearmoon.shield.detection.UnifiedDetectionEngine;
 import com.dearmoon.shield.snapshot.SnapshotManager;
 import java.io.File;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 public class FileSystemCollector extends FileObserver {
     private static final String TAG = "FileSystemCollector";
@@ -16,7 +18,13 @@ public class FileSystemCollector extends FileObserver {
     private UnifiedDetectionEngine detectionEngine;
     private SnapshotManager snapshotManager;
 
-    private final java.util.Map<String, Long> lastEventMap = new java.util.concurrent.ConcurrentHashMap<>();
+    // LRU cache with max 1000 entries to prevent memory leak
+    private final Map<String, Long> lastEventMap = new LinkedHashMap<String, Long>(100, 0.75f, true) {
+        @Override
+        protected boolean removeEldestEntry(Map.Entry<String, Long> eldest) {
+            return size() > 1000;
+        }
+    };
     private static final long DEBOUNCE_DELAY_MS = 500;
 
     public FileSystemCollector(String path, TelemetryStorage storage) {

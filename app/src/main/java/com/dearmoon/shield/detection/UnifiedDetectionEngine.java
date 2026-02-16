@@ -206,9 +206,9 @@ public class UnifiedDetectionEngine {
     }
     
     private void triggerNetworkBlock() {
-        android.content.Intent intent = new android.content.Intent("com.dearmoon.shield.BLOCK_NETWORK");
+        android.content.Intent intent = new android.content.Intent("com.dearmoon.shield.EMERGENCY_MODE");
         context.sendBroadcast(intent);
-        Log.e(TAG, "Network block triggered - broadcast sent");
+        Log.e(TAG, "Emergency mode triggered - broadcast sent");
     }
     
     private void showHighRiskAlert(String filePath, int score) {

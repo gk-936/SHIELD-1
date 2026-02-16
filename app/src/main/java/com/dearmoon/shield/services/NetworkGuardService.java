@@ -110,26 +110,28 @@ public class NetworkGuardService extends VpnService {
             }
             Log.d(TAG, "VPN interface established successfully");
 
-            FileInputStream in = new FileInputStream(vpnInterface.getFileDescriptor());
-            FileOutputStream out = new FileOutputStream(vpnInterface.getFileDescriptor());
-            ByteBuffer packet = ByteBuffer.allocate(32767);
+            try (FileInputStream in = new FileInputStream(vpnInterface.getFileDescriptor());
+                 FileOutputStream out = new FileOutputStream(vpnInterface.getFileDescriptor())) {
+                
+                ByteBuffer packet = ByteBuffer.allocate(32767);
 
-            while (isRunning && !Thread.interrupted()) {
-                int length = in.read(packet.array());
-                if (length > 0) {
-                    packet.limit(length);
-                    
-                    // Analyze and decide whether to block
-                    boolean shouldBlock = analyzePacket(packet);
-                    
-                    if (!shouldBlock) {
-                        // Pass-through: write only the read bytes
-                        out.write(packet.array(), 0, length);
-                    } else {
-                        Log.w(TAG, "BLOCKED suspicious packet");
+                while (isRunning && !Thread.interrupted()) {
+                    int length = in.read(packet.array());
+                    if (length > 0) {
+                        packet.limit(length);
+                        
+                        // Analyze and decide whether to block
+                        boolean shouldBlock = analyzePacket(packet);
+                        
+                        if (!shouldBlock) {
+                            // Pass-through: write only the read bytes
+                            out.write(packet.array(), 0, length);
+                        } else {
+                            Log.w(TAG, "BLOCKED suspicious packet");
+                        }
+                        
+                        packet.clear();
                     }
-                    
-                    packet.clear();
                 }
             }
         } catch (Exception e) {
