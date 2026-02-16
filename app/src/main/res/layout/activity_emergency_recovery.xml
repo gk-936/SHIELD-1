@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@drawable/bg_static_shield"
+    android:gravity="center"
+    android:padding="32dp">
+
+    <TextView
+        android:id="@+id/tvWarning"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Locker Shield"
+        android:textSize="28sp"
+        android:textColor="#FFFFFF"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:layout_marginBottom="32dp" />
+
+    <TextView
+        android:id="@+id/tvPackageName"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="App: com.example.app"
+        android:textSize="18sp"
+        android:textColor="#FFFFFF"
+        android:layout_marginBottom="16dp" />
+
+    <TextView
+        android:id="@+id/tvRiskScore"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Risk Score: 75/100"
+        android:textSize="16sp"
+        android:textColor="#FCD34D"
+        android:layout_marginBottom="48dp" />
+
+    <Button
+        android:id="@+id/btnOpenSettings"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="OPEN APP SETTINGS"
+        android:textSize="16sp"
+        android:backgroundTint="#F59E0B"
+        android:textColor="#FFFFFF"
+        android:layout_marginBottom="16dp" />
+
+    <Button
+        android:id="@+id/btnDismiss"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="DISMISS"
+        android:textSize="16sp"
+        android:backgroundTint="#6B7280"
+        android:textColor="#FFFFFF" />
+
+</LinearLayout>

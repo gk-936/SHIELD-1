@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- Permissions for Mode B functionality -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" 
+        tools:ignore="ScopedStorage" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.BIND_VPN_SERVICE" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
+    <application
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.SHIELD"
+        android:requestLegacyExternalStorage="true">
+        
+        <activity
+            android:name=".MainActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- Log Viewer Activity -->
+        <activity
+            android:name=".LogViewerActivity"
+            android:exported="false"
+            android:parentActivityName=".MainActivity"
+            android:label="Event Logs" />
+
+        <!-- SHIELD Protection Service -->
+        <service
+            android:name=".services.ShieldProtectionService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="ransomware_detection" />
+        </service>
+
+        <!-- Network Guard VPN Service -->
+        <service
+            android:name=".services.NetworkGuardService"
+            android:enabled="true"
+            android:exported="false"
+            android:permission="android.permission.BIND_VPN_SERVICE">
+            <intent-filter>
+                <action android:name="android.net.VpnService" />
+            </intent-filter>
+        </service>
+
+        <!-- File Access Activity -->
+        <activity
+            android:name=".FileAccessActivity"
+            android:exported="false"
+            android:parentActivityName=".MainActivity"
+            android:label="File Monitoring" />
+
+        <!-- Recovery Activity (Snapshot) -->
+        <activity
+            android:name=".snapshot.RecoveryActivity"
+            android:exported="false"
+            android:parentActivityName=".MainActivity"
+            android:label="Snapshot Recovery" />
+
+        <!-- Emergency Recovery Activity (Locker Shield) -->
+        <activity
+            android:name=".lockerguard.EmergencyRecoveryActivity"
+            android:exported="false"
+            android:parentActivityName=".MainActivity"
+            android:label="Emergency Recovery" />
+
+        <!-- Locker Shield Service -->
+        <service
+            android:name=".lockerguard.LockerShieldService"
+            android:enabled="true"
+            android:exported="false"
+            android:label="SHIELD Locker Guard"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/locker_shield_config" />
+        </service>
+
+        <!-- Boot Receiver -->
+        <receiver
+            android:name=".receivers.BootReceiver"
+            android:enabled="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+
+        <!-- Service Restart Receiver -->
+        <receiver
+            android:name=".receivers.ServiceRestartReceiver"
+            android:enabled="true"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.dearmoon.shield.RESTART_SERVICE" />
+            </intent-filter>
+        </receiver>
+
+        <!-- Network Block Receiver -->
+        <receiver
+            android:name=".receivers.NetworkBlockReceiver"
+            android:enabled="true"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.dearmoon.shield.BLOCK_NETWORK" />
+            </intent-filter>
+        </receiver>
+
+        <!-- Test Activity -->
+        <activity
+            android:name=".testing.TestActivity"
+            android:exported="false"
+            android:parentActivityName=".MainActivity"
+            android:label="Ransomware Test Suite" />
+
+    </application>
+
+</manifest>

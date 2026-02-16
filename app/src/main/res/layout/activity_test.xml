@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp"
+    android:background="#F5F5F5">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="SHIELD Test Suite"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        android:textColor="#D32F2F"
+        android:gravity="center"
+        android:paddingBottom="16dp"/>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Detection Tests"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:paddingBottom="8dp"/>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/btnTest1"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Test 1\nSPRT"
+            android:textSize="11sp"
+            android:layout_margin="4dp"/>
+
+        <Button
+            android:id="@+id/btnTest2"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Test 2\nEntropy"
+            android:textSize="11sp"
+            android:layout_margin="4dp"/>
+
+        <Button
+            android:id="@+id/btnTest3"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Test 3\nKL-Div"
+            android:textSize="11sp"
+            android:layout_margin="4dp"/>
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/btnTest4"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Test 4\nHoneyfile"
+            android:textSize="11sp"
+            android:layout_margin="4dp"/>
+
+        <Button
+            android:id="@+id/btnTest5"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Test 5\nNetwork"
+            android:textSize="11sp"
+            android:layout_margin="4dp"/>
+
+        <Button
+            android:id="@+id/btnTest7"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Test 7\nBenign"
+            android:textSize="11sp"
+            android:layout_margin="4dp"/>
+    </LinearLayout>
+
+    <Button
+        android:id="@+id/btnTest6"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Test 6: FULL RANSOMWARE SIMULATION"
+        android:textStyle="bold"
+        android:backgroundTint="#D32F2F"
+        android:layout_margin="4dp"/>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Controls"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp"/>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/btnStopTest"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Stop Test"
+            android:backgroundTint="#FF6F00"
+            android:layout_margin="4dp"/>
+
+        <Button
+            android:id="@+id/btnCleanup"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Cleanup"
+            android:layout_margin="4dp"/>
+
+        <Button
+            android:id="@+id/btnViewLogs"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="View Logs"
+            android:backgroundTint="#1976D2"
+            android:layout_margin="4dp"/>
+    </LinearLayout>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Test Results"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp"/>
+
+    <ScrollView
+        android:id="@+id/scrollView"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:background="#FFFFFF"
+        android:padding="8dp">
+
+        <TextView
+            android:id="@+id/tvTestResults"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:fontFamily="monospace"
+            android:textSize="12sp"
+            android:textColor="#000000"/>
+    </ScrollView>
+
+</LinearLayout>

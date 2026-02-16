@@ -1,0 +1,208 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/bg_static_shield"
+    tools:context=".MainActivity">
+
+    <!-- DSCI Logo - Top Right Corner -->
+    <ImageView
+        android:id="@+id/ivDsciLogo"
+        android:layout_width="56dp"
+        android:layout_height="56dp"
+        android:src="@drawable/ic_dsci_logo"
+        android:contentDescription="DSCI Logo"
+        android:layout_marginTop="16dp"
+        android:layout_marginEnd="16dp"
+        android:elevation="4dp"
+        android:alpha="0.9"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- SHIELD Title with Data Leak Effect -->
+    <com.dearmoon.shield.ui.DataLeakTextView
+        android:id="@+id/appTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="SHIELD"
+        android:textColor="@color/text_primary"
+        android:textSize="24sp"
+        android:letterSpacing="0.2"
+        android:textStyle="bold"
+        android:layout_marginTop="48dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- Status Header with Glitch Effect -->
+    <com.dearmoon.shield.ui.GlitchTextView
+        android:id="@+id/tvProtectionStatus"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Protection Inactive"
+        android:textColor="@color/text_primary"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:layout_marginTop="32dp"
+        app:layout_constraintTop_toBottomOf="@id/appTitle"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- Main Mode Buttons -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center"
+        app:layout_constraintBottom_toTopOf="@id/bottomNavContainer"
+        app:layout_constraintTop_toBottomOf="@id/tvProtectionStatus"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:padding="32dp">
+
+        <!-- Mode A (Empty / Inactive) -->
+        <Button
+            android:id="@+id/btnModeA"
+            android:layout_width="match_parent"
+            android:layout_height="80dp"
+            android:text="Mode A"
+            android:textSize="18sp"
+            android:textColor="@color/text_muted"
+            android:background="@drawable/bg_glass_button_inactive"
+            app:backgroundTint="@null"
+            android:layout_marginBottom="24dp" />
+
+        <!-- Mode B (Active Toggle) -->
+        <Button
+            android:id="@+id/btnModeB"
+            android:layout_width="match_parent"
+            android:layout_height="80dp"
+            android:text="Mode B"
+            android:textSize="18sp"
+            android:textColor="@color/text_primary"
+            android:background="@drawable/bg_glass_button_inactive"
+            app:backgroundTint="@null"
+            android:layout_marginBottom="24dp" />
+
+        <!-- VPN Service Toggle -->
+        <Button
+            android:id="@+id/btnVpn"
+            android:layout_width="match_parent"
+            android:layout_height="80dp"
+            android:text="Network Guard"
+            android:textSize="18sp"
+            android:textColor="@color/text_primary"
+            android:background="@drawable/bg_glass_button_inactive"
+            app:backgroundTint="@null"
+            android:layout_marginBottom="24dp" />
+
+        <!-- Network Blocking Toggle -->
+        <Button
+            android:id="@+id/btnBlockingToggle"
+            android:layout_width="match_parent"
+            android:layout_height="80dp"
+            android:text="Blocking: OFF"
+            android:textSize="18sp"
+            android:textColor="@color/text_primary"
+            android:background="@drawable/bg_glass_button_inactive"
+            app:backgroundTint="@null"
+            android:layout_marginBottom="16dp" />
+
+        <!-- Test Suite Button -->
+        <Button
+            android:id="@+id/btnTestSuite"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:text="🧪 Test Suite"
+            android:textSize="16sp"
+            android:textColor="#FF6F00"
+            android:background="@drawable/bg_glass_button_inactive"
+            app:backgroundTint="@null"
+            android:layout_marginBottom="12dp" />
+
+        <!-- Clear Honeyfiles Button -->
+        <Button
+            android:id="@+id/btnClearHoneyfiles"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:text="🗑️ Clear Honeyfiles"
+            android:textSize="14sp"
+            android:textColor="#EF4444"
+            android:background="@drawable/bg_glass_button_inactive"
+            app:backgroundTint="@null" />
+
+    </LinearLayout>
+
+    <!-- Bottom Navigation Bar (Glassmorphism Oval) -->
+    <LinearLayout
+        android:id="@+id/bottomNavContainer"
+        android:layout_width="match_parent"
+        android:layout_height="80dp"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:background="@drawable/bg_glass_oval"
+        android:layout_margin="16dp"
+        android:paddingHorizontal="24dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <!-- Left: Locker Guard & View Logs -->
+        <ImageButton
+            android:id="@+id/btnNavLocker"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:src="@android:drawable/ic_lock_idle_lock"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Locker Guard"
+            app:tint="@color/text_primary" />
+
+        <ImageButton
+            android:id="@+id/btnNavLogs"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:src="@android:drawable/ic_menu_agenda"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="View Logs"
+            app:tint="@color/text_primary" />
+
+        <!-- Center: Home -->
+        <ImageButton
+            android:id="@+id/btnNavHome"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:src="@drawable/ic_home_24dp"
+            android:scaleType="centerInside"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Home"
+            app:tint="@color/primary" />
+
+        <!-- Right: File Monitor & Snapshot -->
+        <ImageButton
+            android:id="@+id/btnNavFile"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:src="@android:drawable/ic_menu_save"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="File Monitor"
+            app:tint="@color/text_primary" />
+
+        <ImageButton
+            android:id="@+id/btnNavSnapshot"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:src="@android:drawable/ic_menu_revert"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Snapshot"
+            app:tint="@color/text_primary" />
+
+    </LinearLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>
