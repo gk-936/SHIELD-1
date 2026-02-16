@@ -114,12 +114,11 @@ public class RecoveryActivity extends AppCompatActivity {
                 .getLong("last_snapshot_time", 0);
 
         if (lastSnapshotTime > 0) {
-            long minutesAgo = (System.currentTimeMillis() - lastSnapshotTime) / 60000;
-            if (minutesAgo < 1) {
-                tvSnapshotInfo.setText("Last snapshot: Just now");
-            } else {
-                tvSnapshotInfo.setText("Last snapshot: " + minutesAgo + " minutes ago");
-            }
+            // Format: "14 Feb 2026 20:45:30"
+            java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat(
+                    "dd MMM yyyy HH:mm:ss", java.util.Locale.US);
+            String formattedTime = sdf.format(new java.util.Date(lastSnapshotTime));
+            tvSnapshotInfo.setText("Last snapshot: " + formattedTime);
         } else {
             tvSnapshotInfo.setText("No snapshot created yet");
         }

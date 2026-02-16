@@ -1,28 +1,40 @@
 package com.dearmoon.shield;
 
+import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
+import android.widget.LinearLayout;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import com.github.mikephil.charting.charts.BarChart;
+import com.github.mikephil.charting.charts.LineChart;
+import com.github.mikephil.charting.components.XAxis;
+import com.github.mikephil.charting.components.YAxis;
+import com.github.mikephil.charting.data.BarData;
+import com.github.mikephil.charting.data.BarDataSet;
+import com.github.mikephil.charting.data.BarEntry;
+import com.github.mikephil.charting.data.Entry;
+import com.github.mikephil.charting.data.LineData;
+import com.github.mikephil.charting.data.LineDataSet;
 import org.json.JSONObject;
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.InputStreamReader;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 public class LogViewerActivity extends AppCompatActivity {
     private static final String TAG = "LogViewerActivity";
@@ -30,6 +42,11 @@ public class LogViewerActivity extends AppCompatActivity {
     private RecyclerView recyclerView;
     private LogAdapter logAdapter;
     private TextView tvEventCount;
+    private TextView tvGraphTitle;
+    private LineChart eventLineChart;
+    private BarChart eventBarChart;
+    private LinearLayout detailedLogsContainer;
+    private Button btnShowDetailedLogs;
     private Spinner spinnerFilter;
 
     private List<LogEntry> allEvents = new ArrayList<>();
@@ -42,7 +59,6 @@ public class LogViewerActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_log_viewer);
 
-        // Force status bar to black
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             getWindow().setStatusBarColor(0xFF000000);
         }
@@ -60,11 +76,17 @@ public class LogViewerActivity extends AppCompatActivity {
         initializeViews();
         loadAllLogs();
         applyFilter();
+        updateGraph();
     }
 
     private void initializeViews() {
         recyclerView = findViewById(R.id.recyclerViewLogs);
         tvEventCount = findViewById(R.id.tvEventCount);
+        tvGraphTitle = findViewById(R.id.tvGraphTitle);
+        eventLineChart = findViewById(R.id.eventLineChart);
+        eventBarChart = findViewById(R.id.eventBarChart);
+        detailedLogsContainer = findViewById(R.id.detailedLogsContainer);
+        btnShowDetailedLogs = findViewById(R.id.btnShowDetailedLogs);
         spinnerFilter = findViewById(R.id.spinnerFilter);
 
         // Setup RecyclerView
@@ -84,6 +106,7 @@ public class LogViewerActivity extends AppCompatActivity {
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
                 currentFilter = filters[position];
                 applyFilter();
+                updateGraph();
             }
 
             @Override
@@ -91,29 +114,110 @@ public class LogViewerActivity extends AppCompatActivity {
             }
         });
 
+        // Show/Hide detailed logs button
+        btnShowDetailedLogs.setOnClickListener(v -> {
+            if (detailedLogsContainer.getVisibility() == View.GONE) {
+                detailedLogsContainer.setVisibility(View.VISIBLE);
+                btnShowDetailedLogs.setText("Hide Detailed Logs");
+            } else {
+                detailedLogsContainer.setVisibility(View.GONE);
+                btnShowDetailedLogs.setText("View Detailed Logs");
+            }
+        });
+
         findViewById(R.id.btnClearAllLogs).setOnClickListener(v -> clearAllLogs());
+
+        // Refresh button
+        findViewById(R.id.btnRefreshLogs).setOnClickListener(v -> {
+            Toast.makeText(this, "Refreshing logs...", Toast.LENGTH_SHORT).show();
+            loadAllLogs();
+            applyFilter();
+            updateGraph();
+        });
+
+        // Setup charts
+        setupLineChart();
+        setupBarChart();
+    }
+
+    private void setupLineChart() {
+        eventLineChart.getDescription().setEnabled(false);
+        eventLineChart.setTouchEnabled(true);
+        eventLineChart.setDragEnabled(true);
+        eventLineChart.setScaleEnabled(true);
+        eventLineChart.setPinchZoom(true);
+        eventLineChart.setDrawGridBackground(false);
+        eventLineChart.setBackgroundColor(Color.TRANSPARENT);
+
+        XAxis xAxis = eventLineChart.getXAxis();
+        xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
+        xAxis.setTextColor(0xFF94A3B8);
+        xAxis.setDrawGridLines(false);
+        xAxis.setGranularity(1f);
+
+        YAxis leftAxis = eventLineChart.getAxisLeft();
+        leftAxis.setTextColor(0xFF94A3B8);
+        leftAxis.setDrawGridLines(true);
+        leftAxis.setGridColor(0x33FFFFFF);
+        leftAxis.setAxisMinimum(0f); // Fix: Start from 0
+
+        YAxis rightAxis = eventLineChart.getAxisRight();
+        rightAxis.setEnabled(false);
+
+        eventLineChart.getLegend().setTextColor(0xFF94A3B8);
+    }
+
+    private void setupBarChart() {
+        eventBarChart.getDescription().setEnabled(false);
+        eventBarChart.setTouchEnabled(true);
+        eventBarChart.setDragEnabled(true);
+        eventBarChart.setScaleEnabled(true);
+        eventBarChart.setPinchZoom(true);
+        eventBarChart.setDrawGridBackground(false);
+        eventBarChart.setBackgroundColor(Color.TRANSPARENT);
+
+        XAxis xAxis = eventBarChart.getXAxis();
+        xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
+        xAxis.setTextColor(0xFF94A3B8);
+        xAxis.setDrawGridLines(false);
+        xAxis.setGranularity(1f);
+
+        YAxis leftAxis = eventBarChart.getAxisLeft();
+        leftAxis.setTextColor(0xFF94A3B8);
+        leftAxis.setDrawGridLines(true);
+        leftAxis.setGridColor(0x33FFFFFF);
+        leftAxis.setAxisMinimum(0f); // Fix: Start from 0
+
+        YAxis rightAxis = eventBarChart.getAxisRight();
+        rightAxis.setEnabled(false);
+
+        eventBarChart.getLegend().setTextColor(0xFF94A3B8);
     }
 
     private void loadAllLogs() {
         allEvents.clear();
 
+        Log.i(TAG, "=== Starting to load logs ===");
         loadTelemetryEvents();
         loadDetectionResults();
 
         Collections.sort(allEvents, (a, b) -> Long.compare(b.timestamp, a.timestamp));
 
-        Log.i(TAG, "Loaded " + allEvents.size() + " total events from SQLite");
+        Log.i(TAG, "=== Loaded " + allEvents.size() + " total events from SQLite ===");
+
+        // Show toast with event count for debugging
+        Toast.makeText(this, "Loaded " + allEvents.size() + " events from database",
+                Toast.LENGTH_SHORT).show();
     }
 
     private void loadTelemetryEvents() {
         try {
-            com.dearmoon.shield.data.EventDatabase database = 
-                com.dearmoon.shield.data.EventDatabase.getInstance(this);
-            
+            com.dearmoon.shield.data.EventDatabase database = com.dearmoon.shield.data.EventDatabase.getInstance(this);
+
             Log.d(TAG, "Loading telemetry events from database...");
             List<JSONObject> events = database.getAllEvents("ALL", 1000);
             Log.i(TAG, "Database returned " + events.size() + " telemetry events");
-            
+
             for (JSONObject json : events) {
                 try {
                     LogEntry entry = parseTelemetryEvent(json);
@@ -124,7 +228,7 @@ public class LogViewerActivity extends AppCompatActivity {
                     Log.e(TAG, "Error parsing event: " + json.toString(), e);
                 }
             }
-            
+
             Log.i(TAG, "Successfully parsed " + allEvents.size() + " telemetry events");
         } catch (Exception e) {
             Log.e(TAG, "Error reading telemetry from SQLite", e);
@@ -160,7 +264,7 @@ public class LogViewerActivity extends AppCompatActivity {
                 break;
 
             case "HONEYFILE_ACCESS":
-                entry.title = "⚠️ HONEYFILE ACCESSED";
+                entry.title = "HONEYFILE ACCESSED";
                 entry.details = String.format("Access Type: %s\nFile: %s\nCalling UID: %d\nPackage: %s",
                         json.optString("accessType", "UNKNOWN"),
                         json.optString("filePath", "Unknown"),
@@ -202,11 +306,10 @@ public class LogViewerActivity extends AppCompatActivity {
 
     private void loadDetectionResults() {
         try {
-            com.dearmoon.shield.data.EventDatabase database = 
-                com.dearmoon.shield.data.EventDatabase.getInstance(this);
-            
+            com.dearmoon.shield.data.EventDatabase database = com.dearmoon.shield.data.EventDatabase.getInstance(this);
+
             List<JSONObject> results = database.getAllDetectionResults(1000);
-            
+
             for (JSONObject json : results) {
                 try {
                     LogEntry entry = parseDetectionResult(json);
@@ -217,7 +320,7 @@ public class LogViewerActivity extends AppCompatActivity {
                     Log.e(TAG, "Error parsing detection result: " + json.toString(), e);
                 }
             }
-            
+
             Log.i(TAG, "Loaded " + results.size() + " detection results from SQLite");
         } catch (Exception e) {
             Log.e(TAG, "Error reading detection results from SQLite", e);
@@ -244,7 +347,7 @@ public class LogViewerActivity extends AppCompatActivity {
                 json.optString("kl_divergence", "N/A"),
                 sprtState,
                 confidenceScore,
-                confidenceScore >= 70 ? "⚠️ HIGH RISK" : confidenceScore >= 40 ? "MEDIUM" : "LOW");
+                confidenceScore >= 70 ? "HIGH RISK" : confidenceScore >= 40 ? "MEDIUM" : "LOW");
 
         if (confidenceScore >= 70) {
             entry.severity = "CRITICAL";
@@ -270,7 +373,6 @@ public class LogViewerActivity extends AppCompatActivity {
         }
     }
 
-
     private void applyFilter() {
         filteredEvents.clear();
 
@@ -292,19 +394,138 @@ public class LogViewerActivity extends AppCompatActivity {
         tvEventCount.setText(countText);
     }
 
+    private void updateGraph() {
+        // Update graph title based on filter
+        String graphTitle = currentFilter.equals("ALL") ? "Event Activity Overview"
+                : currentFilter.replace("_", " ") + " Activity";
+        tvGraphTitle.setText(graphTitle);
+
+        // Determine which chart type to use based on filter
+        boolean useBarChart = shouldUseBarChart(currentFilter);
+
+        if (useBarChart) {
+            eventLineChart.setVisibility(View.GONE);
+            eventBarChart.setVisibility(View.VISIBLE);
+            updateBarChart();
+        } else {
+            eventBarChart.setVisibility(View.GONE);
+            eventLineChart.setVisibility(View.VISIBLE);
+            updateLineChart();
+        }
+    }
+
+    private boolean shouldUseBarChart(String filter) {
+        // Use bar chart for discrete security events
+        // Use line chart for file system, network and detection (continuous monitoring)
+        switch (filter) {
+            case "ACCESSIBILITY":
+            case "HONEYFILE_ACCESS":
+                return true;
+            case "FILE_SYSTEM":
+            case "NETWORK":
+            case "DETECTION":
+            case "ALL":
+            default:
+                return false;
+        }
+    }
+
+    private void updateLineChart() {
+        // Prepare data for graph
+        Map<Long, Integer> eventCounts = new HashMap<>();
+
+        // Group events by hour
+        for (LogEntry entry : filteredEvents) {
+            long hourTimestamp = (entry.timestamp / 3600000) * 3600000; // Round to hour
+            eventCounts.put(hourTimestamp, eventCounts.getOrDefault(hourTimestamp, 0) + 1);
+        }
+
+        // Convert to chart entries
+        List<Entry> entries = new ArrayList<>();
+        List<Long> timestamps = new ArrayList<>(eventCounts.keySet());
+        Collections.sort(timestamps);
+
+        for (int i = 0; i < timestamps.size(); i++) {
+            long timestamp = timestamps.get(i);
+            int count = eventCounts.get(timestamp);
+            entries.add(new Entry(i, count));
+        }
+
+        if (entries.isEmpty()) {
+            entries.add(new Entry(0, 0));
+        }
+
+        // Create dataset
+        LineDataSet dataSet = new LineDataSet(entries, "Events");
+        dataSet.setColor(0xFF3B82F6);
+        dataSet.setCircleColor(0xFF3B82F6);
+        dataSet.setLineWidth(2f);
+        dataSet.setCircleRadius(4f);
+        dataSet.setDrawCircleHole(false);
+        dataSet.setValueTextSize(9f);
+        dataSet.setValueTextColor(0xFF94A3B8);
+        dataSet.setDrawFilled(true);
+        dataSet.setFillColor(0xFF3B82F6);
+        dataSet.setFillAlpha(50);
+        dataSet.setMode(LineDataSet.Mode.CUBIC_BEZIER);
+
+        LineData lineData = new LineData(dataSet);
+        eventLineChart.setData(lineData);
+        eventLineChart.animateX(1000);
+        eventLineChart.invalidate();
+    }
+
+    private void updateBarChart() {
+        // Prepare data for bar graph
+        Map<Long, Integer> eventCounts = new HashMap<>();
+
+        // Group events by hour
+        for (LogEntry entry : filteredEvents) {
+            long hourTimestamp = (entry.timestamp / 3600000) * 3600000;
+            eventCounts.put(hourTimestamp, eventCounts.getOrDefault(hourTimestamp, 0) + 1);
+        }
+
+        // Convert to chart entries
+        List<BarEntry> entries = new ArrayList<>();
+        List<Long> timestamps = new ArrayList<>(eventCounts.keySet());
+        Collections.sort(timestamps);
+
+        for (int i = 0; i < timestamps.size(); i++) {
+            long timestamp = timestamps.get(i);
+            int count = eventCounts.get(timestamp);
+            entries.add(new BarEntry(i, count));
+        }
+
+        if (entries.isEmpty()) {
+            entries.add(new BarEntry(0, 0));
+        }
+
+        // Create dataset
+        BarDataSet dataSet = new BarDataSet(entries, "Events");
+        dataSet.setColor(0xFFFF6F00); // Orange for bar charts
+        dataSet.setValueTextSize(9f);
+        dataSet.setValueTextColor(0xFF94A3B8);
+
+        BarData barData = new BarData(dataSet);
+        barData.setBarWidth(0.8f);
+        eventBarChart.setData(barData);
+        eventBarChart.animateY(1000);
+        eventBarChart.invalidate();
+    }
+
     private void clearAllLogs() {
-        com.dearmoon.shield.data.EventDatabase database = 
-            com.dearmoon.shield.data.EventDatabase.getInstance(this);
+        com.dearmoon.shield.data.EventDatabase database = com.dearmoon.shield.data.EventDatabase.getInstance(this);
         database.clearAllEvents();
-        
+
         // Also delete legacy JSON files if they exist
         new File(getFilesDir(), "modeb_telemetry.json").delete();
         new File(getFilesDir(), "detection_results.json").delete();
-        
+
         allEvents.clear();
         filteredEvents.clear();
         logAdapter.notifyDataSetChanged();
         updateEventCount();
+        updateGraph();
         Toast.makeText(this, "All logs cleared", Toast.LENGTH_SHORT).show();
     }
 
@@ -317,7 +538,7 @@ public class LogViewerActivity extends AppCompatActivity {
         public String severity; // INFO, LOW, MEDIUM, HIGH, CRITICAL
 
         public String getFormattedTime() {
-            SimpleDateFormat sdf = new SimpleDateFormat("MMM dd, yy HH:mm", Locale.US);
+            SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss", Locale.US);
             return sdf.format(new Date(timestamp));
         }
 

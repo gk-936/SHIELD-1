@@ -62,62 +62,26 @@
         app:layout_constraintEnd_toEndOf="parent"
         android:padding="32dp">
 
-        <!-- Mode A (Empty / Inactive) -->
+        <!-- Mode A (Root - Inactive) -->
         <Button
             android:id="@+id/btnModeA"
             android:layout_width="match_parent"
             android:layout_height="80dp"
-            android:text="Mode A"
+            android:text="Root"
             android:textSize="18sp"
             android:textColor="@color/text_muted"
             android:background="@drawable/bg_glass_button_inactive"
             app:backgroundTint="@null"
             android:layout_marginBottom="24dp" />
 
-        <!-- Mode B (Active Toggle) -->
+        <!-- Mode B (Non-Root Toggle) -->
         <Button
             android:id="@+id/btnModeB"
             android:layout_width="match_parent"
             android:layout_height="80dp"
-            android:text="Mode B"
+            android:text="Non-Root"
             android:textSize="18sp"
             android:textColor="@color/text_primary"
-            android:background="@drawable/bg_glass_button_inactive"
-            app:backgroundTint="@null"
-            android:layout_marginBottom="24dp" />
-
-        <!-- Network Blocking Toggle -->
-        <Button
-            android:id="@+id/btnBlockingToggle"
-            android:layout_width="match_parent"
-            android:layout_height="80dp"
-            android:text="Blocking: OFF"
-            android:textSize="18sp"
-            android:textColor="@color/text_primary"
-            android:background="@drawable/bg_glass_button_inactive"
-            app:backgroundTint="@null"
-            android:layout_marginBottom="16dp" />
-
-        <!-- Test Suite Button -->
-        <Button
-            android:id="@+id/btnTestSuite"
-            android:layout_width="match_parent"
-            android:layout_height="60dp"
-            android:text="🧪 Test Suite"
-            android:textSize="16sp"
-            android:textColor="#FF6F00"
-            android:background="@drawable/bg_glass_button_inactive"
-            app:backgroundTint="@null"
-            android:layout_marginBottom="12dp" />
-
-        <!-- Clear Honeyfiles Button -->
-        <Button
-            android:id="@+id/btnClearHoneyfiles"
-            android:layout_width="match_parent"
-            android:layout_height="50dp"
-            android:text="🗑️ Clear Honeyfiles"
-            android:textSize="14sp"
-            android:textColor="#EF4444"
             android:background="@drawable/bg_glass_button_inactive"
             app:backgroundTint="@null" />
 
@@ -158,19 +122,7 @@
             android:contentDescription="View Logs"
             app:tint="@color/text_primary" />
 
-        <!-- Center: Home -->
-        <ImageButton
-            android:id="@+id/btnNavHome"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:src="@drawable/ic_home_24dp"
-            android:scaleType="centerInside"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="Home"
-            app:tint="@color/primary" />
-
-        <!-- Right: File Monitor & Snapshot -->
+        <!-- Center: File Monitor -->
         <ImageButton
             android:id="@+id/btnNavFile"
             android:layout_width="0dp"
@@ -181,6 +133,7 @@
             android:contentDescription="File Monitor"
             app:tint="@color/text_primary" />
 
+        <!-- Right: Snapshot & Settings -->
         <ImageButton
             android:id="@+id/btnNavSnapshot"
             android:layout_width="0dp"
@@ -190,6 +143,16 @@
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="Snapshot"
             app:tint="@color/text_primary" />
+
+        <ImageButton
+            android:id="@+id/btnNavSettings"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:src="@android:drawable/ic_menu_preferences"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Settings"
+            app:tint="@color/primary" />
 
     </LinearLayout>
 

@@ -137,6 +137,19 @@
             android:parentActivityName=".MainActivity"
             android:label="Ransomware Test Suite" />
 
+        <!-- Settings Activity -->
+        <activity
+            android:name=".SettingsActivity"
+            android:exported="false"
+            android:parentActivityName=".MainActivity"
+            android:label="Settings" />
+
+        <!-- User Guide Activity -->
+        <activity
+            android:name=".UserGuideActivity"
+            android:exported="false"
+            android:label="User Guide" />
+
     </application>
 
 </manifest>
