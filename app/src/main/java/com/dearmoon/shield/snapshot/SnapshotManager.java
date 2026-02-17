@@ -198,6 +198,33 @@ public class SnapshotManager {
         return activeAttackId;
     }
 
+    /**
+     * Recursively counts all files in the monitored directories.
+     */
+    public int getTotalMonitoredFileCount(String[] directories) {
+        int count = 0;
+        for (String dir : directories) {
+            count += countFilesRecursive(new File(dir));
+        }
+        return count;
+    }
+
+    private int countFilesRecursive(File dir) {
+        if (!dir.exists() || !dir.isDirectory()) return 0;
+        File[] files = dir.listFiles();
+        if (files == null) return 0;
+
+        int count = 0;
+        for (File file : files) {
+            if (file.isDirectory()) {
+                count += countFilesRecursive(file);
+            } else if (!isTempFile(file.getName())) {
+                count++;
+            }
+        }
+        return count;
+    }
+
     private String calculateHash(File file) throws Exception {
         if (file.length() > 50 * 1024 * 1024) {
             return "LARGE_FILE";

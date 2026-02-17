@@ -53,6 +53,7 @@ public class LogViewerActivity extends AppCompatActivity {
     private List<LogEntry> filteredEvents = new ArrayList<>();
 
     private String currentFilter = "ALL";
+    private android.content.BroadcastReceiver updateReceiver;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -138,10 +139,38 @@ public class LogViewerActivity extends AppCompatActivity {
         // Setup charts
         setupLineChart();
         setupBarChart();
+
+        // Setup dynamic updates
+        updateReceiver = new android.content.BroadcastReceiver() {
+            @Override
+            public void onReceive(android.content.Context context, android.content.Intent intent) {
+                if ("com.dearmoon.shield.DATA_UPDATED".equals(intent.getAction())) {
+                    loadAllLogs();
+                    applyFilter();
+                    updateGraph();
+                }
+            }
+        };
+        android.content.IntentFilter filter = new android.content.IntentFilter("com.dearmoon.shield.DATA_UPDATED");
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(updateReceiver, filter, android.content.Context.RECEIVER_NOT_EXPORTED);
+        } else {
+            registerReceiver(updateReceiver, filter);
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        if (updateReceiver != null) {
+            unregisterReceiver(updateReceiver);
+        }
+        super.onDestroy();
     }
 
     private void setupLineChart() {
-        eventLineChart.getDescription().setEnabled(false);
+        eventLineChart.getDescription().setText("Time (Hourly Buckets)");
+        eventLineChart.getDescription().setTextColor(0xFF94A3B8);
+        eventLineChart.getDescription().setEnabled(true);
         eventLineChart.setTouchEnabled(true);
         eventLineChart.setDragEnabled(true);
         eventLineChart.setScaleEnabled(true);
@@ -168,7 +197,9 @@ public class LogViewerActivity extends AppCompatActivity {
     }
 
     private void setupBarChart() {
-        eventBarChart.getDescription().setEnabled(false);
+        eventBarChart.getDescription().setText("Event Category Samples");
+        eventBarChart.getDescription().setTextColor(0xFF94A3B8);
+        eventBarChart.getDescription().setEnabled(true);
         eventBarChart.setTouchEnabled(true);
         eventBarChart.setDragEnabled(true);
         eventBarChart.setScaleEnabled(true);
@@ -471,7 +502,13 @@ public class LogViewerActivity extends AppCompatActivity {
 
         LineData lineData = new LineData(dataSet);
         eventLineChart.setData(lineData);
-        eventLineChart.animateX(1000);
+        eventLineChart.animateX(500);
+
+        // Dynamic scaling: ensure we see the latest data
+        if (!entries.isEmpty()) {
+            eventLineChart.moveViewToX(entries.get(entries.size() - 1).getX());
+        }
+
         eventLineChart.invalidate();
     }
 

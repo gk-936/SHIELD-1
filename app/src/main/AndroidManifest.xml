@@ -54,6 +54,13 @@
                 android:value="ransomware_detection" />
         </service>
 
+        <!-- Shield Watchdog Service -->
+        <service
+            android:name=".services.ShieldWatchdogService"
+            android:enabled="true"
+            android:exported="false"
+            android:process=":watchdog" />
+
         <!-- Network Guard VPN Service -->
         <service
             android:name=".services.NetworkGuardService"

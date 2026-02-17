@@ -51,6 +51,9 @@ public class ShieldProtectionService extends Service {
         super.onCreate();
         Log.i(TAG, "ShieldProtectionService created");
 
+        // Start watchdog
+        startService(new Intent(this, ShieldWatchdogService.class));
+
         // Initialize storage and detection engine
         storage = new TelemetryStorage(this);
         snapshotManager = new SnapshotManager(this);
@@ -203,6 +206,10 @@ public class ShieldProtectionService extends Service {
     @Override
     public void onDestroy() {
         Log.i(TAG, "ShieldProtectionService destroyed");
+
+        // Set intentionally stopped flag
+        getSharedPreferences("ShieldPrefs", Context.MODE_PRIVATE)
+            .edit().putBoolean("intentionally_stopped", true).apply();
 
         // Stop cleanup handler
         if (cleanupHandler != null) {

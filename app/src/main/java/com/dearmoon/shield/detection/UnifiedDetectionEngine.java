@@ -164,8 +164,20 @@ public class UnifiedDetectionEngine {
                 // AUTOMATED RESTORE: Revert damages after a short delay to ensure termination
                 finalizeMitigationAndRestore();
 
+                // Calculate estimated time to total infection
+                int totalFiles = snapshotManager != null ?
+                    snapshotManager.getTotalMonitoredFileCount(new String[]{
+                        android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOCUMENTS).getAbsolutePath(),
+                        android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS).getAbsolutePath(),
+                        android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_PICTURES).getAbsolutePath(),
+                        android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DCIM).getAbsolutePath()
+                    }) : 1000; // Fallback
+
+                double maliciousRate = recentModifications.size() / (TIME_WINDOW_MS / 1000.0);
+                int infectionTimeSec = maliciousRate > 0 ? (int)(totalFiles / maliciousRate) : -1;
+
                 // Inform user and suggest recovery
-                showHighRiskAlert(filePath, totalScore);
+                showHighRiskAlert(filePath, totalScore, infectionTimeSec);
             }
 
             // Reset SPRT only on ACCEPT_H0 (normal behavior confirmed)
@@ -316,10 +328,11 @@ public class UnifiedDetectionEngine {
         }, 1000); // 1-second delay to ensure process is dead
     }
 
-    private void showHighRiskAlert(String filePath, int score) {
+    private void showHighRiskAlert(String filePath, int score, int infectionTimeSec) {
         android.content.Intent intent = new android.content.Intent("com.dearmoon.shield.HIGH_RISK_ALERT");
         intent.putExtra("file_path", filePath);
         intent.putExtra("confidence_score", score);
+        intent.putExtra("infection_time", infectionTimeSec);
         intent.putExtra("instructions", "Ransomware activity terminated and automated data recovery initiated. Check logs for restoration status.");
         intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
         context.sendBroadcast(intent);
