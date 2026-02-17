@@ -17,13 +17,14 @@ public class EntropyAnalyzer {
 
         long fileSize = file.length();
         
-        // For small files (<10MB), analyze entire file
-        if (fileSize <= FULL_ANALYSIS_THRESHOLD) {
-            return calculateFullFileEntropy(file);
+        // SECURITY FIX: Always use multi-region sampling for files > SAMPLE_SIZE
+        // to catch partial encryption. Use full analysis only for very small files.
+        if (fileSize > SAMPLE_SIZE) {
+            return calculateMultiRegionEntropy(file, fileSize);
         }
         
-        // For large files, sample 3 regions: beginning, middle, end
-        return calculateMultiRegionEntropy(file, fileSize);
+        // For very small files, analyze entire file
+        return calculateFullFileEntropy(file);
     }
 
     /**

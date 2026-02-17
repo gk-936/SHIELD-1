@@ -55,6 +55,7 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation("org.mockito:mockito-core:5.3.1")
     testImplementation("org.mockito:mockito-inline:5.2.0")
+    testImplementation("org.robolectric:robolectric:4.14.1")
     
     // Android testing dependencies
     androidTestImplementation(libs.ext.junit)

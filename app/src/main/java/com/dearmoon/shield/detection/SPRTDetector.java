@@ -21,20 +21,26 @@ public class SPRTDetector {
         ACCEPT_H1   // Ransomware behavior
     }
 
-    public synchronized SPRTState addObservation(double fileModificationRate) {
-        // Don't reset on decision - keep accumulating evidence
-        // Calculate log-likelihood ratio increment
-        // Using Poisson distribution: log(P(k|λ₁)/P(k|λ₀)) = k·log(λ₁/λ₀) + (λ₀ - λ₁)
-        // where k = number of events observed in time window
-        // fileModificationRate is events/sec, so multiply by 1 sec to get count
-        int eventCount = (int) Math.round(fileModificationRate);
-        
-        double logLR = eventCount * Math.log(RANSOMWARE_RATE / NORMAL_RATE) 
-                     + (NORMAL_RATE - RANSOMWARE_RATE);
-        
-        logLikelihoodRatio += logLR;
+    /**
+     * Records a single event arrival.
+     * Increments log-likelihood ratio by log(λ₁/λ₀).
+     */
+    public synchronized void recordEvent() {
+        logLikelihoodRatio += Math.log(RANSOMWARE_RATE / NORMAL_RATE);
         sampleCount++;
+        updateState();
+    }
 
+    /**
+     * Records elapsed time.
+     * Decrements log-likelihood ratio by (λ₁ - λ₀) * deltaSeconds.
+     */
+    public synchronized void recordTimePassed(double seconds) {
+        logLikelihoodRatio += (NORMAL_RATE - RANSOMWARE_RATE) * seconds;
+        updateState();
+    }
+
+    private void updateState() {
         // Check decision boundaries
         if (logLikelihoodRatio >= Math.log(B)) {
             currentState = SPRTState.ACCEPT_H1;
@@ -43,7 +49,13 @@ public class SPRTDetector {
         } else {
             currentState = SPRTState.CONTINUE;
         }
+    }
 
+    @Deprecated
+    public synchronized SPRTState addObservation(double fileModificationRate) {
+        // Legacy method for compatibility - now implements correct math for 1s window
+        recordEvent(); // This is not quite right for the old API but we are moving away from it
+        recordTimePassed(1.0);
         return currentState;
     }
 

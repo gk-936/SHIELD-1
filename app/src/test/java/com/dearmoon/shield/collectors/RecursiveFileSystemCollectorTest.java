@@ -107,30 +107,28 @@ public class RecursiveFileSystemCollectorTest {
     }
 
     /**
-     * TEST 4: Verify depth-3 limit enforcement
+     * TEST 4: Verify depth-8 limit enforcement
      */
     @Test
-    public void testDepth3LimitEnforcement() throws Exception {
+    public void testDepth8LimitEnforcement() throws Exception {
         File rootDir = tempFolder.newFolder("root");
         
-        // Create directory tree: root/l1/l2/l3/l4
-        File level1 = new File(rootDir, "level1");
-        level1.mkdir();
-        File level2 = new File(level1, "level2");
-        level2.mkdir();
-        File level3 = new File(level2, "level3");
-        level3.mkdir();
-        File level4 = new File(level3, "level4"); // Should NOT be monitored (depth 4)
-        level4.mkdir();
+        // Create directory tree: root/l1/l2/.../l9
+        File current = rootDir;
+        for (int i = 1; i <= 9; i++) {
+            current = new File(current, "level" + i);
+            current.mkdir();
+        }
         
         collector = new RecursiveFileSystemCollector(rootDir.getAbsolutePath(), mockStorage);
         collector.startWatching();
         
         int count = collector.getMonitoredDirectoryCount();
-        assertEquals("Should monitor up to depth 3 only (root + l1 + l2 + l3 = 4)", 4, count);
+        // Should monitor depth 0 to 8 (9 directories total)
+        assertEquals("Should monitor up to depth 8 only (root + l1...l8 = 9)", 9, count);
         
         collector.stopWatching();
-        System.out.println("✅ Depth-3 limit enforced: " + count + " directories (level4 excluded)");
+        System.out.println("✅ Depth-8 limit enforced: " + count + " directories (level9 excluded)");
     }
 
     /**
@@ -180,14 +178,14 @@ public class RecursiveFileSystemCollectorTest {
     }
 
     /**
-     * TEST 7: Verify max observers limit (100)
+     * TEST 7: Verify max observers limit (1000)
      */
     @Test
     public void testMaxObserversLimit() throws Exception {
         File rootDir = tempFolder.newFolder("root");
         
-        // Create 120 subdirectories (should stop at 100)
-        for (int i = 0; i < 120; i++) {
+        // Create 1100 subdirectories (should stop at 1000)
+        for (int i = 0; i < 1100; i++) {
             File subDir = new File(rootDir, "dir" + i);
             subDir.mkdir();
         }
@@ -196,10 +194,10 @@ public class RecursiveFileSystemCollectorTest {
         collector.startWatching();
         
         int count = collector.getMonitoredDirectoryCount();
-        assertTrue("Should not exceed 100 observers", count <= 100);
+        assertTrue("Should not exceed 1000 observers", count <= 1000);
         
         collector.stopWatching();
-        System.out.println("✅ Max observers limit enforced: " + count + " directories (max 100)");
+        System.out.println("✅ Max observers limit enforced: " + count + " directories (max 1000)");
     }
 
     /**
