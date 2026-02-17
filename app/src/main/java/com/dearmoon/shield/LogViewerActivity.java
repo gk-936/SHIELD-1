@@ -476,34 +476,42 @@ public class LogViewerActivity extends AppCompatActivity {
             eventCounts.put(hourTimestamp, eventCounts.getOrDefault(hourTimestamp, 0) + 1);
         }
 
-        // Convert to chart entries
+        // Convert to chart entries - always start from 0
         List<Entry> entries = new ArrayList<>();
+
+        // Add starting point at 0 if we have data
+        if (!eventCounts.isEmpty()) {
+            entries.add(new Entry(0, 0)); // Start from baseline
+        }
+
         List<Long> timestamps = new ArrayList<>(eventCounts.keySet());
         Collections.sort(timestamps);
 
+        // Add data points (offset by 1 because we added starting point at 0)
         for (int i = 0; i < timestamps.size(); i++) {
             long timestamp = timestamps.get(i);
             int count = eventCounts.get(timestamp);
-            entries.add(new Entry(i, count));
+            entries.add(new Entry(i + 1, count));
         }
 
+        // If no data, show baseline
         if (entries.isEmpty()) {
             entries.add(new Entry(0, 0));
+            entries.add(new Entry(1, 0));
         }
 
         // Create dataset
         LineDataSet dataSet = new LineDataSet(entries, "Events");
         dataSet.setColor(0xFF3B82F6);
         dataSet.setCircleColor(0xFF3B82F6);
-        dataSet.setLineWidth(2f);
-        dataSet.setCircleRadius(4f);
+        dataSet.setLineWidth(2.5f);
+        dataSet.setCircleRadius(5f);
         dataSet.setDrawCircleHole(false);
+        dataSet.setDrawCircles(true); // Ensure circles are always drawn
         dataSet.setValueTextSize(9f);
         dataSet.setValueTextColor(0xFF94A3B8);
-        dataSet.setDrawFilled(true);
-        dataSet.setFillColor(0xFF3B82F6);
-        dataSet.setFillAlpha(50);
-        dataSet.setMode(LineDataSet.Mode.CUBIC_BEZIER);
+        dataSet.setDrawFilled(false); // Remove fill to match temperature graph style
+        dataSet.setMode(LineDataSet.Mode.LINEAR); // Use linear mode for straight lines between points
 
         LineData lineData = new LineData(dataSet);
         eventLineChart.setData(lineData);
@@ -527,19 +535,28 @@ public class LogViewerActivity extends AppCompatActivity {
             eventCounts.put(hourTimestamp, eventCounts.getOrDefault(hourTimestamp, 0) + 1);
         }
 
-        // Convert to chart entries
+        // Convert to chart entries - always start from 0
         List<BarEntry> entries = new ArrayList<>();
+
+        // Add starting point at 0 if we have data
+        if (!eventCounts.isEmpty()) {
+            entries.add(new BarEntry(0, 0)); // Start from baseline
+        }
+
         List<Long> timestamps = new ArrayList<>(eventCounts.keySet());
         Collections.sort(timestamps);
 
+        // Add data points (offset by 1 because we added starting point at 0)
         for (int i = 0; i < timestamps.size(); i++) {
             long timestamp = timestamps.get(i);
             int count = eventCounts.get(timestamp);
-            entries.add(new BarEntry(i, count));
+            entries.add(new BarEntry(i + 1, count));
         }
 
+        // If no data, show baseline
         if (entries.isEmpty()) {
             entries.add(new BarEntry(0, 0));
+            entries.add(new BarEntry(1, 0));
         }
 
         // Create dataset
