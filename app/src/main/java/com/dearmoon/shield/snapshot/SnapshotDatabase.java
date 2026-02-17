@@ -139,6 +139,28 @@ public class SnapshotDatabase extends SQLiteOpenHelper {
         return id;
     }
 
+    public synchronized int getTotalFileCount() {
+        SQLiteDatabase db = getReadableDatabase();
+        Cursor cursor = db.rawQuery("SELECT COUNT(*) FROM " + TABLE_FILES, null);
+        int count = 0;
+        if (cursor.moveToFirst()) {
+            count = cursor.getInt(0);
+        }
+        cursor.close();
+        return count;
+    }
+
+    public synchronized int getInfectedFileCount() {
+        SQLiteDatabase db = getReadableDatabase();
+        Cursor cursor = db.rawQuery("SELECT COUNT(*) FROM " + TABLE_FILES + " WHERE modified_during_attack > 0", null);
+        int count = 0;
+        if (cursor.moveToFirst()) {
+            count = cursor.getInt(0);
+        }
+        cursor.close();
+        return count;
+    }
+
     public synchronized void deleteFile(String filePath) {
         SQLiteDatabase db = getWritableDatabase();
         db.delete(TABLE_FILES, "file_path = ?", new String[]{filePath});

@@ -198,6 +198,14 @@ public class SnapshotManager {
         return activeAttackId;
     }
 
+    public int getTotalFileCount() {
+        return database.getTotalFileCount();
+    }
+
+    public int getInfectedFileCount() {
+        return database.getInfectedFileCount();
+    }
+
     /**
      * Recursively counts all files in the monitored directories.
      */
