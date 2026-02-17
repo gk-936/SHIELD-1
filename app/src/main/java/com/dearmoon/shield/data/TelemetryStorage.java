@@ -9,16 +9,26 @@ public class TelemetryStorage {
     private static final String TAG = "TelemetryStorage";
     private final EventDatabase database;
     private final Context context;
+    private final com.dearmoon.shield.detection.PackageAttributor attributor;
 
     public TelemetryStorage(Context context) {
         this.context = context;
         this.database = EventDatabase.getInstance(context);
+        this.attributor = new com.dearmoon.shield.detection.PackageAttributor(context);
         Log.i(TAG, "TelemetryStorage initialized with SQLite backend");
     }
 
     public synchronized void store(TelemetryEvent event) {
         try {
             Log.d(TAG, "EVENT GENERATED: " + event.getEventType());
+
+            // Enrich event with app metadata if UID is available
+            if (event.getUid() > 0) {
+                com.dearmoon.shield.detection.PackageAttributor.AppInfo info =
+                    attributor.getAppInfoForUid(event.getUid());
+                event.setPackageName(info.packageName);
+                event.setAppLabel(info.appLabel);
+            }
             
             if (event instanceof FileSystemEvent) {
                 long id = database.insertFileSystemEvent((FileSystemEvent) event);
