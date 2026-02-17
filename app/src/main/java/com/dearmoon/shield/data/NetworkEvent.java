@@ -9,7 +9,6 @@ public class NetworkEvent extends TelemetryEvent {
     private String protocol;
     private int sentBytes;
     private int receivedBytes;
-    private int uid;
 
     public NetworkEvent(String destIp, int destPort, String protocol, int sentBytes, int receivedBytes, int uid) {
         super("NETWORK");
@@ -30,7 +29,6 @@ public class NetworkEvent extends TelemetryEvent {
             json.put("protocol", protocol);
             json.put("bytesSent", sentBytes);
             json.put("bytesReceived", receivedBytes);
-            json.put("appUid", uid);
             return json;
         } catch (JSONException e) {
             return new JSONObject();

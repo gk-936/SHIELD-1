@@ -286,34 +286,39 @@ public class LogViewerActivity extends AppCompatActivity {
 
                 entry.title = fileName;
                 entry.details = String.format(
-                        "Operation: %s\nFull Path: %s\nExtension: %s\nSize: %d bytes",
+                        "Operation: %s\nFull Path: %s\nExtension: %s\nSize: %d bytes\nApp: %s (%s)",
                         operation,
                         filePath,
                         extension,
-                        size);
+                        size,
+                        json.optString("appLabel", "unknown"),
+                        json.optString("packageName", "unknown"));
                 entry.severity = getSeverityForOperation(operation);
                 break;
 
             case "HONEYFILE_ACCESS":
                 entry.title = "HONEYFILE ACCESSED";
-                entry.details = String.format("Access Type: %s\nFile: %s\nCalling UID: %d\nPackage: %s",
+                entry.details = String.format("Access Type: %s\nFile: %s\nApp: %s\nPackage: %s\nUID: %d",
                         json.optString("accessType", "UNKNOWN"),
                         json.optString("filePath", "Unknown"),
-                        json.optInt("callingUid", -1),
-                        json.optString("packageName", "unknown"));
+                        json.optString("appLabel", "unknown"),
+                        json.optString("packageName", "unknown"),
+                        json.optInt("uid", -1));
                 entry.severity = "HIGH";
                 break;
 
             case "NETWORK":
                 entry.title = "Network Event";
                 entry.details = String.format(
-                        "Protocol: %s\nDestination: %s:%d\nBytes Sent: %d\nBytes Received: %d\nApp UID: %d",
+                        "Protocol: %s\nDestination: %s:%d\nBytes Sent: %d\nBytes Received: %d\nApp: %s\nPackage: %s\nUID: %d",
                         json.optString("protocol", "UNKNOWN"),
                         json.optString("destinationIp", "0.0.0.0"),
                         json.optInt("destinationPort", 0),
                         json.optLong("bytesSent", 0),
                         json.optLong("bytesReceived", 0),
-                        json.optInt("appUid", -1));
+                        json.optString("appLabel", "unknown"),
+                        json.optString("packageName", "unknown"),
+                        json.optInt("uid", -1));
                 entry.severity = "INFO";
                 break;
 

@@ -14,7 +14,7 @@ import java.util.List;
 public class EventDatabase extends SQLiteOpenHelper {
     private static final String TAG = "EventDatabase";
     private static final String DATABASE_NAME = "shield_events.db";
-    private static final int DATABASE_VERSION = 1;
+    private static final int DATABASE_VERSION = 2;
 
     private static EventDatabase instance;
     private final Context context;
@@ -58,7 +58,10 @@ public class EventDatabase extends SQLiteOpenHelper {
                 "file_path TEXT, " +
                 "file_extension TEXT, " +
                 "file_size_before INTEGER, " +
-                "file_size_after INTEGER)");
+                "file_size_after INTEGER, " +
+                "uid INTEGER, " +
+                "package_name TEXT, " +
+                "app_label TEXT)");
 
         // Honeyfile Events Table
         db.execSQL("CREATE TABLE " + TABLE_HONEYFILE + " (" +
@@ -68,7 +71,8 @@ public class EventDatabase extends SQLiteOpenHelper {
                 "file_path TEXT, " +
                 "access_type TEXT, " +
                 "calling_uid INTEGER, " +
-                "package_name TEXT)");
+                "package_name TEXT, " +
+                "app_label TEXT)");
 
         // Network Events Table
         db.execSQL("CREATE TABLE " + TABLE_NETWORK + " (" +
@@ -80,7 +84,9 @@ public class EventDatabase extends SQLiteOpenHelper {
                 "protocol TEXT, " +
                 "bytes_sent INTEGER, " +
                 "bytes_received INTEGER, " +
-                "app_uid INTEGER)");
+                "app_uid INTEGER, " +
+                "package_name TEXT, " +
+                "app_label TEXT)");
 
         // Detection Results Table
         db.execSQL("CREATE TABLE " + TABLE_DETECTION + " (" +
@@ -154,6 +160,9 @@ public class EventDatabase extends SQLiteOpenHelper {
             values.put("file_extension", json.optString("fileExtension"));
             values.put("file_size_before", json.optLong("fileSizeBefore"));
             values.put("file_size_after", json.optLong("fileSizeAfter"));
+            values.put("uid", json.optInt("uid"));
+            values.put("package_name", json.optString("packageName"));
+            values.put("app_label", json.optString("appLabel"));
         } catch (Exception e) {
             Log.e(TAG, "Failed to convert FileSystemEvent to JSON", e);
             return -1;
@@ -176,6 +185,7 @@ public class EventDatabase extends SQLiteOpenHelper {
             values.put("access_type", json.optString("accessType"));
             values.put("calling_uid", json.optInt("callingUid"));
             values.put("package_name", json.optString("packageName"));
+            values.put("app_label", json.optString("appLabel"));
         } catch (Exception e) {
             Log.e(TAG, "Failed to convert HoneyfileEvent to JSON", e);
             return -1;
@@ -200,6 +210,8 @@ public class EventDatabase extends SQLiteOpenHelper {
             values.put("bytes_sent", json.optLong("bytesSent"));
             values.put("bytes_received", json.optLong("bytesReceived"));
             values.put("app_uid", json.optInt("appUid"));
+            values.put("package_name", json.optString("packageName"));
+            values.put("app_label", json.optString("appLabel"));
         } catch (Exception e) {
             Log.e(TAG, "Failed to convert NetworkEvent to JSON", e);
             return -1;
@@ -235,18 +247,18 @@ public class EventDatabase extends SQLiteOpenHelper {
         if ("ALL".equals(eventType)) {
             // Use SQL UNION with explicit column selection for efficiency
             String query = "SELECT timestamp, 'FILE_SYSTEM' as eventType, operation, file_path, file_extension, file_size_after, " +
-                    "NULL as access_type, NULL as calling_uid, NULL as package_name, " +
-                    "NULL as destination_ip, NULL as destination_port, NULL as protocol, NULL as bytes_sent, NULL as bytes_received, NULL as app_uid " +
+                    "NULL as access_type, uid as calling_uid, package_name, app_label, " +
+                    "NULL as destination_ip, NULL as destination_port, NULL as protocol, NULL as bytes_sent, NULL as bytes_received " +
                     "FROM " + TABLE_FILE_SYSTEM +
                     " UNION ALL " +
                     "SELECT timestamp, 'HONEYFILE_ACCESS' as eventType, NULL, file_path, NULL, NULL, " +
-                    "access_type, calling_uid, package_name, " +
-                    "NULL, NULL, NULL, NULL, NULL, NULL " +
+                    "access_type, calling_uid, package_name, app_label, " +
+                    "NULL, NULL, NULL, NULL, NULL " +
                     "FROM " + TABLE_HONEYFILE +
                     " UNION ALL " +
                     "SELECT timestamp, 'NETWORK' as eventType, NULL, NULL, NULL, NULL, " +
-                    "NULL, NULL, NULL, " +
-                    "destination_ip, destination_port, protocol, bytes_sent, bytes_received, app_uid " +
+                    "NULL, app_uid as calling_uid, package_name, app_label, " +
+                    "destination_ip, destination_port, protocol, bytes_sent, bytes_received " +
                     "FROM " + TABLE_NETWORK +
                     " ORDER BY timestamp DESC LIMIT " + limit;
             
@@ -280,6 +292,10 @@ public class EventDatabase extends SQLiteOpenHelper {
                 String eventType = cursor.getString(1);
                 json.put("eventType", eventType);
                 
+                json.put("uid", cursor.getInt(7));
+                json.put("packageName", cursor.getString(8));
+                json.put("appLabel", cursor.getString(9));
+
                 if ("FILE_SYSTEM".equals(eventType)) {
                     json.put("operation", cursor.getString(2));
                     json.put("filePath", cursor.getString(3));
@@ -288,15 +304,12 @@ public class EventDatabase extends SQLiteOpenHelper {
                 } else if ("HONEYFILE_ACCESS".equals(eventType)) {
                     json.put("filePath", cursor.getString(3));
                     json.put("accessType", cursor.getString(6));
-                    json.put("callingUid", cursor.getInt(7));
-                    json.put("packageName", cursor.getString(8));
                 } else if ("NETWORK".equals(eventType)) {
-                    json.put("destinationIp", cursor.getString(9));
-                    json.put("destinationPort", cursor.getInt(10));
-                    json.put("protocol", cursor.getString(11));
-                    json.put("bytesSent", cursor.getLong(12));
-                    json.put("bytesReceived", cursor.getLong(13));
-                    json.put("appUid", cursor.getInt(14));
+                    json.put("destinationIp", cursor.getString(10));
+                    json.put("destinationPort", cursor.getInt(11));
+                    json.put("protocol", cursor.getString(12));
+                    json.put("bytesSent", cursor.getLong(13));
+                    json.put("bytesReceived", cursor.getLong(14));
                 }
                 results.add(json);
             } catch (Exception e) {
@@ -323,6 +336,17 @@ public class EventDatabase extends SQLiteOpenHelper {
                     json.put("eventType", eventType);
                     
                     // Parse columns based on event type
+                    // Add common app attribution fields
+                    int uidCol = eventType.equals("NETWORK") ? cursor.getColumnIndex("app_uid") :
+                                 eventType.equals("FILE_SYSTEM") ? cursor.getColumnIndex("uid") :
+                                 cursor.getColumnIndex("calling_uid");
+                    int pkgCol = cursor.getColumnIndex("package_name");
+                    int lblCol = cursor.getColumnIndex("app_label");
+
+                    if (uidCol >= 0 && !cursor.isNull(uidCol)) json.put("uid", cursor.getInt(uidCol));
+                    if (pkgCol >= 0 && !cursor.isNull(pkgCol)) json.put("packageName", cursor.getString(pkgCol));
+                    if (lblCol >= 0 && !cursor.isNull(lblCol)) json.put("appLabel", cursor.getString(lblCol));
+
                     if ("FILE_SYSTEM".equals(eventType)) {
                         int opIdx = cursor.getColumnIndex("operation");
                         int pathIdx = cursor.getColumnIndex("file_path");
@@ -336,27 +360,21 @@ public class EventDatabase extends SQLiteOpenHelper {
                     } else if ("HONEYFILE_ACCESS".equals(eventType)) {
                         int pathIdx = cursor.getColumnIndex("file_path");
                         int accessIdx = cursor.getColumnIndex("access_type");
-                        int uidIdx = cursor.getColumnIndex("calling_uid");
-                        int pkgIdx = cursor.getColumnIndex("package_name");
                         
                         json.put("filePath", pathIdx >= 0 && !cursor.isNull(pathIdx) ? cursor.getString(pathIdx) : "Unknown");
                         json.put("accessType", accessIdx >= 0 && !cursor.isNull(accessIdx) ? cursor.getString(accessIdx) : "UNKNOWN");
-                        json.put("callingUid", uidIdx >= 0 && !cursor.isNull(uidIdx) ? cursor.getInt(uidIdx) : -1);
-                        json.put("packageName", pkgIdx >= 0 && !cursor.isNull(pkgIdx) ? cursor.getString(pkgIdx) : "unknown");
                     } else if ("NETWORK".equals(eventType)) {
                         int ipIdx = cursor.getColumnIndex("destination_ip");
                         int portIdx = cursor.getColumnIndex("destination_port");
                         int protoIdx = cursor.getColumnIndex("protocol");
                         int sentIdx = cursor.getColumnIndex("bytes_sent");
                         int recvIdx = cursor.getColumnIndex("bytes_received");
-                        int uidIdx = cursor.getColumnIndex("app_uid");
                         
                         json.put("destinationIp", ipIdx >= 0 && !cursor.isNull(ipIdx) ? cursor.getString(ipIdx) : "0.0.0.0");
                         json.put("destinationPort", portIdx >= 0 && !cursor.isNull(portIdx) ? cursor.getInt(portIdx) : 0);
                         json.put("protocol", protoIdx >= 0 && !cursor.isNull(protoIdx) ? cursor.getString(protoIdx) : "UNKNOWN");
                         json.put("bytesSent", sentIdx >= 0 && !cursor.isNull(sentIdx) ? cursor.getLong(sentIdx) : 0);
                         json.put("bytesReceived", recvIdx >= 0 && !cursor.isNull(recvIdx) ? cursor.getLong(recvIdx) : 0);
-                        json.put("appUid", uidIdx >= 0 && !cursor.isNull(uidIdx) ? cursor.getInt(uidIdx) : -1);
                     }
                     
                     results.add(json);
