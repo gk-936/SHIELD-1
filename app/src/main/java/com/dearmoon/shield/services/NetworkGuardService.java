@@ -29,6 +29,8 @@ public class NetworkGuardService extends VpnService {
     private volatile boolean isRunning = false;
     private volatile boolean blockAllTraffic = false;
     private volatile boolean blockingEnabled = false;
+    private final java.util.Set<String> flowCache = java.util.Collections.synchronizedSet(new java.util.HashSet<>());
+    private long lastCacheClear = System.currentTimeMillis();
     private EmergencyModeReceiver emergencyReceiver;
     private BlockingToggleReceiver blockingToggleReceiver;
 
@@ -199,27 +201,40 @@ public class NetworkGuardService extends VpnService {
         int protocol = packet.get(9) & 0xFF;
         String protoName = protocol == 6 ? "TCP" : protocol == 17 ? "UDP" : "OTHER";
 
-        byte[] destIpBytes = new byte[4];
-        packet.position(16);
-        packet.get(destIpBytes);
-        String destIp = String.format("%d.%d.%d.%d",
-                destIpBytes[0] & 0xFF, destIpBytes[1] & 0xFF,
-                destIpBytes[2] & 0xFF, destIpBytes[3] & 0xFF);
+        // Performance: Optimized IP string conversion
+        int destIpOffset = 16;
+        String destIp = (packet.get(destIpOffset) & 0xFF) + "." +
+                        (packet.get(destIpOffset + 1) & 0xFF) + "." +
+                        (packet.get(destIpOffset + 2) & 0xFF) + "." +
+                        (packet.get(destIpOffset + 3) & 0xFF);
 
         int destPort = 0;
         if (packet.remaining() >= 24) {
             destPort = packet.getShort(22) & 0xFFFF;
         }
 
-        // Log network event
-        if (storage != null) {
-            NetworkEvent netEvent = new NetworkEvent(
-                    destIp, destPort, protoName, packet.remaining(), 0, android.os.Process.myUid());
-            storage.store(netEvent);
+        // Performance: Connection-based logging using flow cache
+        String flowKey = destIp + ":" + destPort + ":" + protoName;
+        if (shouldLogFlow(flowKey)) {
+            if (storage != null) {
+                NetworkEvent netEvent = new NetworkEvent(
+                        destIp, destPort, protoName, packet.remaining(), 0, android.os.Process.myUid());
+                storage.store(netEvent);
+            }
         }
         
         // Check if should block
         return shouldBlockConnection(destIp, destPort, protoName);
+    }
+
+    private boolean shouldLogFlow(String flowKey) {
+        long now = System.currentTimeMillis();
+        // Clear cache every 5 minutes to track re-connections
+        if (now - lastCacheClear > 300000) {
+            flowCache.clear();
+            lastCacheClear = now;
+        }
+        return flowCache.add(flowKey);
     }
     
     /**
@@ -235,16 +250,13 @@ public class NetworkGuardService extends VpnService {
         int nextHeader = packet.get(6) & 0xFF;  // Protocol (TCP=6, UDP=17)
         String protoName = nextHeader == 6 ? "TCP" : nextHeader == 17 ? "UDP" : "OTHER";
 
-        // Extract destination IPv6 address (bytes 24-39)
-        byte[] destIpBytes = new byte[16];
-        packet.position(24);
-        packet.get(destIpBytes);
-        
-        // Format IPv6 address as colon-separated hex
-        StringBuilder ipv6 = new StringBuilder();
-        for (int i = 0; i < 16; i += 2) {
-            if (i > 0) ipv6.append(":");
-            ipv6.append(String.format("%02x%02x", destIpBytes[i] & 0xFF, destIpBytes[i+1] & 0xFF));
+        // Performance: Optimized IPv6 string conversion
+        StringBuilder ipv6 = new StringBuilder(39);
+        for (int i = 24; i < 40; i += 2) {
+            if (i > 24) ipv6.append(":");
+            int b1 = packet.get(i) & 0xFF;
+            int b2 = packet.get(i + 1) & 0xFF;
+            ipv6.append(Integer.toHexString((b1 << 8) | b2));
         }
         String destIp = ipv6.toString();
 
@@ -253,11 +265,14 @@ public class NetworkGuardService extends VpnService {
             destPort = packet.getShort(42) & 0xFFFF;
         }
 
-        // Log network event
-        if (storage != null) {
-            NetworkEvent netEvent = new NetworkEvent(
-                    destIp, destPort, protoName + "_IPv6", packet.remaining(), 0, android.os.Process.myUid());
-            storage.store(netEvent);
+        // Performance: Connection-based logging using flow cache
+        String flowKey = destIp + ":" + destPort + ":" + protoName;
+        if (shouldLogFlow(flowKey)) {
+            if (storage != null) {
+                NetworkEvent netEvent = new NetworkEvent(
+                        destIp, destPort, protoName + "_IPv6", packet.remaining(), 0, android.os.Process.myUid());
+                storage.store(netEvent);
+            }
         }
         
         // Check if should block (IPv6 addresses need special handling)

@@ -20,8 +20,8 @@ import java.util.Map;
  */
 public class RecursiveFileSystemCollector {
     private static final String TAG = "RecursiveFileSystemCollector";
-    private static final int MAX_DEPTH = 3; // Limit depth to prevent performance issues
-    private static final int MAX_OBSERVERS = 100; // Limit total observers to prevent resource exhaustion
+    private static final int MAX_DEPTH = 8; // Deep monitoring for better coverage
+    private static final int MAX_OBSERVERS = 1000; // Increased to support deeper recursion
     
     private final TelemetryStorage storage;
     private final String rootPath;

@@ -375,6 +375,61 @@ public class EventDatabase extends SQLiteOpenHelper {
         return results;
     }
 
+    public List<JSONObject> queryEventsSince(String eventType, long sinceTimestamp, int limit) {
+        List<JSONObject> results = new ArrayList<>();
+        SQLiteDatabase db = getReadableDatabase();
+        String tableName;
+
+        if ("FILE_SYSTEM".equals(eventType)) tableName = TABLE_FILE_SYSTEM;
+        else if ("HONEYFILE_ACCESS".equals(eventType)) tableName = TABLE_HONEYFILE;
+        else if ("NETWORK".equals(eventType)) tableName = TABLE_NETWORK;
+        else return results;
+
+        Cursor cursor = null;
+        try {
+            cursor = db.query(tableName, null, COL_TIMESTAMP + " >= ?",
+                    new String[]{String.valueOf(sinceTimestamp)}, null, null,
+                    COL_TIMESTAMP + " DESC", String.valueOf(limit));
+
+            results = parseTableSpecificCursor(cursor, eventType);
+        } catch (Exception e) {
+            Log.e(TAG, "Error in queryEventsSince", e);
+        } finally {
+            if (cursor != null) cursor.close();
+        }
+        return results;
+    }
+
+    private List<JSONObject> parseTableSpecificCursor(Cursor cursor, String eventType) {
+        List<JSONObject> results = new ArrayList<>();
+        while (cursor.moveToNext()) {
+            try {
+                JSONObject json = new JSONObject();
+                json.put("timestamp", cursor.getLong(cursor.getColumnIndexOrThrow(COL_TIMESTAMP)));
+                json.put("eventType", eventType);
+
+                if ("FILE_SYSTEM".equals(eventType)) {
+                    json.put("operation", cursor.getString(cursor.getColumnIndexOrThrow("operation")));
+                    json.put("filePath", cursor.getString(cursor.getColumnIndexOrThrow("file_path")));
+                    json.put("fileSizeAfter", cursor.getLong(cursor.getColumnIndexOrThrow("file_size_after")));
+                } else if ("HONEYFILE_ACCESS".equals(eventType)) {
+                    json.put("filePath", cursor.getString(cursor.getColumnIndexOrThrow("file_path")));
+                    json.put("accessType", cursor.getString(cursor.getColumnIndexOrThrow("access_type")));
+                    json.put("callingUid", cursor.getInt(cursor.getColumnIndexOrThrow("calling_uid")));
+                } else if ("NETWORK".equals(eventType)) {
+                    json.put("destinationIp", cursor.getString(cursor.getColumnIndexOrThrow("destination_ip")));
+                    json.put("destinationPort", cursor.getInt(cursor.getColumnIndexOrThrow("destination_port")));
+                    json.put("protocol", cursor.getString(cursor.getColumnIndexOrThrow("protocol")));
+                    json.put("appUid", cursor.getInt(cursor.getColumnIndexOrThrow("app_uid")));
+                }
+                results.add(json);
+            } catch (Exception e) {
+                Log.e(TAG, "Error parsing cursor for " + eventType, e);
+            }
+        }
+        return results;
+    }
+
     public List<JSONObject> getAllDetectionResults(int limit) {
         List<JSONObject> results = new ArrayList<>();
         SQLiteDatabase db = getReadableDatabase();

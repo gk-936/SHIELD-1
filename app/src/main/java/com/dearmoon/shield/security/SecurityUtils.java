@@ -51,9 +51,13 @@ public class SecurityUtils {
     }
 
     private static boolean isEmulator() {
-        return Build.FINGERPRINT.contains("generic")
-                || Build.MODEL.contains("Emulator")
-                || Build.MODEL.contains("Android SDK");
+        // Robust check for null Build fields (can happen in test environments)
+        String fingerprint = Build.FINGERPRINT != null ? Build.FINGERPRINT : "";
+        String model = Build.MODEL != null ? Build.MODEL : "";
+
+        return fingerprint.contains("generic")
+                || model.contains("Emulator")
+                || model.contains("Android SDK");
     }
 
     /**

@@ -22,9 +22,8 @@ public class UnifiedDetectionEngine {
     private final HandlerThread detectionThread;
     private final Handler detectionHandler;
 
-    private final ConcurrentLinkedQueue<String> recentModifications = new ConcurrentLinkedQueue<>();
-    private long lastModificationTime = 0;
-    private int modificationsInWindow = 0;
+    private final ConcurrentLinkedQueue<Long> recentModifications = new ConcurrentLinkedQueue<>();
+    private long lastEventTimestamp = 0;
     private static final long TIME_WINDOW_MS = 1000; // 1 second window
 
     public UnifiedDetectionEngine(Context context) {
@@ -70,8 +69,18 @@ public class UnifiedDetectionEngine {
                 return;
             }
 
-            // Update modification rate for SPRT
-            updateModificationRate();
+            // Update SPRT with actual Poisson arrival math
+            long currentTime = System.currentTimeMillis();
+            if (lastEventTimestamp > 0) {
+                double deltaSeconds = (currentTime - lastEventTimestamp) / 1000.0;
+                // Cap delta to avoid massive drift if service was suspended
+                sprtDetector.recordTimePassed(Math.min(deltaSeconds, 5.0));
+            }
+            sprtDetector.recordEvent();
+            lastEventTimestamp = currentTime;
+
+            // Update modification rate for legacy monitoring
+            updateModificationRate(currentTime);
 
             // Calculate entropy and KL-divergence
             Log.d(TAG, "Calculating entropy for: " + filePath);
@@ -87,8 +96,7 @@ public class UnifiedDetectionEngine {
             }
 
             // Get SPRT state
-            double modRate = (double) modificationsInWindow / (TIME_WINDOW_MS / 1000.0);
-            SPRTDetector.SPRTState sprtState = sprtDetector.addObservation(modRate);
+            SPRTDetector.SPRTState sprtState = sprtDetector.getCurrentState();
 
             // Calculate composite confidence score
             int confidenceScore = calculateConfidenceScore(entropy, klDivergence, sprtState);
@@ -131,24 +139,19 @@ public class UnifiedDetectionEngine {
         }
     }
 
-    private void updateModificationRate() {
-        long currentTime = System.currentTimeMillis();
-
+    private void updateModificationRate(long currentTime) {
         // Add current modification
-        recentModifications.add(String.valueOf(currentTime));
+        recentModifications.add(currentTime);
 
         // Remove modifications outside time window
         while (!recentModifications.isEmpty()) {
-            long oldTime = Long.parseLong(recentModifications.peek());
-            if (currentTime - oldTime > TIME_WINDOW_MS) {
+            Long oldTime = recentModifications.peek();
+            if (oldTime != null && currentTime - oldTime > TIME_WINDOW_MS) {
                 recentModifications.poll();
             } else {
                 break;
             }
         }
-
-        modificationsInWindow = recentModifications.size();
-        lastModificationTime = currentTime;
     }
 
     private int calculateConfidenceScore(double entropy, double klDivergence,

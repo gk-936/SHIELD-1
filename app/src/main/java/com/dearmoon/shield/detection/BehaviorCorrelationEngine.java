@@ -102,20 +102,18 @@ public class BehaviorCorrelationEngine {
         return Math.min(score, 30); // Cap at 30 points
     }
     
-    // REUSE: Query existing database tables
+    // REUSE: Query existing database tables with efficiency fixes
     private List<JSONObject> queryRecentFileEvents(long start, long end) {
-        // Simplified query - in production, add WHERE timestamp BETWEEN start AND end
-        return database.getAllEvents("FILE_SYSTEM", 100);
+        return database.queryEventsSince("FILE_SYSTEM", start, 100);
     }
     
     private List<JSONObject> queryRecentNetworkEvents(long start, long end, int uid) {
-        // Simplified query - filter by UID and timestamp
-        List<JSONObject> all = database.getAllEvents("NETWORK", 100);
+        List<JSONObject> all = database.queryEventsSince("NETWORK", start, 100);
+        // Still need to filter by UID if not done in SQL, but DB now filters by time
         List<JSONObject> filtered = new ArrayList<>();
         for (JSONObject event : all) {
-            long ts = event.optLong("timestamp", 0);
             int eventUid = event.optInt("appUid", -1);
-            if (ts >= start && ts <= end && eventUid == uid) {
+            if (eventUid == uid) {
                 filtered.add(event);
             }
         }
@@ -123,15 +121,7 @@ public class BehaviorCorrelationEngine {
     }
     
     private List<JSONObject> queryRecentHoneyfileEvents(long start, long end) {
-        List<JSONObject> all = database.getAllEvents("HONEYFILE_ACCESS", 50);
-        List<JSONObject> filtered = new ArrayList<>();
-        for (JSONObject event : all) {
-            long ts = event.optLong("timestamp", 0);
-            if (ts >= start && ts <= end) {
-                filtered.add(event);
-            }
-        }
-        return filtered;
+        return database.queryEventsSince("HONEYFILE_ACCESS", start, 50);
     }
     
     private List<JSONObject> queryRecentLockerEvents(long start, long end) {

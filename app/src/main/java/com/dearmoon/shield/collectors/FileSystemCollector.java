@@ -47,38 +47,39 @@ public class FileSystemCollector extends FileObserver {
         if (path == null)
             return;
 
-        // Explicitly ignore OPEN events if they slip through, and CLOSE_NOWRITE
-        if ((event & OPEN) != 0 || (event & 0x00000010) != 0) {
+        // Efficiently ignore common events that don't need processing
+        if ((event & (OPEN | ACCESS | CLOSE_NOWRITE)) != 0) {
             return;
         }
 
         String fullPath = monitoredPath + File.separator + path;
-        String rawOperation = getOperationName(event);
 
-        File file = new File(fullPath);
-        long size = file.exists() ? file.length() : 0;
+        // Logical fix: Handle multi-flag events
+        boolean isCloseWrite = (event & CLOSE_WRITE) != 0;
+        boolean isDelete = (event & DELETE) != 0;
+        boolean isCreate = (event & CREATE) != 0;
+        boolean isMove = (event & MOVED_TO) != 0;
 
         // 1. Logic for Logging (User Request: "deleted, modified or compressed")
         boolean shouldLog = false;
-        String logOperation = rawOperation;
+        String logOperation = "UNKNOWN";
 
-        if (rawOperation.equals("DELETE")) {
+        if (isDelete) {
             shouldLog = true;
             logOperation = "DELETED";
-        } else if (rawOperation.equals("CLOSE_WRITE")) {
+        } else if (isCloseWrite) {
             shouldLog = true;
             logOperation = "MODIFY";
-        } else if (rawOperation.equals("CREATE")) {
-            if (isArchive(path)) {
-                shouldLog = true;
-                logOperation = "COMPRESSED";
-            }
+        } else if (isCreate && isArchive(path)) {
+            shouldLog = true;
+            logOperation = "COMPRESSED";
         }
 
-        Log.d(TAG, "FS Event detected: " + rawOperation + " on " + fullPath + " shouldLog=" + shouldLog);
-
-        // Debounce
         if (shouldLog) {
+            // Only perform expensive File operations if we are actually logging/processing
+            File file = new File(fullPath);
+            long size = file.exists() ? file.length() : 0;
+
             String key = fullPath + "|" + logOperation;
             long now = System.currentTimeMillis();
             Long lastTime = lastEventMap.get(key);
@@ -92,7 +93,9 @@ public class FileSystemCollector extends FileObserver {
         }
 
         // 2. Logic for Detection Engine - forward CLOSE_WRITE as MODIFY for analysis
-        if (detectionEngine != null && rawOperation.equals("CLOSE_WRITE")) {
+        if (detectionEngine != null && isCloseWrite) {
+            File file = new File(fullPath);
+            long size = file.exists() ? file.length() : 0;
             FileSystemEvent detectionEvent = new FileSystemEvent(fullPath, "MODIFY", size, size);
             detectionEngine.processFileEvent(detectionEvent);
             Log.d(TAG, "Forwarded to detection engine: MODIFY - " + fullPath);
@@ -100,13 +103,15 @@ public class FileSystemCollector extends FileObserver {
 
         // 3. Logic for Snapshot Manager - track all file changes
         if (snapshotManager != null) {
-            if (rawOperation.equals("CLOSE_WRITE") || rawOperation.equals("DELETE")) {
+            if (isCloseWrite || isDelete) {
                 snapshotManager.trackFileChange(fullPath);
-                Log.d(TAG, "Tracked file change in snapshot: " + rawOperation + " - " + fullPath);
-            } else if (rawOperation.equals("CREATE") && file.exists() && file.length() > 0) {
-                // Track newly created files after they're written
-                snapshotManager.trackFileChange(fullPath);
-                Log.d(TAG, "Tracked new file in snapshot: " + fullPath);
+                Log.d(TAG, "Tracked file change in snapshot: " + fullPath);
+            } else if (isCreate || isMove) {
+                File file = new File(fullPath);
+                if (file.exists() && file.length() > 0) {
+                    snapshotManager.trackFileChange(fullPath);
+                    Log.d(TAG, "Tracked new file in snapshot: " + fullPath);
+                }
             }
         }
     }
@@ -119,19 +124,15 @@ public class FileSystemCollector extends FileObserver {
     }
 
     private String getOperationName(int event) {
-        // Bitmask handling: check for specific flags
-        if ((event & CREATE) != 0)
-            return "CREATE";
-        if ((event & OPEN) != 0)
-            return "OPEN";
-        if ((event & MODIFY) != 0)
-            return "MODIFY";
-        if ((event & CLOSE_WRITE) != 0)
-            return "CLOSE_WRITE";
-        if ((event & MOVED_TO) != 0)
-            return "MOVED_TO";
-        if ((event & DELETE) != 0)
-            return "DELETE";
-        return "UNKNOWN";
+        StringBuilder sb = new StringBuilder();
+        if ((event & CREATE) != 0) sb.append("CREATE ");
+        if ((event & MODIFY) != 0) sb.append("MODIFY ");
+        if ((event & CLOSE_WRITE) != 0) sb.append("CLOSE_WRITE ");
+        if ((event & DELETE) != 0) sb.append("DELETE ");
+        if ((event & MOVED_TO) != 0) sb.append("MOVED_TO ");
+        if ((event & MOVED_FROM) != 0) sb.append("MOVED_FROM ");
+
+        String result = sb.toString().trim();
+        return result.isEmpty() ? "UNKNOWN" : result;
     }
 }
