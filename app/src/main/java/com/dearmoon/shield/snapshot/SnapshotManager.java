@@ -44,7 +44,21 @@ public class SnapshotManager {
         });
     }
 
-    // TODO: Integration needed - call this method from FileSystemCollector or MediaStoreCollector
+    /**
+     * Performs an incremental snapshot by scanning for new or changed files.
+     * Updates metadata but only backs up if not already backed up.
+     */
+    public void performIncrementalSnapshot(String[] directories) {
+        executor.execute(() -> {
+            Log.i(TAG, "Starting incremental snapshot");
+            int updatedCount = 0;
+            for (String dir : directories) {
+                updatedCount += scanDirectory(new File(dir), false);
+            }
+            Log.i(TAG, "Incremental snapshot complete: " + updatedCount + " files processed");
+        });
+    }
+
     // when file changes are detected to enable real-time snapshot tracking
     public void trackFileChange(String filePath) {
         executor.execute(() -> {
@@ -158,7 +172,26 @@ public class SnapshotManager {
         if (activeAttackId > 0) {
             database.endAttackWindow(activeAttackId);
             Log.i(TAG, "Attack tracking stopped: " + activeAttackId);
+            activeAttackId = 0;
         }
+    }
+
+    /**
+     * Automates the restoration of files affected during the active attack.
+     */
+    public RestoreEngine.RestoreResult performAutomatedRestore() {
+        long attackIdToRestore = activeAttackId;
+        if (attackIdToRestore == 0) {
+            // Check if there was a very recent attack that just stopped
+            attackIdToRestore = database.getLatestAttackId();
+        }
+
+        Log.e(TAG, "INITIATING AUTOMATED RESTORE for attack: " + attackIdToRestore);
+        RestoreEngine engine = new RestoreEngine(context);
+        RestoreEngine.RestoreResult result = engine.restoreFromAttack(attackIdToRestore);
+
+        Log.i(TAG, "Automated restore complete: " + result.restoredCount + " files recovered");
+        return result;
     }
 
     public long getActiveAttackId() {

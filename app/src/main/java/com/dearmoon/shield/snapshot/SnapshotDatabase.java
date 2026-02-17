@@ -127,6 +127,18 @@ public class SnapshotDatabase extends SQLiteOpenHelper {
         db.update(TABLE_ATTACKS, values, "id = ?", new String[]{String.valueOf(attackId)});
     }
 
+    public synchronized long getLatestAttackId() {
+        SQLiteDatabase db = getReadableDatabase();
+        Cursor cursor = db.query(TABLE_ATTACKS, new String[]{"id"}, null, null,
+                null, null, "id DESC", "1");
+        long id = 0;
+        if (cursor.moveToFirst()) {
+            id = cursor.getLong(0);
+        }
+        cursor.close();
+        return id;
+    }
+
     public synchronized void deleteFile(String filePath) {
         SQLiteDatabase db = getWritableDatabase();
         db.delete(TABLE_FILES, "file_path = ?", new String[]{filePath});

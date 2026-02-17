@@ -41,7 +41,9 @@ public class ShieldProtectionService extends Service {
     private NetworkGuardService networkGuard;
     private boolean networkMonitoringStarted = false;
     private Handler cleanupHandler;
+    private Handler snapshotHandler;
     private static final long CLEANUP_INTERVAL_MS = 24 * 60 * 60 * 1000; // 24 hours
+    private static final long SNAPSHOT_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
     private static final int RETENTION_DAYS = 7;
 
     @Override
@@ -51,8 +53,8 @@ public class ShieldProtectionService extends Service {
 
         // Initialize storage and detection engine
         storage = new TelemetryStorage(this);
-        detectionEngine = new UnifiedDetectionEngine(this);
         snapshotManager = new SnapshotManager(this);
+        detectionEngine = new UnifiedDetectionEngine(this, snapshotManager);
 
         // Initialize collectors
         initializeCollectors();
@@ -66,6 +68,10 @@ public class ShieldProtectionService extends Service {
         // Schedule periodic database cleanup
         cleanupHandler = new Handler(android.os.Looper.getMainLooper());
         scheduleCleanup();
+
+        // Schedule periodic incremental snapshots
+        snapshotHandler = new Handler(android.os.Looper.getMainLooper());
+        scheduleIncrementalSnapshot();
     }
     
     private void scheduleCleanup() {
@@ -88,6 +94,23 @@ public class ShieldProtectionService extends Service {
                 Log.e(TAG, "Database cleanup failed", e);
             }
         }).start();
+    }
+
+    private void scheduleIncrementalSnapshot() {
+        snapshotHandler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                performIncrementalSnapshot();
+                scheduleIncrementalSnapshot(); // Reschedule
+            }
+        }, SNAPSHOT_INTERVAL_MS);
+    }
+
+    private void performIncrementalSnapshot() {
+        if (snapshotManager != null) {
+            String[] dirs = getMonitoredDirectories();
+            snapshotManager.performIncrementalSnapshot(dirs);
+        }
     }
 
     private void initializeCollectors() {
@@ -184,6 +207,11 @@ public class ShieldProtectionService extends Service {
         // Stop cleanup handler
         if (cleanupHandler != null) {
             cleanupHandler.removeCallbacksAndMessages(null);
+        }
+
+        // Stop snapshot handler
+        if (snapshotHandler != null) {
+            snapshotHandler.removeCallbacksAndMessages(null);
         }
 
         // Stop network monitoring
