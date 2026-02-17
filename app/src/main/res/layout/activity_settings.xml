@@ -71,6 +71,17 @@
                 android:textColor="@color/primary"
                 android:background="@drawable/bg_glass_button_inactive"
                 app:backgroundTint="@null"
+                android:layout_marginBottom="12dp" />
+
+            <Button
+                android:id="@+id/btnManageWhitelist"
+                android:layout_width="match_parent"
+                android:layout_height="60dp"
+                android:text="Manage Whitelist"
+                android:textSize="16sp"
+                android:textColor="#00E676"
+                android:background="@drawable/bg_glass_button_inactive"
+                app:backgroundTint="@null"
                 android:layout_marginBottom="24dp" />
 
             <!-- Permissions Section (Collapsible) -->

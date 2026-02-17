@@ -7,6 +7,7 @@ import android.content.Intent;
 import android.util.Log;
 import android.view.accessibility.AccessibilityEvent;
 import com.dearmoon.shield.data.TelemetryStorage;
+import com.dearmoon.shield.data.WhitelistManager;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
@@ -14,18 +15,7 @@ import java.util.Set;
 public class LockerShieldService extends AccessibilityService {
     private static final String TAG = "LockerShieldService";
     
-    private static final Set<String> WHITELIST = new HashSet<>(Arrays.asList(
-        "com.android.systemui",
-        "com.google.android.apps.nexuslauncher",
-        "com.android.launcher3",
-        "com.sec.android.app.launcher",
-        "com.android.incallui",
-        "com.android.deskclock",
-        "com.google.android.youtube",
-        "com.spotify.music",
-        "com.dearmoon.shield"
-    ));
-    
+    private WhitelistManager whitelistManager;
     private RiskEvaluator riskEvaluator;
     private TelemetryStorage storage;
     private KeyguardManager keyguardManager;
@@ -37,6 +27,7 @@ public class LockerShieldService extends AccessibilityService {
     public void onCreate() {
         super.onCreate();
         storage = new TelemetryStorage(this);
+        whitelistManager = new WhitelistManager(this);
         riskEvaluator = new RiskEvaluator();
         keyguardManager = (KeyguardManager) getSystemService(Context.KEYGUARD_SERVICE);
         Log.i(TAG, "LockerShieldService started");
@@ -48,7 +39,7 @@ public class LockerShieldService extends AccessibilityService {
         
         String packageName = event.getPackageName().toString();
         
-        if (WHITELIST.contains(packageName)) return;
+        if (whitelistManager.isWhitelisted(packageName)) return;
         
         int eventType = event.getEventType();
         long now = System.currentTimeMillis();

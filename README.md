@@ -13,13 +13,14 @@ SHIELD is an Android ransomware detection application that implements "Mode B" f
 - **NetworkEvent** - Captures network metadata (destination IP, port, protocol, bytes)
 - **HoneyfileEvent** - Logs unauthorized access to honeyfiles
 - **AccessibilityEventData** - Captures accessibility service events
-- **TelemetryStorage** - Stores all events in plain JSON format
+- **TelemetryStorage** - Stores all events in a high-performance **SQLite database**
 
 #### 2. Collectors (`com.dearmoon.shield.collectors`)
 - **FileSystemCollector** - Monitors file system changes using FileObserver
   - Watches for CREATE, MODIFY, CLOSE_WRITE, MOVED_TO, DELETE events
+  - Implements **multi-flag bitmask handling** for accurate event detection
   - Forwards events to UnifiedDetectionEngine for analysis
-  
+
 - **HoneyfileCollector** - Creates and monitors honeyfiles
   - Places decoy files in monitored directories
   - Detects unauthorized access attempts
@@ -33,7 +34,7 @@ SHIELD is an Android ransomware detection application that implements "Mode B" f
   - Logs detection results
 
 - **EntropyAnalyzer** - Shannon entropy calculation
-  - Analyzes file randomness
+  - Analyzes file randomness using **multi-region sampling** (head, middle, tail)
   - High entropy (>7.5) indicates encryption
   - Low entropy (<5.0) indicates plain text
 
@@ -43,7 +44,7 @@ SHIELD is an Android ransomware detection application that implements "Mode B" f
   - High divergence indicates structured data
 
 - **SPRTDetector** - Sequential Probability Ratio Test
-  - Statistical hypothesis testing
+  - Advanced statistical hypothesis testing using **Poisson arrival math**
   - H₀: Normal file modification rate (0.1 files/sec)
   - H₁: Ransomware activity (5.0 files/sec)
   - α = β = 0.05 (5% error rates)
@@ -61,9 +62,9 @@ SHIELD is an Android ransomware detection application that implements "Mode B" f
   - Creates honeyfiles in monitored locations
 
 - **NetworkGuardService** - VPN-based network monitor & blocker
-  - Captures network packets via VPN interface
+  - Captures both **IPv4 and IPv6** network packets via VPN interface
   - Extracts metadata (IP, port, protocol, size)
-  - Logs network events to telemetry storage
+  - Implements **flow-based logging** (cache) to minimize overhead
   - **Blocks suspicious traffic** (malicious IPs, ports, Tor nodes)
   - **Emergency mode**: Blocks ALL traffic when ransomware detected
   - User-controlled blocking toggle (default: OFF)
@@ -130,15 +131,15 @@ SHIELD is an Android ransomware detection application that implements "Mode B" f
 
 ## Data Storage
 
-### Telemetry Log
-- **Location:** `<app_files_dir>/modeb_telemetry.json`
-- **Format:** Newline-delimited JSON
-- **Contents:** All file system (filtered to modified/deleted), network, and honeyfile events
-
-### Detection Log
-- **Location:** `<app_files_dir>/detection_results.json`
-- **Format:** Newline-delimited JSON
-- **Contents:** Detection results with confidence scores
+### SQLite Backend
+- **Location:** `<app_database_dir>/shield_events.db`
+- **Format:** Relational SQLite Database
+- **Tables:**
+  - `file_system_events`: File modifications and deletions
+  - `network_events`: IPv4/IPv6 traffic metadata (connection-based)
+  - `honeyfile_events`: Unauthorized access logs
+  - `detection_results`: Confidence scores and risk assessments
+  - `correlation_results`: Cross-signal behavioral analysis
 
 ## Usage Instructions
 
@@ -177,15 +178,14 @@ SHIELD is an Android ransomware detection application that implements "Mode B" f
 ## Technical Details
 
 ### File System Monitoring
-- Uses Android FileObserver API
+- Uses Android FileObserver API with recursive monitoring (Depth 8)
 - Monitors CREATE, MODIFY, CLOSE_WRITE, MOVED_TO, DELETE events
 - **Logged Events:** Filtered to only SHOW MODIFY, CLOSE_WRITE, and DELETE (User requirement)
 - Processes files > 100 bytes
-- Samples first 8KB for entropy/KL analysis
+- Uses **multi-region sampling** (head, middle, tail) for entropy/KL analysis to detect partial encryption
 
 ### Network Monitoring
-- VPN-based packet capture
-- IPv4 only (currently)
+- VPN-based packet capture supporting both **IPv4 and IPv6**
 - Extracts: destination IP, port, protocol, packet size
 - **Blocking modes:**
   - **OFF (default)**: Monitor only, no blocking
@@ -199,9 +199,9 @@ SHIELD is an Android ransomware detection application that implements "Mode B" f
 
 ### Detection Processing
 - Background thread processing
-- 1-second time window for modification rate
+- **Poisson arrival rate math** for statistical detection (SPRT)
 - Asynchronous event handling
-- Thread-safe storage
+- Thread-safe SQLite storage with timestamp-based indexing
 - **Auto-triggers network blocking** when confidence ≥70
 
 ## Build Instructions
@@ -299,11 +299,12 @@ The project is now complete and ready for:
 - The project successfully builds with `./gradlew assembleDebug`
 - All Mode B components have been migrated from the original `modeb` project
 - The architecture follows the original design specifications
-- **Bug Fixed:** Telemetry storage now uses plain JSON (appending to GZIP was failing)
+- **Optimized:** Telemetry storage migrated to **SQLite** for high-performance querying
+- **Improved:** SPRT detector now uses correct Poisson arrival statistics
+- **Improved:** Entropy analysis now uses **multi-region sampling** to prevent partial-encryption bypass
 - **Update:** Log viewer now correctly filters file system events to show only modifications and deletions
 - **Update:** MediaStoreCollector disabled to prevent duplicate telemetry entries
 - **Security:** RASP checks for debugger, emulator, root, hooks, and signature tampering
 - **Reliability:** Auto-restart on boot and service crash
 - **Network Protection:** VPN blocks ransomware C2 communication (user-controlled + auto-emergency mode)
-#   s h i e l d - d s c i -  
- 
+#   s h i e l d - d s c i -

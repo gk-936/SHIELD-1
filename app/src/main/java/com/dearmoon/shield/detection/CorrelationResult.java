@@ -66,6 +66,10 @@ public class CorrelationResult extends TelemetryEvent {
     public int getBehaviorScore() {
         return behaviorScore;
     }
+
+    public String getPackageName() {
+        return packageName;
+    }
     
     public boolean isHighRisk() {
         return behaviorScore >= 20; // 20/30 threshold

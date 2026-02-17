@@ -44,6 +44,7 @@ public class SettingsActivity extends AppCompatActivity {
         Button btnClearHoneyfiles = findViewById(R.id.btnClearHoneyfilesSettings);
         Button btnTestSuite = findViewById(R.id.btnTestSuiteSettings);
         Button btnUserGuide = findViewById(R.id.btnUserGuide);
+        Button btnManageWhitelist = findViewById(R.id.btnManageWhitelist);
         TextView tvPermissionCount = findViewById(R.id.tvPermissionCount);
         TextView tvPermissionList = findViewById(R.id.tvPermissionList);
 
@@ -55,6 +56,9 @@ public class SettingsActivity extends AppCompatActivity {
 
         // User Guide
         btnUserGuide.setOnClickListener(v -> showUserGuide());
+
+        // Manage Whitelist
+        btnManageWhitelist.setOnClickListener(v -> startActivity(new Intent(this, WhitelistActivity.class)));
 
         // Permission list container
         android.view.View permissionListContainer = findViewById(R.id.permissionListContainer);
