@@ -26,10 +26,13 @@ public class MainActivity extends AppCompatActivity {
     private static final int VPN_REQUEST_CODE = 200;
 
     private GlitchTextView tvProtectionStatus;
+    private android.widget.TextView tvSafeFiles, tvInfectedFiles, tvTotalFiles, tvInfectionTimer;
+    private android.view.View timerContainer;
     private Button btnModeA;
     private Button btnModeB;
-    private Button btnBlockingToggle;
     private HighRiskAlertReceiver alertReceiver;
+    private android.content.BroadcastReceiver dataUpdateReceiver;
+    private com.dearmoon.shield.snapshot.SnapshotManager snapshotManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -53,8 +56,16 @@ public class MainActivity extends AppCompatActivity {
 
     private void initializeViews() {
         tvProtectionStatus = findViewById(R.id.tvProtectionStatus);
+        tvSafeFiles = findViewById(R.id.tvSafeFiles);
+        tvInfectedFiles = findViewById(R.id.tvInfectedFiles);
+        tvTotalFiles = findViewById(R.id.tvTotalFiles);
+        tvInfectionTimer = findViewById(R.id.tvInfectionTimer);
+        timerContainer = findViewById(R.id.timerContainer);
+
         btnModeA = findViewById(R.id.btnModeA);
         btnModeB = findViewById(R.id.btnModeB);
+
+        snapshotManager = new com.dearmoon.shield.snapshot.SnapshotManager(this);
 
         btnModeA.setOnClickListener(
                 v -> Toast.makeText(this, "Root Mode: Requires rooted device", Toast.LENGTH_SHORT).show());
@@ -74,10 +85,24 @@ public class MainActivity extends AppCompatActivity {
 
         alertReceiver = new HighRiskAlertReceiver();
         android.content.IntentFilter filter = new android.content.IntentFilter("com.dearmoon.shield.HIGH_RISK_ALERT");
+        filter.addAction("com.dearmoon.shield.RESTORE_COMPLETE");
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             registerReceiver(alertReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
         } else {
             registerReceiver(alertReceiver, filter);
+        }
+
+        dataUpdateReceiver = new android.content.BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                updateStatusDisplay();
+            }
+        };
+        android.content.IntentFilter dataFilter = new android.content.IntentFilter("com.dearmoon.shield.DATA_UPDATED");
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(dataUpdateReceiver, dataFilter, Context.RECEIVER_NOT_EXPORTED);
+        } else {
+            registerReceiver(dataUpdateReceiver, dataFilter);
         }
     }
 
@@ -137,6 +162,17 @@ public class MainActivity extends AppCompatActivity {
     private void updateStatusDisplay() {
         boolean isServiceRunning = isServiceRunning(ShieldProtectionService.class);
         boolean isVpnRunning = isServiceRunning(NetworkGuardService.class);
+
+        // Update Stats
+        if (snapshotManager != null) {
+            int total = snapshotManager.getTotalFileCount();
+            int infected = snapshotManager.getInfectedFileCount();
+            int safe = total - infected;
+
+            tvTotalFiles.setText(String.valueOf(total));
+            tvInfectedFiles.setText(String.valueOf(infected));
+            tvSafeFiles.setText(String.valueOf(safe));
+        }
 
         if (isServiceRunning) {
             tvProtectionStatus.stopGlitchEffect();
@@ -228,25 +264,39 @@ public class MainActivity extends AppCompatActivity {
                 Log.e(TAG, "Error unregistering alert receiver", e);
             }
         }
+        if (dataUpdateReceiver != null) {
+            try {
+                unregisterReceiver(dataUpdateReceiver);
+            } catch (Exception e) {
+                Log.e(TAG, "Error unregistering data receiver", e);
+            }
+        }
     }
 
     private class HighRiskAlertReceiver extends android.content.BroadcastReceiver {
+        private android.os.CountDownTimer countDownTimer;
+
         @Override
         public void onReceive(Context context, Intent intent) {
-            if ("com.dearmoon.shield.HIGH_RISK_ALERT".equals(intent.getAction())) {
+            String action = intent.getAction();
+            if ("com.dearmoon.shield.HIGH_RISK_ALERT".equals(action)) {
                 String filePath = intent.getStringExtra("file_path");
                 int score = intent.getIntExtra("confidence_score", 0);
                 int infectionTime = intent.getIntExtra("infection_time", -1);
-                String timerText = infectionTime > 0 ? "\nEstimated time to total infection: " + infectionTime + "s" : "";
 
                 runOnUiThread(() -> {
+                    // Show persistent timer in UI
+                    if (infectionTime > 0) {
+                        timerContainer.setVisibility(android.view.View.VISIBLE);
+                        startCountdown(infectionTime);
+                    }
+
                     new android.app.AlertDialog.Builder(MainActivity.this)
                             .setTitle("⚠️ RANSOMWARE DETECTED")
                             .setMessage("High-risk activity detected!\n\n" +
                                     "File: " + (filePath != null ? new java.io.File(filePath).getName() : "Unknown")
                                     + "\n" +
-                                    "Confidence: " + score + "/100" +
-                                    timerText + "\n\n" +
+                                    "Confidence: " + score + "/100\n\n" +
                                     "Malicious process has been terminated.\n" +
                                     "Automated data recovery initiated.")
                             .setPositiveButton("View Logs",
@@ -256,7 +306,33 @@ public class MainActivity extends AppCompatActivity {
                             .setCancelable(false)
                             .show();
                 });
+            } else if ("com.dearmoon.shield.RESTORE_COMPLETE".equals(action)) {
+                int restoredCount = intent.getIntExtra("restored_count", 0);
+                runOnUiThread(() -> {
+                    // Hide timer
+                    timerContainer.setVisibility(android.view.View.GONE);
+                    if (countDownTimer != null) countDownTimer.cancel();
+
+                    Toast.makeText(MainActivity.this, "Data recovery complete: " + restoredCount + " files restored", Toast.LENGTH_LONG).show();
+                    updateStatusDisplay();
+                });
             }
+        }
+
+        private void startCountdown(int seconds) {
+            if (countDownTimer != null) countDownTimer.cancel();
+            countDownTimer = new android.os.CountDownTimer(seconds * 1000L, 1000) {
+                @Override
+                public void onTick(long millisUntilFinished) {
+                    long secs = millisUntilFinished / 1000;
+                    tvInfectionTimer.setText("Time to total infection: " + secs + "s");
+                }
+
+                @Override
+                public void onFinish() {
+                    tvInfectionTimer.setText("Infection time elapsed");
+                }
+            }.start();
         }
     }
 }
