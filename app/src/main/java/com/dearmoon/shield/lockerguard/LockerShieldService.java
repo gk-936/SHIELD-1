@@ -117,6 +117,16 @@ public class LockerShieldService extends AccessibilityService {
     private void triggerEmergencyResponse(String packageName, int score) {
         Log.e(TAG, "EMERGENCY: Triggering response for " + packageName + " (score: " + score + ")");
         
+        // SAFETY TERMINATION: Stop the locker ransomware immediately
+        try {
+            android.app.ActivityManager am = (android.app.ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
+            if (am != null) {
+                am.killBackgroundProcesses(packageName);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to kill locker process", e);
+        }
+
         Intent intent = new Intent(this, EmergencyRecoveryActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
         intent.putExtra("SUSPICIOUS_PACKAGE", packageName);

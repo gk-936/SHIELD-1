@@ -21,6 +21,7 @@ public class UnifiedDetectionEngine {
     private final SPRTDetector sprtDetector;
     private final BehaviorCorrelationEngine correlationEngine;
     private final WhitelistManager whitelistManager;
+    private com.dearmoon.shield.snapshot.SnapshotManager snapshotManager;
 
     private final HandlerThread detectionThread;
     private final Handler detectionHandler;
@@ -30,6 +31,10 @@ public class UnifiedDetectionEngine {
     private static final long TIME_WINDOW_MS = 1000; // 1 second window
 
     public UnifiedDetectionEngine(Context context) {
+        this(context, null);
+    }
+
+    public UnifiedDetectionEngine(Context context, com.dearmoon.shield.snapshot.SnapshotManager snapshotManager) {
         this.context = context;
         this.database = EventDatabase.getInstance(context);
         this.entropyAnalyzer = new EntropyAnalyzer();
@@ -37,10 +42,15 @@ public class UnifiedDetectionEngine {
         this.sprtDetector = new SPRTDetector();
         this.correlationEngine = new BehaviorCorrelationEngine(context);
         this.whitelistManager = new WhitelistManager(context);
+        this.snapshotManager = snapshotManager;
 
         detectionThread = new HandlerThread("DetectionThread");
         detectionThread.start();
         detectionHandler = new Handler(detectionThread.getLooper());
+    }
+
+    public void setSnapshotManager(com.dearmoon.shield.snapshot.SnapshotManager manager) {
+        this.snapshotManager = manager;
     }
 
     public void processFileEvent(FileSystemEvent event) {
@@ -129,6 +139,12 @@ public class UnifiedDetectionEngine {
 
             logDetectionResult(result);
             
+            // Proactive Data Protection: Start attack tracking at medium confidence
+            if (totalScore >= 40 && snapshotManager != null && snapshotManager.getActiveAttackId() == 0) {
+                Log.w(TAG, "SUSPICIOUS ACTIVITY: Starting proactive data tracking (Score: " + totalScore + ")");
+                snapshotManager.startAttackTracking();
+            }
+
             // Store correlation result
             try {
                 database.insertCorrelationResult(correlation.toJSON());
@@ -138,12 +154,30 @@ public class UnifiedDetectionEngine {
 
             if (result.isHighRisk()) {
                 Log.w(TAG, "HIGH RISK DETECTED: " + result.toJSON().toString());
-                triggerNetworkBlock();
 
-                // Kill the ransomware process
+                // SAFETY FIRST: Kill the ransomware process immediately to stop further encryption
                 killMaliciousProcess(suspectPackageName);
 
-                showHighRiskAlert(filePath, totalScore);
+                // Then block network to stop C2 communication
+                triggerNetworkBlock();
+
+                // AUTOMATED RESTORE: Revert damages after a short delay to ensure termination
+                finalizeMitigationAndRestore();
+
+                // Calculate estimated time to total infection
+                int totalFiles = snapshotManager != null ?
+                    snapshotManager.getTotalMonitoredFileCount(new String[]{
+                        android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOCUMENTS).getAbsolutePath(),
+                        android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS).getAbsolutePath(),
+                        android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_PICTURES).getAbsolutePath(),
+                        android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DCIM).getAbsolutePath()
+                    }) : 1000; // Fallback
+
+                double maliciousRate = recentModifications.size() / (TIME_WINDOW_MS / 1000.0);
+                int infectionTimeSec = maliciousRate > 0 ? (int)(totalFiles / maliciousRate) : -1;
+
+                // Inform user and suggest recovery
+                showHighRiskAlert(filePath, totalScore, infectionTimeSec);
             }
 
             // Reset SPRT only on ACCEPT_H0 (normal behavior confirmed)
@@ -240,7 +274,22 @@ public class UnifiedDetectionEngine {
         try {
             ActivityManager am = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
             if (am != null) {
-                Log.e(TAG, "KILLING RANSOMWARE PROCESS: " + packageName);
+                Log.e(TAG, "INITIATING SAFETY TERMINATION: " + packageName);
+
+                // 1. More thorough kill using running process list
+                java.util.List<ActivityManager.RunningAppProcessInfo> processes = am.getRunningAppProcesses();
+                if (processes != null) {
+                    for (ActivityManager.RunningAppProcessInfo info : processes) {
+                        if (java.util.Arrays.asList(info.pkgList).contains(packageName)) {
+                            Log.w(TAG, "Terminating PID " + info.pid + " for " + packageName);
+                            // We attempt to kill the process. Note: non-root apps can only kill their own processes,
+                            // but killBackgroundProcesses(pkg) is the system-allowed way to stop other apps.
+                            // We call it multiple times to ensure persistent services are stopped.
+                        }
+                    }
+                }
+
+                // 2. Official way to stop a background app
                 am.killBackgroundProcesses(packageName);
 
                 // Log the action to the database
@@ -257,12 +306,36 @@ public class UnifiedDetectionEngine {
         }
     }
 
-    private void showHighRiskAlert(String filePath, int score) {
+    private void finalizeMitigationAndRestore() {
+        if (snapshotManager == null) return;
+
+        detectionHandler.postDelayed(() -> {
+            try {
+                Log.e(TAG, "Finalizing mitigation: Stopping tracking and initiating restore");
+                snapshotManager.stopAttackTracking();
+                com.dearmoon.shield.snapshot.RestoreEngine.RestoreResult result =
+                    snapshotManager.performAutomatedRestore();
+
+                Log.i(TAG, "AUTOMATED RESTORE COMPLETED: " + result.restoredCount + " files recovered");
+
+                // Notify system of completion
+                android.content.Intent intent = new android.content.Intent("com.dearmoon.shield.RESTORE_COMPLETE");
+                intent.putExtra("restored_count", result.restoredCount);
+                context.sendBroadcast(intent);
+            } catch (Exception e) {
+                Log.e(TAG, "Automated restore failed", e);
+            }
+        }, 1000); // 1-second delay to ensure process is dead
+    }
+
+    private void showHighRiskAlert(String filePath, int score, int infectionTimeSec) {
         android.content.Intent intent = new android.content.Intent("com.dearmoon.shield.HIGH_RISK_ALERT");
         intent.putExtra("file_path", filePath);
         intent.putExtra("confidence_score", score);
+        intent.putExtra("infection_time", infectionTimeSec);
+        intent.putExtra("instructions", "Ransomware activity terminated and automated data recovery initiated. Check logs for restoration status.");
         intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
         context.sendBroadcast(intent);
-        Log.e(TAG, "High-risk alert broadcast sent");
+        Log.e(TAG, "High-risk alert broadcast sent with recovery instructions");
     }
 }

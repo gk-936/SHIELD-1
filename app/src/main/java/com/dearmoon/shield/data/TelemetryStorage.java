@@ -1,6 +1,7 @@
 package com.dearmoon.shield.data;
 
 import android.content.Context;
+import android.content.Intent;
 import android.util.Log;
 import java.io.File;
 
@@ -34,6 +35,11 @@ public class TelemetryStorage {
             } else {
                 Log.w(TAG, "Unknown event type: " + event.getClass().getSimpleName());
             }
+
+            // Notify UI of new data
+            Intent intent = new Intent("com.dearmoon.shield.DATA_UPDATED");
+            context.sendBroadcast(intent);
+
         } catch (Exception e) {
             Log.e(TAG, "Failed to store event: " + event.getEventType(), e);
         }

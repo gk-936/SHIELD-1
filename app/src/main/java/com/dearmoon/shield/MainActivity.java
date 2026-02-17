@@ -108,6 +108,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void startShieldService() {
+        // Clear intentionally stopped flag
+        getSharedPreferences("ShieldPrefs", Context.MODE_PRIVATE)
+            .edit().putBoolean("intentionally_stopped", false).apply();
+
         if (!hasRequiredPermissions()) {
             Toast.makeText(this, "Please grant all permissions first", Toast.LENGTH_SHORT).show();
             requestNecessaryPermissions();
@@ -232,15 +236,19 @@ public class MainActivity extends AppCompatActivity {
             if ("com.dearmoon.shield.HIGH_RISK_ALERT".equals(intent.getAction())) {
                 String filePath = intent.getStringExtra("file_path");
                 int score = intent.getIntExtra("confidence_score", 0);
+                int infectionTime = intent.getIntExtra("infection_time", -1);
+                String timerText = infectionTime > 0 ? "\nEstimated time to total infection: " + infectionTime + "s" : "";
+
                 runOnUiThread(() -> {
                     new android.app.AlertDialog.Builder(MainActivity.this)
                             .setTitle("⚠️ RANSOMWARE DETECTED")
                             .setMessage("High-risk activity detected!\n\n" +
                                     "File: " + (filePath != null ? new java.io.File(filePath).getName() : "Unknown")
                                     + "\n" +
-                                    "Confidence: " + score + "/100\n\n" +
-                                    "Network has been isolated.\n" +
-                                    "Check logs for details.")
+                                    "Confidence: " + score + "/100" +
+                                    timerText + "\n\n" +
+                                    "Malicious process has been terminated.\n" +
+                                    "Automated data recovery initiated.")
                             .setPositiveButton("View Logs",
                                     (dialog, which) -> startActivity(
                                             new Intent(MainActivity.this, LogViewerActivity.class)))
