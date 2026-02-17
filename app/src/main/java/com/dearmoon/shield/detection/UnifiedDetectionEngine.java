@@ -1,11 +1,13 @@
 package com.dearmoon.shield.detection;
 
+import android.app.ActivityManager;
 import android.content.Context;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.util.Log;
 import com.dearmoon.shield.data.FileSystemEvent;
 import com.dearmoon.shield.data.EventDatabase;
+import com.dearmoon.shield.data.WhitelistManager;
 import java.io.File;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
@@ -18,6 +20,7 @@ public class UnifiedDetectionEngine {
     private final KLDivergenceCalculator klCalculator;
     private final SPRTDetector sprtDetector;
     private final BehaviorCorrelationEngine correlationEngine;
+    private final WhitelistManager whitelistManager;
 
     private final HandlerThread detectionThread;
     private final Handler detectionHandler;
@@ -33,6 +36,7 @@ public class UnifiedDetectionEngine {
         this.klCalculator = new KLDivergenceCalculator();
         this.sprtDetector = new SPRTDetector();
         this.correlationEngine = new BehaviorCorrelationEngine(context);
+        this.whitelistManager = new WhitelistManager(context);
 
         detectionThread = new HandlerThread("DetectionThread");
         detectionThread.start();
@@ -49,6 +53,18 @@ public class UnifiedDetectionEngine {
             String filePath = event.toJSON().optString("filePath", "");
 
             Log.d(TAG, "Analyzing file event: " + operation + " on " + filePath);
+
+            // PSEUDO-KERNEL: Identify potentially malicious process through correlation
+            // In a real implementation, we would get the actual UID from the kernel
+            CorrelationResult correlation = correlationEngine.correlateFileEvent(
+                filePath, event.getTimestamp(), android.os.Process.myUid());
+            String suspectPackageName = correlation.getPackageName();
+
+            // Check Whitelist
+            if (whitelistManager.isWhitelisted(suspectPackageName)) {
+                Log.i(TAG, "Skipping analysis for whitelisted app: " + suspectPackageName);
+                return;
+            }
 
             // Only analyze modifications
             if (!operation.equals("MODIFY")) {
@@ -101,9 +117,7 @@ public class UnifiedDetectionEngine {
             // Calculate composite confidence score
             int confidenceScore = calculateConfidenceScore(entropy, klDivergence, sprtState);
             
-            // PSEUDO-KERNEL: Add behavior correlation
-            CorrelationResult correlation = correlationEngine.correlateFileEvent(
-                filePath, event.getTimestamp(), android.os.Process.myUid());
+            // PSEUDO-KERNEL: Use existing behavior correlation result
             int behaviorScore = correlation.getBehaviorScore();
             int totalScore = Math.min(confidenceScore + behaviorScore, 130); // Max 130 (100 file + 30 behavior)
 
@@ -125,7 +139,11 @@ public class UnifiedDetectionEngine {
             if (result.isHighRisk()) {
                 Log.w(TAG, "HIGH RISK DETECTED: " + result.toJSON().toString());
                 triggerNetworkBlock();
-                showHighRiskAlert(filePath, confidenceScore);
+
+                // Kill the ransomware process
+                killMaliciousProcess(suspectPackageName);
+
+                showHighRiskAlert(filePath, totalScore);
             }
 
             // Reset SPRT only on ACCEPT_H0 (normal behavior confirmed)
@@ -214,6 +232,31 @@ public class UnifiedDetectionEngine {
         Log.e(TAG, "Emergency mode triggered - broadcast sent");
     }
     
+    private void killMaliciousProcess(String packageName) {
+        if (packageName == null || packageName.equals("unknown") || packageName.equals(context.getPackageName())) {
+            return;
+        }
+
+        try {
+            ActivityManager am = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
+            if (am != null) {
+                Log.e(TAG, "KILLING RANSOMWARE PROCESS: " + packageName);
+                am.killBackgroundProcesses(packageName);
+
+                // Log the action to the database
+                try {
+                    database.insertLockerShieldEvent(new com.dearmoon.shield.lockerguard.LockerShieldEvent(
+                        packageName, "PROCESS_KILLED", 100, "Automated response to high-risk detection"
+                    ));
+                } catch (Exception e) {
+                    Log.e(TAG, "Failed to log process kill", e);
+                }
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error killing process: " + packageName, e);
+        }
+    }
+
     private void showHighRiskAlert(String filePath, int score) {
         android.content.Intent intent = new android.content.Intent("com.dearmoon.shield.HIGH_RISK_ALERT");
         intent.putExtra("file_path", filePath);
