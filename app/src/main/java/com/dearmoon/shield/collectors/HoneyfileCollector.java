@@ -16,14 +16,14 @@ public class HoneyfileCollector {
     private final TelemetryStorage storage;
     private final List<HoneyfileObserver> observers = new ArrayList<>();
     private final List<File> honeyfiles = new ArrayList<>();
-    private final int appUid;
     private final String appPackageName;
+    private long lastHoneyfileCreationTime = 0;
+    private static final long CREATION_GRACE_PERIOD_MS = 5000; // 5 seconds after creation
 
     public HoneyfileCollector(TelemetryStorage storage, Context context) {
         this.storage = storage;
-        this.appUid = android.os.Process.myUid();
         this.appPackageName = context.getPackageName();
-        Log.i(TAG, "HoneyfileCollector initialized - App UID: " + appUid + ", Package: " + appPackageName);
+        Log.i(TAG, "HoneyfileCollector initialized - Package: " + appPackageName);
     }
 
     public void createHoneyfiles(Context context, String[] directories) {
@@ -61,6 +61,10 @@ public class HoneyfileCollector {
                 }
             }
         }
+        
+        // SECURITY FIX: Set timestamp to prevent self-logging during creation
+        lastHoneyfileCreationTime = System.currentTimeMillis();
+        Log.i(TAG, "Honeyfile creation complete. Grace period: " + CREATION_GRACE_PERIOD_MS + "ms");
     }
 
     public void stopWatching() {
@@ -95,14 +99,17 @@ public class HoneyfileCollector {
         public void onEvent(int event, @Nullable String path) {
             if (event == OPEN || event == MODIFY || event == DELETE || event == CLOSE_WRITE) {
                 String accessType = getAccessType(event);
-                int callingUid = android.os.Binder.getCallingUid();
                 
-                // Prevent self-logging: Skip if event is from our own app
-                if (callingUid == appUid) {
-                    Log.d(TAG, "Skipping self-generated honeyfile event (UID match): " + filePath);
+                // SECURITY FIX: Use timestamp-based filtering instead of broken UID check
+                // Only skip events during grace period after honeyfile creation
+                long timeSinceCreation = System.currentTimeMillis() - lastHoneyfileCreationTime;
+                if (timeSinceCreation < CREATION_GRACE_PERIOD_MS) {
+                    Log.d(TAG, "Skipping honeyfile event during grace period: " + filePath + " (" + timeSinceCreation + "ms since creation)");
                     return;
                 }
                 
+                // ALL other access is suspicious - log it
+                int callingUid = android.os.Binder.getCallingUid(); // For informational purposes only
                 HoneyfileEvent honeyEvent = new HoneyfileEvent(
                     filePath, accessType, callingUid, "uid:" + callingUid
                 );

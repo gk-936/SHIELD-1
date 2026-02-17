@@ -8,6 +8,12 @@ import java.io.File;
 
 public class SecurityUtils {
     private static final String TAG = "SecurityUtils";
+    
+    // SECURITY FIX: Expected signature hash for production builds
+    // This should be set to your actual release signature hash
+    // To get your hash: adb shell pm list packages -f com.dearmoon.shield
+    // Then: keytool -printcert -jarfile app.apk
+    private static final String EXPECTED_SIGNATURE_HASH = null;  // Set in production
 
     public static boolean checkSecurity(Context context) {
         boolean isSafe = true;
@@ -50,16 +56,67 @@ public class SecurityUtils {
                 || Build.MODEL.contains("Android SDK");
     }
 
+    /**
+     * SECURITY FIX: Improved root detection
+     * Checks for:
+     * 1. Traditional su binaries in common paths
+     * 2. Modern root tools (Magisk, KernelSU)
+     * 3. su in PATH environment variable
+     * 4. Test-keys build (indicates custom ROM)
+     */
     private static boolean isRooted() {
-        String[] paths = {
+        // Check traditional su paths
+        String[] suPaths = {
             "/system/app/Superuser.apk",
             "/system/xbin/su",
             "/system/bin/su",
-            "/sbin/su"
+            "/sbin/su",
+            "/data/local/xbin/su",
+            "/data/local/bin/su",
+            "/system/sd/xbin/su",
+            "/system/bin/failsafe/su",
+            "/data/local/su",
+            "/su/bin/su"
         };
-        for (String path : paths) {
-            if (new File(path).exists()) return true;
+        for (String path : suPaths) {
+            if (new File(path).exists()) {
+                Log.w(TAG, "Root detected: " + path);
+                return true;
+            }
         }
+        
+        // Check for Magisk
+        String[] magiskPaths = {
+            "/data/adb/magisk",
+            "/sbin/.magisk",
+            "/cache/.disable_magisk"
+        };
+        for (String path : magiskPaths) {
+            if (new File(path).exists()) {
+                Log.w(TAG, "Magisk detected: " + path);
+                return true;
+            }
+        }
+        
+        // Check PATH for su
+        String path = System.getenv("PATH");
+        if (path != null) {
+            for (String dir : path.split(":")) {
+                File suFile = new File(dir, "su");
+                if (suFile.exists() && suFile.canExecute()) {
+                    Log.w(TAG, "su found in PATH: " + suFile.getAbsolutePath());
+                    return true;
+                }
+            }
+        }
+        
+        // Check for test-keys (custom ROM indicator)
+        String buildTags = Build.TAGS;
+        if (buildTags != null && buildTags.contains("test-keys")) {
+            Log.w(TAG, "Test-keys build detected (custom ROM)");
+            return true;
+        }
+        
         return false;
     }
 
@@ -72,6 +129,11 @@ public class SecurityUtils {
         }
     }
 
+    /**
+     * SECURITY FIX: Proper signature verification
+     * Compares actual signature hash against expected value.
+     * Returns true if EXPECTED_SIGNATURE_HASH is null (development mode).
+     */
     public static boolean verifySignature(Context context) {
         try {
             android.content.pm.PackageInfo packageInfo = context.getPackageManager()
@@ -84,9 +146,23 @@ public class SecurityUtils {
                 return false;
             }
             
-            String signatureHash = String.valueOf(signatures[0].hashCode());
-            Log.i(TAG, "App signature hash: " + signatureHash);
-            return true;
+            int signatureHash = signatures[0].hashCode();
+            String signatureHashStr = String.valueOf(signatureHash);
+            Log.i(TAG, "App signature hash: " + signatureHashStr);
+            
+            // If expected hash not set (development), allow
+            if (EXPECTED_SIGNATURE_HASH == null) {
+                Log.i(TAG, "Signature verification skipped (development mode)");
+                return true;
+            }
+            
+            // Compare against expected hash
+            boolean isValid = EXPECTED_SIGNATURE_HASH.equals(signatureHashStr);
+            if (!isValid) {
+                Log.e(TAG, "Signature mismatch! Expected: " + EXPECTED_SIGNATURE_HASH + 
+                          ", Got: " + signatureHashStr);
+            }
+            return isValid;
         } catch (Exception e) {
             Log.e(TAG, "Signature verification failed", e);
             return false;

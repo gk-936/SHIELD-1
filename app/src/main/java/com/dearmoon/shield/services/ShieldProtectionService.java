@@ -18,6 +18,7 @@ import com.dearmoon.shield.MainActivity;
 import com.dearmoon.shield.R;
 import com.dearmoon.shield.collectors.FileSystemCollector;
 import com.dearmoon.shield.collectors.HoneyfileCollector;
+import com.dearmoon.shield.collectors.RecursiveFileSystemCollector;
 import com.dearmoon.shield.data.TelemetryStorage;
 import com.dearmoon.shield.detection.UnifiedDetectionEngine;
 import com.dearmoon.shield.security.SecurityUtils;
@@ -36,6 +37,7 @@ public class ShieldProtectionService extends Service {
     private HoneyfileCollector honeyfileCollector;
     private SnapshotManager snapshotManager;
     private List<FileSystemCollector> fileSystemCollectors = new ArrayList<>();
+    private List<RecursiveFileSystemCollector> recursiveCollectors = new ArrayList<>();  // SECURITY FIX: Recursive monitoring
     private NetworkGuardService networkGuard;
     private boolean networkMonitoringStarted = false;
     private Handler cleanupHandler;
@@ -97,16 +99,21 @@ public class ShieldProtectionService extends Service {
         // Create baseline snapshot
         snapshotManager.createBaselineSnapshot(honeyfileDirs);
 
-        // Initialize file system collectors
+        // SECURITY FIX: Initialize recursive file system collectors for deep monitoring
+        // This prevents ransomware from encrypting files in subdirectories undetected
         for (String dir : honeyfileDirs) {
             File directory = new File(dir);
             if (directory.exists() && directory.isDirectory()) {
-                FileSystemCollector collector = new FileSystemCollector(dir, storage);
-                collector.setDetectionEngine(detectionEngine);
-                collector.setSnapshotManager(snapshotManager);
-                collector.startWatching();
-                fileSystemCollectors.add(collector);
-                Log.i(TAG, "Started monitoring: " + dir);
+                // Create recursive collector for this directory tree
+                RecursiveFileSystemCollector recursiveCollector = 
+                    new RecursiveFileSystemCollector(dir, storage);
+                recursiveCollector.setDetectionEngine(detectionEngine);
+                recursiveCollector.setSnapshotManager(snapshotManager);
+                recursiveCollector.startWatching();
+                recursiveCollectors.add(recursiveCollector);
+                
+                int monitoredCount = recursiveCollector.getMonitoredDirectoryCount();
+                Log.i(TAG, "Started recursive monitoring: " + dir + " (" + monitoredCount + " directories)");
             }
         }
     }
@@ -182,7 +189,13 @@ public class ShieldProtectionService extends Service {
         // Stop network monitoring
         stopNetworkMonitoring();
 
-        // Stop all file system collectors
+        // SECURITY FIX: Stop recursive file system collectors
+        for (RecursiveFileSystemCollector collector : recursiveCollectors) {
+            collector.stopWatching();
+        }
+        recursiveCollectors.clear();
+
+        // Stop all file system collectors (legacy, if any)
         for (FileSystemCollector collector : fileSystemCollectors) {
             collector.stopWatching();
         }

@@ -1,3 +1,4 @@
+import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 plugins {
     alias(libs.plugins.android.application)
 }
@@ -14,6 +15,18 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    testOptions {
+        unitTests.isReturnDefaultValues = true
+        unitTests.isIncludeAndroidResources = true
+        unitTests.all {
+            it.testLogging {
+                events("passed", "skipped", "failed")
+                showStandardStreams = true
+                exceptionFormat = TestExceptionFormat.FULL
+            }
+        }
     }
 
     buildTypes {
@@ -37,7 +50,13 @@ dependencies {
     implementation(libs.activity)
     implementation(libs.constraintlayout)
     implementation("com.github.PhilJay:MPAndroidChart:v3.1.0")
+    
+    // Unit testing dependencies
     testImplementation(libs.junit)
+    testImplementation("org.mockito:mockito-core:5.3.1")
+    testImplementation("org.mockito:mockito-inline:5.2.0")
+    
+    // Android testing dependencies
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)
 }

@@ -167,14 +167,34 @@ public class NetworkGuardService extends VpnService {
         }
     }
 
+    /**
+     * SECURITY FIX: Added IPv6 support to prevent C2 communication bypass.
+     * Analyzes both IPv4 (version 4) and IPv6 (version 6) packets.
+     * Returns true if packet should be blocked.
+     */
     private boolean analyzePacket(ByteBuffer packet) {
         if (packet.remaining() < 20)
             return false;
 
         byte versionAndIHL = packet.get(0);
         int version = (versionAndIHL >> 4) & 0x0F;
-        if (version != 4)
-            return false; // IPv4 only
+        
+        if (version == 4) {
+            return analyzeIPv4Packet(packet);
+        } else if (version == 6) {
+            return analyzeIPv6Packet(packet);
+        }
+        
+        // Unknown IP version, allow
+        return false;
+    }
+    
+    /**
+     * Analyzes IPv4 packets (original implementation)
+     */
+    private boolean analyzeIPv4Packet(ByteBuffer packet) {
+        if (packet.remaining() < 20)
+            return false;
 
         int protocol = packet.get(9) & 0xFF;
         String protoName = protocol == 6 ? "TCP" : protocol == 17 ? "UDP" : "OTHER";
@@ -200,6 +220,88 @@ public class NetworkGuardService extends VpnService {
         
         // Check if should block
         return shouldBlockConnection(destIp, destPort, protoName);
+    }
+    
+    /**
+     * SECURITY FIX: Analyzes IPv6 packets (40-byte header)
+     * IPv6 header format: Version(4) | Traffic Class(8) | Flow Label(20) | 
+     *                     Payload Length(16) | Next Header(8) | Hop Limit(8) |
+     *                     Source Address(128) | Destination Address(128)
+     */
+    private boolean analyzeIPv6Packet(ByteBuffer packet) {
+        if (packet.remaining() < 40)  // IPv6 header is 40 bytes
+            return false;
+
+        int nextHeader = packet.get(6) & 0xFF;  // Protocol (TCP=6, UDP=17)
+        String protoName = nextHeader == 6 ? "TCP" : nextHeader == 17 ? "UDP" : "OTHER";
+
+        // Extract destination IPv6 address (bytes 24-39)
+        byte[] destIpBytes = new byte[16];
+        packet.position(24);
+        packet.get(destIpBytes);
+        
+        // Format IPv6 address as colon-separated hex
+        StringBuilder ipv6 = new StringBuilder();
+        for (int i = 0; i < 16; i += 2) {
+            if (i > 0) ipv6.append(":");
+            ipv6.append(String.format("%02x%02x", destIpBytes[i] & 0xFF, destIpBytes[i+1] & 0xFF));
+        }
+        String destIp = ipv6.toString();
+
+        int destPort = 0;
+        if (packet.remaining() >= 42) {  // 40-byte header + 2 bytes for port
+            destPort = packet.getShort(42) & 0xFFFF;
+        }
+
+        // Log network event
+        if (storage != null) {
+            NetworkEvent netEvent = new NetworkEvent(
+                    destIp, destPort, protoName + "_IPv6", packet.remaining(), 0, android.os.Process.myUid());
+            storage.store(netEvent);
+        }
+        
+        // Check if should block (IPv6 addresses need special handling)
+        return shouldBlockIPv6Connection(destIp, destPort, protoName);
+    }
+    
+    /**
+     * SECURITY FIX: IPv6-specific blocking logic
+     */
+    private boolean shouldBlockIPv6Connection(String destIp, int destPort, String protocol) {
+        // If blocking disabled by user, allow all traffic
+        if (!blockingEnabled && !blockAllTraffic) {
+            return false;
+        }
+        
+        // Emergency kill switch - block ALL traffic if ransomware detected
+        if (blockAllTraffic) {
+            Log.e(TAG, "EMERGENCY MODE: Blocking IPv6 traffic");
+            return true;
+        }
+        
+        // Block known malicious ports (same as IPv4)
+        if (destPort == 4444 || destPort == 5555 || destPort == 6666 || destPort == 7777) {
+            Log.w(TAG, "BLOCKED: Suspicious IPv6 port " + destPort);
+            return true;
+        }
+        
+        // Block localhost (::1)
+        if (destIp.equals("::1") || destIp.startsWith("0000:0000:0000:0000:0000:0000:0000:0001")) {
+            return false;  // Local traffic, allow
+        }
+        
+        // Block link-local (fe80::/10)
+        if (destIp.startsWith("fe80:") || destIp.startsWith("fe90:") || destIp.startsWith("fea0:") || destIp.startsWith("feb0:")) {
+            return false;  // Link-local, allow
+        }
+        
+        // Block multicast (ff00::/8)
+        if (destIp.startsWith("ff")) {
+            return true;
+        }
+        
+        // Allow all other IPv6 traffic (can be enhanced with IPv6 threat intelligence)
+        return false;
     }
 
     private void closeVpnInterface() {
