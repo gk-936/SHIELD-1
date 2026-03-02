@@ -22,6 +22,9 @@ import com.dearmoon.shield.collectors.RecursiveFileSystemCollector;
 import com.dearmoon.shield.data.TelemetryStorage;
 import com.dearmoon.shield.detection.UnifiedDetectionEngine;
 import com.dearmoon.shield.security.SecurityUtils;
+import com.dearmoon.shield.security.integrity.IntegrityLogger;
+import com.dearmoon.shield.security.integrity.IntegrityResult;
+import com.dearmoon.shield.security.integrity.ShieldIntegrityManager;
 import com.dearmoon.shield.snapshot.SnapshotManager;
 import java.io.File;
 import java.util.ArrayList;
@@ -199,8 +202,74 @@ public class ShieldProtectionService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         SecurityUtils.checkSecurity(this);
-        Log.i(TAG, "ShieldProtectionService started");
+
+        // --- TEE-Anchored APK Integrity Check ---
+        if (ShieldIntegrityManager.isFirstRun(this)) {
+            ShieldIntegrityManager.initialize(this);
+        }
+
+        IntegrityResult integrityResult = ShieldIntegrityManager.verify(this);
+        switch (integrityResult) {
+            case APK_TAMPERED:
+                IntegrityLogger.log(this, integrityResult,
+                        "APK hash mismatch - possible tampering detected");
+                postIntegrityAlert("APK TAMPERED",
+                        "SHIELD APK integrity check failed. Service halted for safety.");
+                stopSelf();
+                return START_NOT_STICKY;
+
+            case BASELINE_FORGED:
+                IntegrityLogger.log(this, integrityResult,
+                        "Stored HMAC baseline inconsistency - forged baseline suspected");
+                postIntegrityAlert("BASELINE FORGED",
+                        "SHIELD integrity baseline compromised. Service halted for safety.");
+                stopSelf();
+                return START_NOT_STICKY;
+
+            case KEY_INVALIDATED:
+                IntegrityLogger.log(this, integrityResult,
+                        "Keystore key permanently invalidated - regenerating baseline");
+                ShieldIntegrityManager.regenerate(this);
+                break;
+
+            case TEE_KEY_MISSING:
+                IntegrityLogger.log(this, integrityResult,
+                        "Keystore key absent - initializing fresh baseline");
+                ShieldIntegrityManager.regenerate(this);
+                break;
+
+            case STRONGBOX_UNAVAILABLE:
+                IntegrityLogger.log(this, integrityResult,
+                        "StrongBox not present on this device - using TEE-backed key");
+                break;
+
+            case CLEAN:
+            default:
+                // No action needed; proceed
+                break;
+        }
+        // --- End Integrity Check ---
+
+        Log.i(TAG, "ShieldProtectionService started (integrity=" + integrityResult.name() + ")");
         return START_STICKY;
+    }
+
+    /** Posts a high-priority notification when an integrity violation halts the service. */
+    private void postIntegrityAlert(String title, String text) {
+        try {
+            android.app.Notification alert = new NotificationCompat.Builder(this, CHANNEL_ID)
+                    .setContentTitle("SHIELD: " + title)
+                    .setContentText(text)
+                    .setSmallIcon(R.drawable.ic_launcher_foreground)
+                    .setPriority(NotificationCompat.PRIORITY_HIGH)
+                    .setAutoCancel(true)
+                    .build();
+            android.app.NotificationManager nm =
+                    (android.app.NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+            if (nm != null) nm.notify(NOTIFICATION_ID + 100, alert);
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to post integrity alert notification", e);
+        }
     }
 
     @Override

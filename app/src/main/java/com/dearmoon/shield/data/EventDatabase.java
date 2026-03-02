@@ -14,7 +14,7 @@ import java.util.List;
 public class EventDatabase extends SQLiteOpenHelper {
     private static final String TAG = "EventDatabase";
     private static final String DATABASE_NAME = "shield_events.db";
-    private static final int DATABASE_VERSION = 2;
+    private static final int DATABASE_VERSION = 3;
 
     private static EventDatabase instance;
     private final Context context;
@@ -131,12 +131,38 @@ public class EventDatabase extends SQLiteOpenHelper {
         db.execSQL("CREATE INDEX idx_ls_timestamp ON " + TABLE_LOCKER_SHIELD + "(" + COL_TIMESTAMP + ")");
         db.execSQL("CREATE INDEX idx_corr_timestamp ON " + TABLE_CORRELATION + "(" + COL_TIMESTAMP + ")");
 
+        // TEE Integrity Events Table (v3)
+        db.execSQL("CREATE TABLE IF NOT EXISTS integrity_events (" +
+                "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                "timestamp INTEGER NOT NULL, " +
+                "result_type TEXT NOT NULL, " +
+                "apk_hash_snapshot TEXT, " +
+                "device_has_strongbox INTEGER NOT NULL DEFAULT 0, " +
+                "additional_info TEXT)");
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_integrity_timestamp ON integrity_events(timestamp)");
+
         Log.i(TAG, "Database tables created successfully");
     }
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
         Log.w(TAG, "Upgrading database from version " + oldVersion + " to " + newVersion);
+
+        // Non-destructive migration: add integrity_events table for v2 -> v3
+        if (oldVersion < 3) {
+            db.execSQL("CREATE TABLE IF NOT EXISTS integrity_events (" +
+                    "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                    "timestamp INTEGER NOT NULL, " +
+                    "result_type TEXT NOT NULL, " +
+                    "apk_hash_snapshot TEXT, " +
+                    "device_has_strongbox INTEGER NOT NULL DEFAULT 0, " +
+                    "additional_info TEXT)");
+            db.execSQL("CREATE INDEX IF NOT EXISTS idx_integrity_timestamp ON integrity_events(timestamp)");
+            Log.i(TAG, "Migrated to v3: added integrity_events table");
+            if (oldVersion == 2) return;  // Only added the new table; other tables intact
+        }
+
+        // Full recreation for older versions
         db.execSQL("DROP TABLE IF EXISTS " + TABLE_FILE_SYSTEM);
         db.execSQL("DROP TABLE IF EXISTS " + TABLE_HONEYFILE);
         db.execSQL("DROP TABLE IF EXISTS " + TABLE_NETWORK);

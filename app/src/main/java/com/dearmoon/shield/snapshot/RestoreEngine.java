@@ -2,42 +2,70 @@ package com.dearmoon.shield.snapshot;
 
 import android.content.Context;
 import android.util.Log;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.util.List;
 
+/**
+ * RestoreEngine – v2
+ *
+ * Handles secure restoration of backed-up files:
+ *   • Detects whether a backup file is AES-GCM encrypted (metadata.encryptedKey != null)
+ *     and decrypts it transparently before writing to the target path.
+ *   • Falls back to plain copy for legacy (pre-v2) non-encrypted backups.
+ *   • Decrypts the stored backup_path column via BackupEncryptionManager.
+ *   • GCM authentication automatically raises an exception if the ciphertext was
+ *     tampered with, so an attacker cannot silently inject a malicious payload.
+ */
 public class RestoreEngine {
-    private static final String TAG = "RestoreEngine";
-    
-    private final Context context;
-    private final SnapshotDatabase database;
 
+    private static final String TAG = "RestoreEngine";
+
+    private final Context                 context;
+    private final SnapshotDatabase        database;
+    private final BackupEncryptionManager encManager;   // may be null for legacy calls
+
+    // ── Constructors ──────────────────────────────────────────────────────────
+
+    /** Legacy constructor – used by RecoveryActivity.  Creates its own enc manager. */
     public RestoreEngine(Context context) {
-        this.context = context;
-        this.database = new SnapshotDatabase(context);
+        this(context, new BackupEncryptionManager(context));
     }
+
+    /** Preferred constructor – shares the enc manager from SnapshotManager. */
+    public RestoreEngine(Context context, BackupEncryptionManager encManager) {
+        this.context    = context;
+        this.database   = new SnapshotDatabase(context);
+        this.encManager = encManager;
+    }
+
+    // =========================================================================
+    //  Public API
+    // =========================================================================
 
     public RestoreResult restoreFromAttack(long attackId) {
         Log.i(TAG, "Starting selective restore for attack: " + attackId);
-        
+
         RestoreResult result = new RestoreResult();
-        
+
         if (attackId <= 0) {
             Log.w(TAG, "Invalid attack ID: " + attackId);
             result.noChanges = true;
             return result;
         }
-        
+
         List<FileMetadata> affectedFiles = database.getFilesModifiedDuringAttack(attackId);
-        Log.i(TAG, "Found " + affectedFiles.size() + " files modified during attack " + attackId);
-        
+        Log.i(TAG, "Found " + affectedFiles.size()
+                + " files modified during attack " + attackId);
+
         if (affectedFiles.isEmpty()) {
             Log.w(TAG, "No files to restore");
             result.noChanges = true;
             return result;
         }
-        
+
         for (FileMetadata metadata : affectedFiles) {
             try {
                 RestoreAction action = restoreFile(metadata);
@@ -52,93 +80,116 @@ public class RestoreEngine {
                 result.failedCount++;
             }
         }
-        
+
         if (result.restoredCount == 0 && result.failedCount == 0) {
             result.noChanges = true;
         }
-        
-        Log.i(TAG, "Restore complete: " + result.restoredCount + " restored, " + result.failedCount + " failed");
+
+        Log.i(TAG, "Restore complete: "
+                + result.restoredCount + " restored, " + result.failedCount + " failed");
         return result;
     }
 
-    private enum RestoreAction {
-        RESTORED, SKIPPED, FAILED
-    }
+    // =========================================================================
+    //  Internal
+    // =========================================================================
+
+    private enum RestoreAction { RESTORED, SKIPPED, FAILED }
 
     private RestoreAction restoreFile(FileMetadata metadata) throws Exception {
-        File targetFile = new File(metadata.filePath);
-        
         if (!metadata.isBackedUp || metadata.backupPath == null) {
             Log.d(TAG, "No backup needed: " + metadata.filePath);
             return RestoreAction.SKIPPED;
         }
-        
-        File backupFile = new File(metadata.backupPath);
+
+        // ── Decrypt the stored backup_path column (Feature 3) ──────────────
+        String realBackupPath = metadata.backupPath;
+        if (encManager != null) {
+            try {
+                realBackupPath = encManager.decryptColumn(metadata.backupPath);
+            } catch (Exception ignored) {
+                // Legacy entry with plaintext path – use as-is
+            }
+        }
+
+        File backupFile = new File(realBackupPath);
         if (!backupFile.exists()) {
-            Log.e(TAG, "Backup file missing: " + metadata.backupPath);
+            Log.e(TAG, "Backup file missing: " + realBackupPath);
             return RestoreAction.FAILED;
         }
-        
-        if (!targetFile.exists()) {
-            Log.i(TAG, "Restoring deleted file: " + metadata.filePath);
-            copyFile(backupFile, targetFile);
-            return RestoreAction.RESTORED;
-        }
-        
-        String currentHash = calculateQuickHash(targetFile);
-        if (!currentHash.equals(metadata.sha256Hash)) {
-            Log.i(TAG, "Restoring modified file: " + metadata.filePath);
+
+        File targetFile = new File(metadata.filePath);
+
+        // ── Check if target file still needs restoring ─────────────────────
+        if (targetFile.exists()) {
+            String currentHash = calculateQuickHash(targetFile);
+            if (currentHash.equals(metadata.sha256Hash)) {
+                Log.d(TAG, "File unchanged, skipping: " + metadata.filePath);
+                return RestoreAction.SKIPPED;
+            }
             targetFile.delete();
-            copyFile(backupFile, targetFile);
-            return RestoreAction.RESTORED;
+        } else {
+            Log.i(TAG, "Restoring deleted file: " + metadata.filePath);
         }
-        
-        Log.d(TAG, "File unchanged, skipping: " + metadata.filePath);
-        return RestoreAction.SKIPPED;
+
+        targetFile.getParentFile().mkdirs();
+
+        // ── Decrypt (v2) or plain copy (v1 legacy) ─────────────────────────
+        boolean encrypted = metadata.encryptedKey != null && encManager != null;
+        if (encrypted) {
+            // AES-256-GCM decryption – GCM tag check ensures ciphertext integrity
+            encManager.decryptFile(backupFile, targetFile, metadata.encryptedKey);
+            Log.i(TAG, "Decrypted & restored: " + metadata.filePath);
+        } else {
+            // Legacy plaintext backup
+            copyFile(backupFile, targetFile);
+            Log.i(TAG, "Copied (plaintext backup): " + metadata.filePath);
+        }
+
+        return RestoreAction.RESTORED;
     }
+
+    // =========================================================================
+    //  Utility helpers
+    // =========================================================================
 
     private void copyFile(File src, File dst) throws Exception {
         dst.getParentFile().mkdirs();
-        try (FileInputStream in = new FileInputStream(src);
+        try (FileInputStream  in  = new FileInputStream(src);
              FileOutputStream out = new FileOutputStream(dst)) {
             byte[] buffer = new byte[8192];
             int read;
-            while ((read = in.read(buffer)) != -1) {
-                out.write(buffer, 0, read);
-            }
+            while ((read = in.read(buffer)) != -1) out.write(buffer, 0, read);
         }
         dst.setLastModified(src.lastModified());
     }
 
     private String calculateQuickHash(File file) {
         try {
-            if (file.length() > 50 * 1024 * 1024) {
-                return "LARGE_FILE";
-            }
-            
-            java.security.MessageDigest digest = java.security.MessageDigest.getInstance("SHA-256");
+            if (file.length() > 50 * 1024 * 1024) return "LARGE_FILE";
+            java.security.MessageDigest digest =
+                    java.security.MessageDigest.getInstance("SHA-256");
             try (FileInputStream fis = new FileInputStream(file)) {
-                byte[] buffer = new byte[8192];
-                int read;
-                while ((read = fis.read(buffer)) != -1) {
-                    digest.update(buffer, 0, read);
-                }
+                byte[] buf = new byte[8192];
+                int n;
+                while ((n = fis.read(buf)) != -1) digest.update(buf, 0, n);
             }
-            
             byte[] hash = digest.digest();
-            StringBuilder hexString = new StringBuilder();
-            for (byte b : hash) {
-                hexString.append(String.format("%02x", b));
-            }
-            return hexString.toString();
+            StringBuilder sb = new StringBuilder();
+            for (byte b : hash) sb.append(String.format("%02x", b));
+            return sb.toString();
         } catch (Exception e) {
             return "ERROR";
         }
     }
 
+    // =========================================================================
+    //  Result class
+    // =========================================================================
+
     public static class RestoreResult {
-        public int restoredCount = 0;
-        public int failedCount = 0;
-        public boolean noChanges = false;
+        public int     restoredCount = 0;
+        public int     failedCount   = 0;
+        public boolean noChanges     = false;
     }
 }
