@@ -164,7 +164,9 @@ public class SettingsActivity extends AppCompatActivity {
     }
 
     private void showUserGuide() {
-        Intent intent = new Intent(this, UserGuideActivity.class);
+        Intent intent = new Intent(this, MainActivity.class);
+        intent.putExtra("START_GUIDE", true);
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
         startActivity(intent);
     }
 }

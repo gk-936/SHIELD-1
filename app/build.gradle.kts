@@ -50,6 +50,7 @@ dependencies {
     implementation(libs.activity)
     implementation(libs.constraintlayout)
     implementation("com.github.PhilJay:MPAndroidChart:v3.1.0")
+    implementation("androidx.biometric:biometric:1.1.0")
     
     // Unit testing dependencies
     testImplementation(libs.junit)

@@ -19,6 +19,11 @@ import androidx.core.content.ContextCompat;
 import com.dearmoon.shield.services.NetworkGuardService;
 import com.dearmoon.shield.services.ShieldProtectionService;
 import com.dearmoon.shield.ui.GlitchTextView;
+import com.dearmoon.shield.ui.GuideSpotlightView;
+import com.dearmoon.shield.ui.WaterFillView;
+import androidx.biometric.BiometricPrompt;
+import java.util.concurrent.Executor;
+import android.graphics.RectF;
 
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
@@ -34,6 +39,24 @@ public class MainActivity extends AppCompatActivity {
     private android.content.BroadcastReceiver dataUpdateReceiver;
     private com.dearmoon.shield.snapshot.SnapshotManager snapshotManager;
 
+    // Guide UI references
+    private GuideSpotlightView guideSpotlightView;
+    private WaterFillView guideWaterFill;
+    private android.view.View guideOverlayContainer;
+    private android.widget.TextView guideTextMsg;
+    private android.widget.TextView guideStepTitle;
+    private android.widget.TextView tvIslandStep;
+    private com.dearmoon.shield.ui.GlitchTextView tvLetsSecure;
+    private android.widget.FrameLayout letsSecureContainer;
+    private com.dearmoon.shield.ui.BinaryConvergeView binaryConvergeView;
+    private Button btnGuideNext;
+    private android.widget.FrameLayout dynamicIslandContainer;
+    private androidx.cardview.widget.CardView guideTooltipCard;
+    private android.view.View guideFinaleOverlay;
+    private int currentGuideStep = 0;
+    private static final int TOTAL_STEPS = 7;
+    private android.view.View statsCard;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -46,12 +69,16 @@ public class MainActivity extends AppCompatActivity {
             getWindow().getDecorView().setSystemUiVisibility(0);
         }
 
-        // Show user guide on first launch
-        if (UserGuideActivity.isFirstTime(this)) {
-            startActivity(new android.content.Intent(this, UserGuideActivity.class));
-        }
-
         initializeViews();
+
+        // Show user guide AFTER views are initialized
+        if (UserGuideActivity.isFirstTime(this)) {
+            getSharedPreferences("ShieldPrefs", Context.MODE_PRIVATE).edit().putBoolean("first_time_user", false).apply();
+            // Post to next frame so layout is measured before guide starts
+            getWindow().getDecorView().post(this::startInteractiveGuide);
+        } else if (getIntent().getBooleanExtra("START_GUIDE", false)) {
+            getWindow().getDecorView().post(this::startInteractiveGuide);
+        }
     }
 
     private void initializeViews() {
@@ -64,12 +91,27 @@ public class MainActivity extends AppCompatActivity {
 
         btnModeA = findViewById(R.id.btnModeA);
         btnModeB = findViewById(R.id.btnModeB);
+        statsCard = findViewById(R.id.statsCard);
+
+        guideSpotlightView = findViewById(R.id.guideSpotlightView);
+        guideOverlayContainer = findViewById(R.id.guideOverlayContainer);
+        dynamicIslandContainer = findViewById(R.id.dynamicIslandContainer);
+        guideWaterFill = findViewById(R.id.guideWaterFill);
+        guideTooltipCard = findViewById(R.id.guideTooltipCard);
+        guideStepTitle = findViewById(R.id.guideStepTitle);
+        guideTextMsg = findViewById(R.id.guideTextMsg);
+        tvIslandStep = findViewById(R.id.tvIslandStep);
+        letsSecureContainer = null; // removed — replaced by BinaryConvergeView
+        tvLetsSecure = findViewById(R.id.tvLetsSecure);
+        binaryConvergeView = findViewById(R.id.binaryConvergeView);
+        btnGuideNext = findViewById(R.id.btnGuideNext);
+        guideFinaleOverlay = findViewById(R.id.guideFinaleOverlay);
 
         snapshotManager = new com.dearmoon.shield.snapshot.SnapshotManager(this);
 
         btnModeA.setOnClickListener(
-                v -> Toast.makeText(this, "Root Mode: Requires rooted device", Toast.LENGTH_SHORT).show());
-        btnModeB.setOnClickListener(v -> toggleProtection());
+                v -> authenticateBiometric(() -> Toast.makeText(this, "Root Mode: Requires rooted device", Toast.LENGTH_SHORT).show()));
+        btnModeB.setOnClickListener(v -> authenticateBiometric(() -> toggleProtection()));
 
         findViewById(R.id.btnNavLocker)
                 .setOnClickListener(v -> startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)));
@@ -104,6 +146,164 @@ public class MainActivity extends AppCompatActivity {
         } else {
             registerReceiver(dataUpdateReceiver, dataFilter);
         }
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        if (intent.getBooleanExtra("START_GUIDE", false)) {
+            getWindow().getDecorView().post(this::startInteractiveGuide);
+        }
+    }
+
+    private void authenticateBiometric(Runnable onSuccess) {
+        Executor executor = ContextCompat.getMainExecutor(this);
+        BiometricPrompt biometricPrompt = new BiometricPrompt(this, executor, new BiometricPrompt.AuthenticationCallback() {
+            @Override
+            public void onAuthenticationError(int errorCode, CharSequence errString) {
+                super.onAuthenticationError(errorCode, errString);
+                Toast.makeText(getApplicationContext(), "Authentication error: " + errString, Toast.LENGTH_SHORT).show();
+            }
+
+            @Override
+            public void onAuthenticationSucceeded(BiometricPrompt.AuthenticationResult result) {
+                super.onAuthenticationSucceeded(result);
+                onSuccess.run();
+            }
+
+            @Override
+            public void onAuthenticationFailed() {
+                super.onAuthenticationFailed();
+                Toast.makeText(getApplicationContext(), "Authentication failed", Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        BiometricPrompt.PromptInfo promptInfo = new BiometricPrompt.PromptInfo.Builder()
+                .setTitle("Authentication Required")
+                .setSubtitle("Please authenticate to toggle root setting")
+                .setNegativeButtonText("Cancel")
+                .build();
+        biometricPrompt.authenticate(promptInfo);
+    }
+
+    private void startInteractiveGuide() {
+        if (guideSpotlightView == null || btnGuideNext == null) return;
+        if (guideOverlayContainer != null) guideOverlayContainer.setVisibility(android.view.View.VISIBLE);
+        guideSpotlightView.setVisibility(android.view.View.VISIBLE);
+        dynamicIslandContainer.setVisibility(android.view.View.VISIBLE);
+        guideTooltipCard.setVisibility(android.view.View.VISIBLE);
+        btnGuideNext.setVisibility(android.view.View.VISIBLE);
+        if (binaryConvergeView != null) binaryConvergeView.stopAnimation();
+        if (guideFinaleOverlay != null) guideFinaleOverlay.setVisibility(android.view.View.GONE);
+        btnGuideNext.setText("Next \u2192");
+        currentGuideStep = 0;
+        btnGuideNext.setOnClickListener(v -> advanceGuide());
+        advanceGuide();
+    }
+
+    /** Maps each step to its target View. Order: Root → NonRoot → Settings → Snapshot → FileMonitor → Logs → Locker */
+    private android.view.View getTargetForStep(int step) {
+        switch (step) {
+            case 0: return btnModeA;
+            case 1: return btnModeB;
+            case 2: return findViewById(R.id.btnNavSettings);
+            case 3: return findViewById(R.id.btnNavSnapshot);
+            case 4: return findViewById(R.id.btnNavFile);
+            case 5: return findViewById(R.id.btnNavLogs);
+            case 6: return findViewById(R.id.btnNavLocker);
+            default: return null;
+        }
+    }
+
+    private void advanceGuide() {
+        // Finale — all 7 steps done
+        if (currentGuideStep >= TOTAL_STEPS) {
+            guideSpotlightView.clearTarget();
+            guideSpotlightView.setVisibility(android.view.View.GONE);
+            dynamicIslandContainer.setVisibility(android.view.View.GONE);
+            guideTooltipCard.setVisibility(android.view.View.GONE);
+            btnGuideNext.setVisibility(android.view.View.GONE);
+            if (guideFinaleOverlay != null) guideFinaleOverlay.setVisibility(android.view.View.VISIBLE);
+
+            // Data-Stream Compilation: 130 binary particles converge → "SYSTEM ARMED"
+            if (binaryConvergeView != null) {
+                binaryConvergeView.startAnimation(() -> {
+                    // Particle cleanup done inside BinaryConvergeView; close the guide overlay
+                    if (guideFinaleOverlay != null) guideFinaleOverlay.setVisibility(android.view.View.GONE);
+                    if (guideOverlayContainer != null) guideOverlayContainer.setVisibility(android.view.View.GONE);
+                });
+            } else {
+                // Fallback if view not found
+                new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
+                    if (guideFinaleOverlay != null) guideFinaleOverlay.setVisibility(android.view.View.GONE);
+                    if (guideOverlayContainer != null) guideOverlayContainer.setVisibility(android.view.View.GONE);
+                }, 3000);
+            }
+            return;
+        }
+
+        // Update water fill in Dynamic Island
+        guideWaterFill.setFillFraction((currentGuideStep + 1f) / TOTAL_STEPS);
+
+        // Update pill step label
+        tvIslandStep.setText((currentGuideStep + 1) + " / " + TOTAL_STEPS);
+
+        // Highlight the target with a pulsing neon ring
+        android.view.View target = getTargetForStep(currentGuideStep);
+        if (target != null) highlightView(target);
+
+        // Set tooltip content
+        switch (currentGuideStep) {
+            case 0:
+                guideStepTitle.setText("Root Mode");
+                guideTextMsg.setText("Tap this button to activate advanced kernel-level protection. Requires a rooted device.");
+                break;
+            case 1:
+                guideStepTitle.setText("Non-Root Mode");
+                guideTextMsg.setText("Activate filesystem + network monitoring — works on all devices without root access.");
+                break;
+            case 2:
+                guideStepTitle.setText("Settings");
+                guideTextMsg.setText("Configure detection sensitivity, manage whitelist, and access the test suite.");
+                break;
+            case 3:
+                guideStepTitle.setText("Snapshot Recovery");
+                guideTextMsg.setText("Capture a clean snapshot of your files and restore them after a ransomware attack.");
+                break;
+            case 4:
+                guideStepTitle.setText("File Monitor");
+                guideTextMsg.setText("Track every file system change and honeyfile access attempt in real time.");
+                break;
+            case 5:
+                guideStepTitle.setText("Event Logs");
+                guideTextMsg.setText("View a full timeline of security events with graphs and threat filters.");
+                break;
+            case 6:
+                guideStepTitle.setText("Locker Guard");
+                guideTextMsg.setText("Accessibility service that detects and blocks screen-locking ransomware.");
+                btnGuideNext.setText("Finish ✓");
+                break;
+        }
+
+        currentGuideStep++;
+    }
+
+    private void highlightView(android.view.View v) {
+        v.post(() -> {
+            int[] loc = new int[2];
+            v.getLocationOnScreen(loc);
+            int[] overlayLoc = new int[2];
+            guideSpotlightView.getLocationOnScreen(overlayLoc);
+
+            float padPx = 14f * getResources().getDisplayMetrics().density;
+            float left   = loc[0] - overlayLoc[0] - padPx;
+            float top    = loc[1] - overlayLoc[1] - padPx;
+            float right  = left + v.getWidth()  + padPx * 2;
+            float bottom = top  + v.getHeight() + padPx * 2;
+            // Use a generous corner radius so it reads as a rounded ring, not a box
+            float corner = Math.min(v.getHeight() / 2f + padPx, 40f * getResources().getDisplayMetrics().density);
+            guideSpotlightView.setTargetRect(new RectF(left, top, right, bottom), corner);
+        });
     }
 
     private void toggleProtection() {

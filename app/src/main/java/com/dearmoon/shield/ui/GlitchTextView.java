@@ -1,36 +1,30 @@
 package com.dearmoon.shield.ui;
 
-import android.animation.Animator;
-import android.animation.AnimatorListenerAdapter;
-import android.animation.ValueAnimator;
+import android.animation.ObjectAnimator;
 import android.content.Context;
 import android.graphics.Canvas;
-import android.graphics.LinearGradient;
-import android.graphics.Paint;
-import android.graphics.Shader;
+import android.graphics.Color;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.AttributeSet;
-import android.view.animation.AccelerateDecelerateInterpolator;
+import android.view.animation.BounceInterpolator;
 import androidx.appcompat.widget.AppCompatTextView;
+
 import java.util.Random;
 
 public class GlitchTextView extends AppCompatTextView {
-    private Paint scanBeamPaint;
-    private float scanBeamPosition = -1f;
-    private boolean isScanning = false;
 
-    private Paint glitchPaint;
     private boolean isGlitching = false;
+    private boolean isFailingNeon = false;
     private float glitchOffsetX = 0f;
     private float glitchOffsetY = 0f;
-    private int glitchColor = 0;
+
+    private int cyanColor;
+    private int magentaColor;
     private Random random = new Random();
-
-    private ValueAnimator glitchAnimator;
-    private ValueAnimator scanAnimator;
-
-    private boolean showCursor = false;
-    private boolean cursorVisible = true;
-    private ValueAnimator cursorAnimator;
+    private Handler handler = new Handler(Looper.getMainLooper());
+    private Runnable glitchRunnable;
+    private Runnable flickerRunnable;
 
     public GlitchTextView(Context context) {
         super(context);
@@ -48,182 +42,173 @@ public class GlitchTextView extends AppCompatTextView {
     }
 
     private void init() {
-        // Scan beam paint
-        scanBeamPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        scanBeamPaint.setStyle(Paint.Style.FILL);
+        cyanColor = Color.parseColor("#00f3ff");
+        magentaColor = Color.parseColor("#ff00ff");
 
-        // Glitch paint
-        glitchPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        glitchPaint.setStyle(Paint.Style.FILL);
+        glitchRunnable = new Runnable() {
+            @Override
+            public void run() {
+                if (isGlitching) {
+                    // Random offset for Chromatic Aberration
+                    glitchOffsetX = (random.nextFloat() - 0.5f) * 20f;
+                    glitchOffsetY = (random.nextFloat() - 0.5f) * 10f;
+                    invalidate();
+
+                    // Phase 3: the glitch offset lasts for ~0.2s (200ms)
+                    handler.postDelayed(() -> {
+                        glitchOffsetX = 0;
+                        glitchOffsetY = 0;
+                        invalidate();
+                    }, 200);
+
+                    // Random intervals between next glitch
+                    handler.postDelayed(this, 800 + random.nextInt(2000));
+                }
+            }
+        };
+
+        flickerRunnable = new Runnable() {
+            @Override
+            public void run() {
+                if (isFailingNeon) {
+                    // Phase 2: random opacity jumps between 80% (0.8) and 100% (1.0)
+                    float alpha = 0.8f + (random.nextFloat() * 0.2f);
+                    setAlpha(alpha);
+                    // Flicker very fast, every 40-100ms
+                    handler.postDelayed(this, 40 + random.nextInt(60));
+                }
+            }
+        };
     }
 
     @Override
     protected void onDraw(Canvas canvas) {
-        // Draw glitch effect if active
-        if (isGlitching && glitchOffsetX != 0) {
+        if (glitchOffsetX != 0 || glitchOffsetY != 0) {
+            int originalColor = getCurrentTextColor();
+            
+            // Draw Cyan layer (shifted)
+            canvas.save();
+            canvas.translate(-glitchOffsetX, -glitchOffsetY);
+            setTextColor(cyanColor);
+            super.onDraw(canvas);
+            canvas.restore();
+
+            // Draw Magenta layer (shifted)
             canvas.save();
             canvas.translate(glitchOffsetX, glitchOffsetY);
-
-            // Draw chromatic aberration layers
-            int originalColor = getCurrentTextColor();
-
-            // Red channel offset
-            setTextColor(0xFFFF0000);
-            canvas.save();
-            canvas.translate(-2, 0);
+            setTextColor(magentaColor);
             super.onDraw(canvas);
             canvas.restore();
 
-            // Cyan channel offset
-            setTextColor(0xFF00FFFF);
-            canvas.save();
-            canvas.translate(2, 0);
-            super.onDraw(canvas);
-            canvas.restore();
-
-            // Restore original color
+            // Restore original text color for the main layer
             setTextColor(originalColor);
-            canvas.restore();
         }
 
-        // Draw main text
+        // Draw normal text on top
         super.onDraw(canvas);
-
-        // Draw cursor if enabled
-        if (showCursor && cursorVisible) {
-            Paint cursorPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-            cursorPaint.setColor(getCurrentTextColor());
-            cursorPaint.setStyle(Paint.Style.FILL);
-
-            float textWidth = getPaint().measureText(getText().toString());
-            float cursorX = (getWidth() - textWidth) / 2 + textWidth + 10;
-            float cursorY = getHeight() / 2 - getTextSize() / 2;
-            float cursorHeight = getTextSize();
-
-            canvas.drawRect(cursorX, cursorY, cursorX + 8, cursorY + cursorHeight, cursorPaint);
-        }
-
-        // Draw scan beam if active
-        if (isScanning && scanBeamPosition >= 0) {
-            int beamColor = 0x8810B981; // Semi-transparent green
-            scanBeamPaint.setShader(new LinearGradient(
-                    0, scanBeamPosition - 50,
-                    0, scanBeamPosition + 50,
-                    new int[] { 0x00000000, beamColor, 0x00000000 },
-                    new float[] { 0f, 0.5f, 1f },
-                    Shader.TileMode.CLAMP));
-
-            canvas.drawRect(0, 0, getWidth(), getHeight(), scanBeamPaint);
-        }
     }
 
-    public void startGlitchEffect() {
-        if (glitchAnimator != null) {
-            glitchAnimator.cancel();
-        }
+    // ─── Public API for protection-status display (used by MainActivity) ─────
+
+    /** Phase 1+2+3 reveal: drop + elastic bounce + neon flicker + chromatic glitch */
+    public void startRevealAnimation() {
+        stopAnimations();
+        setVisibility(VISIBLE);
+        setAlpha(1f);
+
+        setTranslationY(-500f);
+
+        ObjectAnimator dropAnim = ObjectAnimator.ofFloat(this, "translationY", -500f, 0f);
+        dropAnim.setDuration(1200);
+        dropAnim.setInterpolator(new BounceInterpolator());
 
         isGlitching = true;
-        glitchAnimator = ValueAnimator.ofFloat(0f, 1f);
-        glitchAnimator.setDuration(100);
-        glitchAnimator.setRepeatCount(ValueAnimator.INFINITE);
-        glitchAnimator.setRepeatMode(ValueAnimator.RESTART);
+        glitchOffsetX = 15f;
+        glitchOffsetY = 15f;
 
-        glitchAnimator.addUpdateListener(animation -> {
-            // Random glitch every few frames
-            if (random.nextFloat() > 0.7f) {
-                glitchOffsetX = (random.nextFloat() - 0.5f) * 6;
-                glitchOffsetY = (random.nextFloat() - 0.5f) * 4;
-            } else {
-                glitchOffsetX = 0;
-                glitchOffsetY = 0;
-            }
+        dropAnim.start();
+
+        handler.postDelayed(() -> {
+            glitchOffsetX = 0;
+            glitchOffsetY = 0;
             invalidate();
-        });
 
-        glitchAnimator.start();
+            handler.postDelayed(glitchRunnable, 200);
+
+            isFailingNeon = true;
+            handler.post(flickerRunnable);
+
+        }, 1200);
     }
 
+    /** Start the periodic chromatic-glitch loop (used on Protection Inactive). */
+    public void startGlitchEffect() {
+        if (isGlitching) return;
+        isGlitching = true;
+        handler.post(glitchRunnable);
+    }
+
+    /** Stop the chromatic-glitch loop. */
     public void stopGlitchEffect() {
         isGlitching = false;
-        if (glitchAnimator != null) {
-            glitchAnimator.cancel();
-        }
-        glitchOffsetX = 0;
-        glitchOffsetY = 0;
+        handler.removeCallbacks(glitchRunnable);
+        glitchOffsetX = 0f;
+        glitchOffsetY = 0f;
         invalidate();
     }
 
-    public void startScanBeam(final Runnable onComplete) {
-        if (scanAnimator != null) {
-            scanAnimator.cancel();
-        }
-
-        isScanning = true;
-        scanBeamPosition = 0;
-
-        scanAnimator = ValueAnimator.ofFloat(0f, getHeight());
-        scanAnimator.setDuration(800);
-        scanAnimator.setInterpolator(new AccelerateDecelerateInterpolator());
-
-        scanAnimator.addUpdateListener(animation -> {
-            scanBeamPosition = (float) animation.getAnimatedValue();
-            invalidate();
-        });
-
-        scanAnimator.addListener(new AnimatorListenerAdapter() {
+    /**
+     * Play a brief "scan beam" animation (text sweeps from dim → bright),
+     * then invokes {@code onComplete} so callers can chain the next effect.
+     */
+    public void startScanBeam(Runnable onComplete) {
+        setAlpha(0.4f);
+        ObjectAnimator scanAnim = ObjectAnimator.ofFloat(this, "alpha", 0.4f, 1f);
+        scanAnim.setDuration(600);
+        scanAnim.setInterpolator(new android.view.animation.AccelerateDecelerateInterpolator());
+        scanAnim.addListener(new android.animation.AnimatorListenerAdapter() {
             @Override
-            public void onAnimationEnd(Animator animation) {
-                isScanning = false;
-                scanBeamPosition = -1f;
-                invalidate();
-                if (onComplete != null) {
-                    onComplete.run();
-                }
+            public void onAnimationEnd(android.animation.Animator animation) {
+                if (onComplete != null) onComplete.run();
             }
         });
-
-        scanAnimator.start();
+        scanAnim.start();
     }
 
+    /** Start a slow alpha pulse that mimics a cursor blink (active state). */
     public void startCursorBlink() {
-        showCursor = true;
-
-        if (cursorAnimator != null) {
-            cursorAnimator.cancel();
-        }
-
-        cursorAnimator = ValueAnimator.ofFloat(0f, 1f);
-        cursorAnimator.setDuration(530);
-        cursorAnimator.setRepeatCount(ValueAnimator.INFINITE);
-        cursorAnimator.setRepeatMode(ValueAnimator.REVERSE);
-
-        cursorAnimator.addUpdateListener(animation -> {
-            cursorVisible = animation.getAnimatedFraction() > 0.5f;
-            invalidate();
-        });
-
-        cursorAnimator.start();
+        if (isFailingNeon) return;
+        isFailingNeon = true;
+        handler.post(flickerRunnable);
     }
 
+    /** Stop the cursor blink / neon flicker. */
     public void stopCursorBlink() {
-        showCursor = false;
-        if (cursorAnimator != null) {
-            cursorAnimator.cancel();
+        isFailingNeon = false;
+        handler.removeCallbacks(flickerRunnable);
+        setAlpha(1f);
+    }
+
+    /** Stop all running animations and reset to neutral state. */
+    public void stopAnimations() {
+        isGlitching = false;
+        isFailingNeon = false;
+        if (handler != null) {
+            handler.removeCallbacks(glitchRunnable);
+            handler.removeCallbacks(flickerRunnable);
+            handler.removeCallbacksAndMessages(null);
         }
+        setAlpha(1f);
+        setTranslationY(0f);
+        glitchOffsetX = 0f;
+        glitchOffsetY = 0f;
         invalidate();
     }
 
     @Override
     protected void onDetachedFromWindow() {
         super.onDetachedFromWindow();
-        if (glitchAnimator != null) {
-            glitchAnimator.cancel();
-        }
-        if (scanAnimator != null) {
-            scanAnimator.cancel();
-        }
-        if (cursorAnimator != null) {
-            cursorAnimator.cancel();
-        }
+        stopAnimations();
     }
 }
+
