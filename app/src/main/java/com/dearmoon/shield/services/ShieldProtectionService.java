@@ -21,6 +21,8 @@ import com.dearmoon.shield.collectors.HoneyfileCollector;
 import com.dearmoon.shield.collectors.RecursiveFileSystemCollector;
 import com.dearmoon.shield.data.TelemetryStorage;
 import com.dearmoon.shield.detection.UnifiedDetectionEngine;
+import com.dearmoon.shield.security.ConfigAuditChecker;
+import com.dearmoon.shield.security.DependencyIntegrityChecker;
 import com.dearmoon.shield.security.SecurityUtils;
 import com.dearmoon.shield.security.integrity.IntegrityLogger;
 import com.dearmoon.shield.security.integrity.IntegrityResult;
@@ -249,6 +251,30 @@ public class ShieldProtectionService extends Service {
                 break;
         }
         // --- End Integrity Check ---
+
+        // --- M2: Supply Chain Integrity Check (background thread) ---
+        // --- M8: Security Misconfiguration Audit   (background thread) ---
+        final android.content.Context svcCtx = this;
+        new Thread(() -> {
+            try {
+                DependencyIntegrityChecker.Finding supplyChainResult =
+                        DependencyIntegrityChecker.check(svcCtx);
+                Log.i(TAG, "Supply-chain check: " + supplyChainResult.name());
+            } catch (Exception e) {
+                Log.e(TAG, "DependencyIntegrityChecker failed", e);
+            }
+            try {
+                java.util.List<ConfigAuditChecker.ConfigFinding> auditFindings =
+                        ConfigAuditChecker.audit(svcCtx);
+                long failCount = auditFindings.stream()
+                        .filter(f -> f.severity == ConfigAuditChecker.Severity.FAIL)
+                        .count();
+                Log.i(TAG, "Config audit complete: " + auditFindings.size()
+                        + " findings, " + failCount + " FAIL");
+            } catch (Exception e) {
+                Log.e(TAG, "ConfigAuditChecker failed", e);
+            }
+        }, "shield-audit").start();
 
         Log.i(TAG, "ShieldProtectionService started (integrity=" + integrityResult.name() + ")");
         return START_STICKY;

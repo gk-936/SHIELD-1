@@ -90,12 +90,18 @@ public class SecurityUtilsTest {
      */
     @Test
     public void testSignatureVerificationDevelopmentMode() throws Exception {
+        // Mockito stubs return null for toByteArray() by default, which causes a NPE
+        // inside MessageDigest.digest() before the EXPECTED_SIGNATURE_HASH == null guard
+        // is reached.  Provide a real byte array so the digest can be computed.
+        Signature mockSig = mock(Signature.class);
+        when(mockSig.toByteArray()).thenReturn(new byte[]{1, 2, 3, 4, 5, 6, 7, 8});
+
         PackageInfo packageInfo = new PackageInfo();
-        packageInfo.signatures = new Signature[]{mock(Signature.class)}; // specific signature not needed if hash null
-        
+        packageInfo.signatures = new Signature[]{mockSig};
+
         when(mockPackageManager.getPackageInfo(anyString(), anyInt()))
             .thenReturn(packageInfo);
-        
+
         // In development mode (EXPECTED_SIGNATURE_HASH = null), should return true
         assertTrue("Development mode should allow any signature", SecurityUtils.verifySignature(mockContext));
     }

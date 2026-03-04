@@ -38,6 +38,10 @@
    - [SPRT Single-Event False-Trigger Fix](#2-sprt-single-event-false-trigger-fix)
    - [SPRT Timestamp Initialisation](#3-sprt-timestamp-initialisation)
    - [LockerGuard Wired into Behavior Score](#4-lockerguard-wired-into-behavior-score)
+6. [OWASP Mobile Top 10 Coverage](#owasp-mobile-top-10-coverage)
+   - [M2 — Supply Chain: Certificate Pinning + Native Library Hashing](#owasp-m2--inadequate-supply-chain-security)
+   - [M6 — Privacy Controls: Consent Gate + Telemetry Summary + Purge](#owasp-m6--inadequate-privacy-controls)
+   - [M8 — Security Misconfiguration: Runtime Config Audit](#owasp-m8--security-misconfiguration)
 
 ---
 
@@ -381,6 +385,81 @@ The root cause: with `λ₁/λ₀ = 5.0/0.1 = 50` and `α = β = 0.05`, the per-
 
 ---
 
+## OWASP Mobile Top 10 Coverage
+
+> The following three sections implement features that address OWASP Mobile Top 10 (2024) categories M2, M6, and M8 — the three categories identified as partially or not addressed in the original SHIELD codebase.
+
+---
+
+### OWASP M2 — Inadequate Supply Chain Security
+
+#### M2.1 APK Signing Certificate Pinning — `DependencyIntegrityChecker`
+
+**File:** `DependencyIntegrityChecker.java`
+
+On the first clean run, `DependencyIntegrityChecker.check()` computes the SHA-256 digest of the first APK signing certificate (using `PackageManager.GET_SIGNING_CERTIFICATES` on API 28+ and the legacy `GET_SIGNATURES` on older devices), Base64-encodes it, and stores the value as a baseline in the private `shield_supply_chain` SharedPreferences file. On every subsequent run the same digest is recomputed and compared to the stored baseline. If the certificate has changed — meaning the APK was re-signed by a different party after installation — a `CERT_CHANGED` finding is emitted, a `com.dearmoon.shield.SUPPLY_CHAIN_ALERT` broadcast is fired, and the finding is written to the `config_audit_events` table in `EventDatabase`.
+
+#### M2.2 Native Library Hash Baseline — `DependencyIntegrityChecker`
+
+**File:** `DependencyIntegrityChecker.java`
+
+On the first run, every `.so` file in the application's `nativeLibraryDir` is hashed with SHA-256 and the `filename → hash` map is stored in SharedPreferences under the `lib_hash_` key prefix. On subsequent starts the map is recomputed and compared to the baseline. Added libraries, removed libraries, and libraries whose byte content has changed since installation each generate a `NATIVE_LIB_TAMPERED` finding. Both certificate and library findings are aggregated into a single worst-case `Finding` enum result and logged to `EventDatabase`. The check runs on a background thread (`shield-audit`) spawned from `ShieldProtectionService.onStartCommand()` to avoid blocking service start.
+
+---
+
+### OWASP M6 — Inadequate Privacy Controls
+
+#### M6.1 First-Launch Consent Gate — `PrivacyConsentManager`, `SplashActivity`
+
+**Files:** `PrivacyConsentManager.java`, `SplashActivity.java`
+
+`SplashActivity.onCreate()` now calls `PrivacyConsentManager.hasConsent()` before navigating to `MainActivity`. If the user has not yet consented (or if the stored policy version is older than `POLICY_VERSION = 1`), an `AlertDialog` is shown that itemises every category of data SHIELD collects — file system events, network metadata, honeyfile events, and accessibility events — along with the statement that all data is stored locally and never transmitted. Selecting **I Agree** calls `PrivacyConsentManager.recordConsent(true)` and proceeds normally. Selecting **Decline** calls `recordConsent(false)` and calls `finish()`, closing the app without starting any collectors. The consent decision, timestamp, and policy version number are persisted in the private `shield_privacy` SharedPreferences file and written as a row to the `privacy_consent_events` audit table.
+
+#### M6.2 Telemetry Summary — `PrivacyConsentManager`
+
+**File:** `PrivacyConsentManager.java`
+
+`PrivacyConsentManager.getTelemetrySummary(context)` returns a `LinkedHashMap<String, Long>` of table label to row count for all eight telemetry tables SHIELD writes to. Intended use: a "What data SHIELD stores" screen in `SettingsActivity` that lets users see at a glance how much data has accumulated before deciding to purge it.
+
+#### M6.3 Telemetry Purge — `PrivacyConsentManager`
+
+**File:** `PrivacyConsentManager.java`
+
+`PrivacyConsentManager.purgeAllTelemetry(context)` deletes all rows from the six main telemetry tables and the config audit table, returning the total row count deleted. The `integrity_events` and `privacy_consent_events` audit tables are deliberately excluded from the purge so there is always a forensic record that a purge occurred and who consented to what. The purge operation itself is written to `privacy_consent_events` with event type `TELEMETRY_PURGE` so it appears in the audit trail.
+
+---
+
+### OWASP M8 — Security Misconfiguration
+
+#### M8.1 Runtime Configuration Audit — `ConfigAuditChecker`
+
+**File:** `ConfigAuditChecker.java`
+
+`ConfigAuditChecker.audit(context)` runs seven checks and returns a list of `ConfigFinding` objects, each with a `Severity` (`PASS`, `WARN`, or `FAIL`), a category label, and a human-readable description:
+
+1. **DEBUGGABLE** — reads `ApplicationInfo.FLAG_DEBUGGABLE`; `FAIL` if the flag is set in a running (production) build.
+2. **ALLOW_BACKUP** — reads `ApplicationInfo.FLAG_ALLOW_BACKUP`; `WARN` if true because `adb backup` could extract private storage including the HMAC integrity baseline and snapshot database.
+3. **EXPORTED_ACTIVITY** — queries `PackageManager.GET_ACTIVITIES` and flags any non-launcher activity with `exported=true` and no `android:permission` guard as `WARN`.
+4. **EXPORTED_SERVICE** — queries `PackageManager.GET_SERVICES`; any service with `exported=true` and no required permission is `FAIL` (can be bound or started by any app on the device).
+5. **EXPORTED_PROVIDER** — queries `PackageManager.GET_PROVIDERS`; any provider with `exported=true` and no read/write permission restriction is `FAIL`.
+6. **ADB_ENABLED** — reads `Settings.Global.ADB_ENABLED`; `WARN` if USB debugging is currently active.
+7. **CLEARTEXT_TRAFFIC** — `WARN` if the app's `targetSdkVersion` is below 28 (where clear-text traffic must be explicitly disabled via a Network Security Config XML).
+
+All findings are persisted to the `config_audit_events` table in `EventDatabase` (added in the v4 schema migration) so they appear in the audit trail. A `com.dearmoon.shield.CONFIG_AUDIT_RESULT` broadcast carrying `fail_count` and `warn_count` extras is fired after every audit run so the main UI can reflect the result. The audit runs on the same `shield-audit` background thread as the supply-chain check, immediately after `ShieldProtectionService.onStartCommand()` completes the TEE integrity gate.
+
+#### M8.2 EventDatabase v4 — Config Audit and Privacy Consent Tables
+
+**File:** `EventDatabase.java`
+
+The `EventDatabase` schema version was bumped from 3 to 4. Two new tables are created in `onCreate()` using `CREATE TABLE IF NOT EXISTS` for idempotency:
+
+- **`config_audit_events`** — stores each `ConfigFinding` and supply-chain finding with columns `category`, `severity`, `result_type`, and `detail`.
+- **`privacy_consent_events`** — stores consent grant/deny decisions and purge events with columns `event_type`, `policy_version`, and `detail`.
+
+Both tables have a timestamp index. The `onUpgrade()` path includes a `if (oldVersion < 4)` guard that creates both tables non-destructively and returns immediately when `oldVersion == 3`, leaving all existing telemetry tables and their data untouched. Four new methods were added: `insertConfigAuditEvent()`, `insertPrivacyConsentEvent()`, `countEvents(tableName)`, and `purgeTable(tableName)` (the `purgeTable` method uses an explicit allow-list to prevent SQL injection).
+
+---
+
 | # | Feature | Category | Status |
 |---|---------|----------|--------|
 | 1 | Event-Driven File System Monitoring | Data Collection | Existing |
@@ -428,3 +507,13 @@ The root cause: with `λ₁/λ₀ = 5.0/0.1 = 50` and `α = β = 0.05`, the per-
 | 43 | SPRT Timestamp Initialisation Fix | Detection Accuracy | **New** |
 | 44 | LockerGuard wired into BehaviorCorrelationEngine | Detection Accuracy | **New** |
 | 45 | LOCKER_SHIELD query support in EventDatabase | Detection Accuracy | **New** |
+| 46 | Supply-chain certificate pinning | OWASP M2 | **New** |
+| 47 | Native library hash baseline & tamper detection | OWASP M2 | **New** |
+| 48 | Privacy consent gate on first launch | OWASP M6 | **New** |
+| 49 | Telemetry summary & purge (data minimisation) | OWASP M6 | **New** |
+| 50 | Privacy consent audit trail (DB table) | OWASP M6 | **New** |
+| 51 | Debuggable / allowBackup misconfiguration check | OWASP M8 | **New** |
+| 52 | Exported component audit (activities, services, providers) | OWASP M8 | **New** |
+| 53 | ADB / USB debugging detection | OWASP M8 | **New** |
+| 54 | Clear-text traffic configuration check | OWASP M8 | **New** |
+| 55 | Config audit event table (EventDatabase v4) | OWASP M8 | **New** |

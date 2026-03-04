@@ -14,7 +14,7 @@ import java.util.List;
 public class EventDatabase extends SQLiteOpenHelper {
     private static final String TAG = "EventDatabase";
     private static final String DATABASE_NAME = "shield_events.db";
-    private static final int DATABASE_VERSION = 3;
+    private static final int DATABASE_VERSION = 4;
 
     private static EventDatabase instance;
     private final Context context;
@@ -26,6 +26,8 @@ public class EventDatabase extends SQLiteOpenHelper {
     private static final String TABLE_DETECTION = "detection_results";
     private static final String TABLE_LOCKER_SHIELD = "locker_shield_events";
     private static final String TABLE_CORRELATION = "correlation_results";
+    private static final String TABLE_CONFIG_AUDIT   = "config_audit_events";
+    private static final String TABLE_PRIVACY_CONSENT = "privacy_consent_events";
 
     // Common columns
     private static final String COL_ID = "id";
@@ -141,12 +143,52 @@ public class EventDatabase extends SQLiteOpenHelper {
                 "additional_info TEXT)");
         db.execSQL("CREATE INDEX IF NOT EXISTS idx_integrity_timestamp ON integrity_events(timestamp)");
 
+        // Config Audit Events Table (v4) — M8 Security Misconfiguration + M2 Supply Chain
+        db.execSQL("CREATE TABLE IF NOT EXISTS " + TABLE_CONFIG_AUDIT + " (" +
+                "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                "timestamp INTEGER NOT NULL, " +
+                "category TEXT NOT NULL, " +
+                "severity TEXT NOT NULL, " +
+                "result_type TEXT, " +
+                "detail TEXT)");
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_cfg_timestamp ON " + TABLE_CONFIG_AUDIT + "(timestamp)");
+
+        // Privacy Consent Events Table (v4) — M6 Privacy Controls
+        db.execSQL("CREATE TABLE IF NOT EXISTS " + TABLE_PRIVACY_CONSENT + " (" +
+                "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                "timestamp INTEGER NOT NULL, " +
+                "event_type TEXT NOT NULL, " +
+                "policy_version TEXT, " +
+                "detail TEXT)");
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_priv_timestamp ON " + TABLE_PRIVACY_CONSENT + "(timestamp)");
+
         Log.i(TAG, "Database tables created successfully");
     }
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
         Log.w(TAG, "Upgrading database from version " + oldVersion + " to " + newVersion);
+
+        // Non-destructive migration: add config_audit_events and privacy_consent_events for v3 -> v4
+        if (oldVersion < 4) {
+            db.execSQL("CREATE TABLE IF NOT EXISTS " + TABLE_CONFIG_AUDIT + " (" +
+                    "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                    "timestamp INTEGER NOT NULL, " +
+                    "category TEXT NOT NULL, " +
+                    "severity TEXT NOT NULL, " +
+                    "result_type TEXT, " +
+                    "detail TEXT)");
+            db.execSQL("CREATE INDEX IF NOT EXISTS idx_cfg_timestamp ON " + TABLE_CONFIG_AUDIT + "(timestamp)");
+            db.execSQL("CREATE TABLE IF NOT EXISTS " + TABLE_PRIVACY_CONSENT + " (" +
+                    "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                    "timestamp INTEGER NOT NULL, " +
+                    "event_type TEXT NOT NULL, " +
+                    "policy_version TEXT, " +
+                    "detail TEXT)");
+            db.execSQL("CREATE INDEX IF NOT EXISTS idx_priv_timestamp ON " + TABLE_PRIVACY_CONSENT + "(timestamp)");
+            Log.i(TAG, "Migrated to v4: added config_audit_events and privacy_consent_events tables");
+            if (oldVersion == 3) return;
+        }
 
         // Non-destructive migration: add integrity_events table for v2 -> v3
         if (oldVersion < 3) {
@@ -549,6 +591,108 @@ public class EventDatabase extends SQLiteOpenHelper {
         long id = db.insert(TABLE_CORRELATION, null, values);
         Log.d(TAG, "Inserted CorrelationResult: " + id);
         return id;
+    }
+
+    // -------------------------------------------------------------------------
+    // M2 / M8 — Config Audit insert
+    // -------------------------------------------------------------------------
+
+    /**
+     * Inserts a configuration audit finding (from {@code ConfigAuditChecker} or
+     * {@code DependencyIntegrityChecker}) into {@code config_audit_events}.
+     *
+     * @param category   short category label, e.g. {@code "DEBUGGABLE"} or {@code "SUPPLY_CHAIN"}.
+     * @param severity   {@code "PASS"}, {@code "WARN"}, or {@code "FAIL"}.
+     * @param resultType brief classification, e.g. {@code "FINDING"} or {@code "CERT_CHANGED"}.
+     * @param detail     human-readable description of the finding.
+     */
+    public synchronized long insertConfigAuditEvent(String category, String severity,
+                                                    String resultType, String detail) {
+        SQLiteDatabase db = getWritableDatabase();
+        ContentValues values = new ContentValues();
+        values.put("timestamp",   System.currentTimeMillis());
+        values.put("category",    category);
+        values.put("severity",    severity);
+        values.put("result_type", resultType);
+        values.put("detail",      detail);
+        long id = db.insert(TABLE_CONFIG_AUDIT, null, values);
+        Log.d(TAG, "Inserted ConfigAuditEvent id=" + id + " [" + severity + "] " + category);
+        return id;
+    }
+
+    // -------------------------------------------------------------------------
+    // M6 — Privacy Consent insert
+    // -------------------------------------------------------------------------
+
+    /**
+     * Inserts a privacy consent or purge audit event into {@code privacy_consent_events}.
+     *
+     * @param eventType     e.g. {@code "CONSENT_GRANTED"}, {@code "CONSENT_DENIED"}, or
+     *                      {@code "TELEMETRY_PURGE"}.
+     * @param policyVersion version label, e.g. {@code "POLICY_V1"}.
+     * @param detail        JSON string with additional context.
+     */
+    public synchronized long insertPrivacyConsentEvent(String eventType, String policyVersion,
+                                                       String detail) {
+        SQLiteDatabase db = getWritableDatabase();
+        ContentValues values = new ContentValues();
+        values.put("timestamp",      System.currentTimeMillis());
+        values.put("event_type",     eventType);
+        values.put("policy_version", policyVersion);
+        values.put("detail",         detail);
+        long id = db.insert(TABLE_PRIVACY_CONSENT, null, values);
+        Log.d(TAG, "Inserted PrivacyConsentEvent id=" + id + " " + eventType);
+        return id;
+    }
+
+    // -------------------------------------------------------------------------
+    // M6 — Telemetry summary / purge helpers
+    // -------------------------------------------------------------------------
+
+    /**
+     * Returns the number of rows in {@code tableName}, or 0 if the table does not exist or an
+     * error occurs.  Used by {@link PrivacyConsentManager#getTelemetrySummary}.
+     */
+    public synchronized long countEvents(String tableName) {
+        try {
+            SQLiteDatabase db = getReadableDatabase();
+            Cursor c = db.rawQuery("SELECT COUNT(*) FROM " + tableName, null);
+            long count = 0;
+            if (c.moveToFirst()) count = c.getLong(0);
+            c.close();
+            return count;
+        } catch (Exception e) {
+            Log.e(TAG, "countEvents failed for " + tableName, e);
+            return 0;
+        }
+    }
+
+    /**
+     * Deletes all rows from {@code tableName} and returns the number of rows deleted.  Only
+     * operates on known telemetry tables; silently returns 0 for unknown names to prevent
+     * SQL injection.
+     */
+    public synchronized int purgeTable(String tableName) {
+        // Whitelist — only allow purging known user-data tables
+        if (!tableName.equals("file_system_events")
+                && !tableName.equals("network_events")
+                && !tableName.equals("honeyfile_events")
+                && !tableName.equals("detection_results")
+                && !tableName.equals("locker_shield_events")
+                && !tableName.equals("correlation_results")
+                && !tableName.equals(TABLE_CONFIG_AUDIT)) {
+            Log.w(TAG, "purgeTable: ignoring unknown or protected table: " + tableName);
+            return 0;
+        }
+        try {
+            SQLiteDatabase db = getWritableDatabase();
+            int rows = db.delete(tableName, null, null);
+            Log.i(TAG, "purgeTable: deleted " + rows + " rows from " + tableName);
+            return rows;
+        } catch (Exception e) {
+            Log.e(TAG, "purgeTable failed for " + tableName, e);
+            return 0;
+        }
     }
 
     public synchronized void clearAllEvents() {
