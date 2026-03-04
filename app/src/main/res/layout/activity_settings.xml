@@ -40,6 +40,18 @@
                 android:textStyle="bold"
                 android:layout_marginBottom="12dp" />
 
+            <!-- DEMO MODE — top of Actions, impossible to miss -->
+            <Button
+                android:id="@+id/btnDemoMode"
+                android:layout_width="match_parent"
+                android:layout_height="72dp"
+                android:text="▶  LIVE DEMO MODE"
+                android:textSize="17sp"
+                android:textStyle="bold"
+                android:textColor="#FFFFFF"
+                android:backgroundTint="#9D00FF"
+                android:layout_marginBottom="16dp" />
+
             <Button
                 android:id="@+id/btnClearHoneyfilesSettings"
                 android:layout_width="match_parent"

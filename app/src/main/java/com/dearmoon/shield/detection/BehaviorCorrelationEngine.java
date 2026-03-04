@@ -8,13 +8,25 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Pseudo-Kernel Detection Layer: Behavior Correlation Engine
- * 
- * REUSE STRATEGY:
- * - Uses existing EventDatabase for querying events
- * - Leverages existing timestamp-based correlation
- * - Extends existing confidence scoring (adds 0-30 behavior points)
- * - No duplicate event collection or storage
+ * Behavior Correlation Engine
+ *
+ * <p>Correlates file-system events with concurrent network and honeyfile activity
+ * within a 5-second sliding window to produce a supplementary behavior score
+ * (0–30 points) on top of the entropy/KL/SPRT file score.
+ *
+ * <p><b>Attribution contract:</b> the {@code fileUid} parameter passed to
+ * {@link #correlateFileEvent} is the best available attribution for the process
+ * that triggered the file event. It is resolved by
+ * {@code UnifiedDetectionEngine.resolveAttributionUid()} using path-based parsing
+ * and a foreground-process heuristic. A value of {@code -1} means the event is
+ * <em>unattributed</em> — no confident UID could be derived for the file path.
+ * Network-event filtering uses this UID; when uid is -1 the filter is relaxed
+ * and all recent network events in the window are considered.
+ *
+ * <p>Note: Android’s {@code FileObserver} does not expose the writing PID/UID.
+ * Deterministic per-write attribution requires root or a kernel eBPF probe,
+ * neither of which is available in SHIELD’s rootless design. The heuristics
+ * used here are documented limitations, not bugs.
  */
 public class BehaviorCorrelationEngine {
     private static final String TAG = "BehaviorCorrelation";
@@ -31,8 +43,12 @@ public class BehaviorCorrelationEngine {
     }
     
     /**
-     * Correlate recent events for a specific file operation
-     * REUSES: Existing event timestamps and database queries
+     * Correlate recent events for a specific file operation.
+     *
+     * @param filePath      the path of the file that was modified
+     * @param eventTimestamp epoch-ms timestamp of the file event
+     * @param fileUid       the attributed UID of the writing process, or {@code -1}
+     *                      when attribution was not possible (unattributed event)
      */
     public CorrelationResult correlateFileEvent(String filePath, long eventTimestamp, int fileUid) {
         long windowStart = eventTimestamp - CORRELATION_WINDOW_MS;
@@ -109,7 +125,13 @@ public class BehaviorCorrelationEngine {
     
     private List<JSONObject> queryRecentNetworkEvents(long start, long end, int uid) {
         List<JSONObject> all = database.queryEventsSince("NETWORK", start, 100);
-        // Still need to filter by UID if not done in SQL, but DB now filters by time
+        // When uid == -1 the file event is unattributed (FileObserver does not expose
+        // the writing process and no path-based heuristic resolved it). In this case
+        // return all network events in the window so the behavior score still benefits
+        // from concurrent C2 activity, even without per-UID filtering.
+        if (uid == -1) {
+            return all;
+        }
         List<JSONObject> filtered = new ArrayList<>();
         for (JSONObject event : all) {
             int eventUid = event.optInt("appUid", -1);
@@ -125,8 +147,7 @@ public class BehaviorCorrelationEngine {
     }
     
     private List<JSONObject> queryRecentLockerEvents(long start, long end) {
-        // Note: LockerShield events not in getAllEvents() - would need database extension
-        return new ArrayList<>(); // Placeholder
+        return database.queryEventsSince("LOCKER_SHIELD", start, 50);
     }
     
     /**

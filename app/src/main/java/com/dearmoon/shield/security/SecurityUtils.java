@@ -5,6 +5,7 @@ import android.os.Build;
 import android.os.Debug;
 import android.util.Log;
 import java.io.File;
+import java.security.MessageDigest;
 
 public class SecurityUtils {
     private static final String TAG = "SecurityUtils";
@@ -134,39 +135,80 @@ public class SecurityUtils {
     }
 
     /**
-     * SECURITY FIX: Proper signature verification
-     * Compares actual signature hash against expected value.
-     * Returns true if EXPECTED_SIGNATURE_HASH is null (development mode).
+     * Verify the APK's signing certificate against {@link #EXPECTED_SIGNATURE_HASH}.
+     *
+     * <p>The hash is the <em>hex-encoded SHA-256 of the raw DER-encoded certificate</em>,
+     * identical to the value shown by:
+     * <pre>
+     *   keytool -printcert -jarfile release.apk | grep "SHA256:"
+     * </pre>
+     * or by checking logcat for {@code "Cert SHA-256:"} on first launch in
+     * development mode (when {@code EXPECTED_SIGNATURE_HASH} is {@code null}).
+     *
+     * <p>On API 28+ the newer {@code GET_SIGNING_CERTIFICATES} /
+     * {@link android.content.pm.SigningInfo} API is used to avoid the JAR-signature
+     * spoofing vulnerability present in the legacy {@code GET_SIGNATURES} flag.
      */
     public static boolean verifySignature(Context context) {
         try {
-            android.content.pm.PackageInfo packageInfo = context.getPackageManager()
-                    .getPackageInfo(context.getPackageName(), 
-                    android.content.pm.PackageManager.GET_SIGNATURES);
-            
-            android.content.pm.Signature[] signatures = packageInfo.signatures;
-            if (signatures == null || signatures.length == 0) {
-                Log.w(TAG, "No signatures found");
-                return false;
+            android.content.pm.Signature cert;
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                // API 28+: use SigningInfo to avoid JAR-signature spoofing bug.
+                android.content.pm.PackageInfo info = context.getPackageManager()
+                        .getPackageInfo(context.getPackageName(),
+                                android.content.pm.PackageManager.GET_SIGNING_CERTIFICATES);
+                android.content.pm.SigningInfo signingInfo = info.signingInfo;
+                if (signingInfo == null) {
+                    Log.w(TAG, "SigningInfo is null");
+                    return false;
+                }
+                android.content.pm.Signature[] certs = signingInfo.hasMultipleSigners()
+                        ? signingInfo.getApkContentsSigners()
+                        : signingInfo.getSigningCertificateHistory();
+                if (certs == null || certs.length == 0) {
+                    Log.w(TAG, "No signing certificates found");
+                    return false;
+                }
+                cert = certs[0];
+            } else {
+                // API 24–27: legacy path.
+                @SuppressWarnings("deprecation")
+                android.content.pm.PackageInfo info = context.getPackageManager()
+                        .getPackageInfo(context.getPackageName(),
+                                android.content.pm.PackageManager.GET_SIGNATURES);
+                android.content.pm.Signature[] sigs = info.signatures;
+                if (sigs == null || sigs.length == 0) {
+                    Log.w(TAG, "No signatures found");
+                    return false;
+                }
+                cert = sigs[0];
             }
-            
-            int signatureHash = signatures[0].hashCode();
-            String signatureHashStr = String.valueOf(signatureHash);
-            Log.i(TAG, "App signature hash: " + signatureHashStr);
-            
-            // If expected hash not set (development), allow
+
+            // SHA-256 of the DER-encoded certificate bytes — cryptographically
+            // strong and identical to what keytool/apksigner report.
+            MessageDigest md = MessageDigest.getInstance("SHA-256");
+            byte[] digest = md.digest(cert.toByteArray());
+            StringBuilder sb = new StringBuilder(digest.length * 2);
+            for (byte b : digest) sb.append(String.format("%02x", b));
+            String actualHash = sb.toString();
+
+            Log.i(TAG, "Cert SHA-256: " + actualHash);
+
             if (EXPECTED_SIGNATURE_HASH == null) {
-                Log.i(TAG, "Signature verification skipped (development mode)");
+                // Development mode — log the hash so it can be copied into the constant.
+                Log.w(TAG, "EXPECTED_SIGNATURE_HASH not set — signature check skipped (dev mode). "
+                        + "Set SecurityUtils.EXPECTED_SIGNATURE_HASH to: " + actualHash);
                 return true;
             }
-            
-            // Compare against expected hash
-            boolean isValid = EXPECTED_SIGNATURE_HASH.equals(signatureHashStr);
-            if (!isValid) {
-                Log.e(TAG, "Signature mismatch! Expected: " + EXPECTED_SIGNATURE_HASH + 
-                          ", Got: " + signatureHashStr);
+
+            boolean valid = EXPECTED_SIGNATURE_HASH.equalsIgnoreCase(actualHash);
+            if (!valid) {
+                Log.e(TAG, "Cert SHA-256 mismatch — possible APK tampering. "
+                        + "Expected: " + EXPECTED_SIGNATURE_HASH + "  Got: " + actualHash);
             }
-            return isValid;
+            return valid;
+
         } catch (Exception e) {
             Log.e(TAG, "Signature verification failed", e);
             return false;

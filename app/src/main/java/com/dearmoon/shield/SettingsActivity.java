@@ -41,6 +41,10 @@ public class SettingsActivity extends AppCompatActivity {
     }
 
     private void initializeViews() {
+        // Demo Mode — wired first so it's the easiest thing to find
+        Button btnDemoMode = findViewById(R.id.btnDemoMode);
+        btnDemoMode.setOnClickListener(v -> startActivity(new Intent(this, DemoActivity.class)));
+
         Button btnClearHoneyfiles = findViewById(R.id.btnClearHoneyfilesSettings);
         Button btnTestSuite = findViewById(R.id.btnTestSuiteSettings);
         Button btnUserGuide = findViewById(R.id.btnUserGuide);

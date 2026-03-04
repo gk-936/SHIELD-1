@@ -273,8 +273,14 @@ public class SnapshotManager {
 
             database.insertOrUpdateFile(metadata);
 
-            // â”€â”€ Feature 7: Enforce retention policy after every backup â”€â”€â”€â”€â”€â”€â”€â”€
-            enforceRetentionPolicy();
+            // -- Feature 7: Enforce retention policy after every backup.
+            // SAFETY: Skip purging while an attack is active (activeAttackId > 0).
+            // The policy always deletes the oldest entries first; during an attack
+            // those are the pre-attack clean copies that the restore engine needs.
+            // The retention sweep resumes once the attack is resolved.
+            if (activeAttackId == 0) {
+                enforceRetentionPolicy();
+            }
 
             Log.i(TAG, "Encrypted backup created: " + encFileName
                     + "  chain=" + chainHash.substring(0, 12) + "â€¦");

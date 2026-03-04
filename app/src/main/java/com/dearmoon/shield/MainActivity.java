@@ -38,6 +38,7 @@ public class MainActivity extends AppCompatActivity {
     private HighRiskAlertReceiver alertReceiver;
     private android.content.BroadcastReceiver dataUpdateReceiver;
     private com.dearmoon.shield.snapshot.SnapshotManager snapshotManager;
+    private ShieldStats shieldStats;
 
     // Guide UI references
     private GuideSpotlightView guideSpotlightView;
@@ -108,10 +109,14 @@ public class MainActivity extends AppCompatActivity {
         guideFinaleOverlay = findViewById(R.id.guideFinaleOverlay);
 
         snapshotManager = new com.dearmoon.shield.snapshot.SnapshotManager(this);
+        shieldStats = new ShieldStats(this);
 
         btnModeA.setOnClickListener(
-                v -> authenticateBiometric(() -> Toast.makeText(this, "Root Mode: Requires rooted device", Toast.LENGTH_SHORT).show()));
+                v -> authenticateBiometric(() -> startActivity(new Intent(this, RootModeInfoActivity.class))));
         btnModeB.setOnClickListener(v -> authenticateBiometric(() -> toggleProtection()));
+
+        Button btnLiveDemo = findViewById(R.id.btnLiveDemo);
+        btnLiveDemo.setOnClickListener(v -> startActivity(new Intent(this, DemoActivity.class)));
 
         findViewById(R.id.btnNavLocker)
                 .setOnClickListener(v -> startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)));
@@ -363,15 +368,11 @@ public class MainActivity extends AppCompatActivity {
         boolean isServiceRunning = isServiceRunning(ShieldProtectionService.class);
         boolean isVpnRunning = isServiceRunning(NetworkGuardService.class);
 
-        // Update Stats
-        if (snapshotManager != null) {
-            int total = snapshotManager.getTotalFileCount();
-            int infected = snapshotManager.getInfectedFileCount();
-            int safe = total - infected;
-
-            tvTotalFiles.setText(String.valueOf(total));
-            tvInfectedFiles.setText(String.valueOf(infected));
-            tvSafeFiles.setText(String.valueOf(safe));
+        // Update Stats — use persistent ShieldStats counters so dashboard never shows zeros
+        if (shieldStats != null) {
+            tvTotalFiles.setText(String.valueOf(shieldStats.getFilesScanned()));
+            tvInfectedFiles.setText(String.valueOf(shieldStats.getThreatsFound()));
+            tvSafeFiles.setText(String.valueOf(shieldStats.getAttacksBlocked()));
         }
 
         if (isServiceRunning) {
@@ -483,6 +484,9 @@ public class MainActivity extends AppCompatActivity {
                 String filePath = intent.getStringExtra("file_path");
                 int score = intent.getIntExtra("confidence_score", 0);
                 int infectionTime = intent.getIntExtra("infection_time", -1);
+
+                // Persist the detection event to stats counters
+                if (shieldStats != null) shieldStats.recordAttackDetected();
 
                 runOnUiThread(() -> {
                     // Show persistent timer in UI

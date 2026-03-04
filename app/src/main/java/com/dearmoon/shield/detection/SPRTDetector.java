@@ -6,6 +6,22 @@ public class SPRTDetector {
     
     private static final double A = BETA / (1 - ALPHA);
     private static final double B = (1 - BETA) / ALPHA;
+
+    /**
+     * Minimum number of file events that must be recorded before the SPRT is
+     * allowed to accept H1 (ransomware rate).
+     *
+     * Rationale: with λ₁/λ₀ = 50 and α = β = 0.05 the Wald boundary is
+     * log(B) = log(19) ≈ 2.94, while a single event contributes log(50) ≈ 3.91
+     * which already exceeds the boundary. Without this guard, SPRT fires ACCEPT_H1
+     * on the very first file event of every session, permanently contributing
+     * 30 points to every subsequent detection score.
+     *
+     * Requiring at least 3 events means the detector needs a minimum burst consistent
+     * with ransomware behavior (≥ 3 file modifications within the session) before
+     * committing to H1.
+     */
+    private static final int MIN_SAMPLES_FOR_H1 = 3;
     
     private double logLikelihoodRatio = 0.0;
     private int sampleCount = 0;
@@ -41,8 +57,10 @@ public class SPRTDetector {
     }
 
     private void updateState() {
-        // Check decision boundaries
-        if (logLikelihoodRatio >= Math.log(B)) {
+        // Check decision boundaries.
+        // ACCEPT_H1 is gated on MIN_SAMPLES_FOR_H1 to prevent the single-event
+        // false trigger caused by log(λ₁/λ₀) > log(B) when λ₁/λ₀ is large.
+        if (logLikelihoodRatio >= Math.log(B) && sampleCount >= MIN_SAMPLES_FOR_H1) {
             currentState = SPRTState.ACCEPT_H1;
         } else if (logLikelihoodRatio <= Math.log(A)) {
             currentState = SPRTState.ACCEPT_H0;

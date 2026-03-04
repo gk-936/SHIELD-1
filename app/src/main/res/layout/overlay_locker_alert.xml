@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Emergency overlay drawn by LockerShieldService using TYPE_ACCESSIBILITY_OVERLAY.
+    This window type is reserved for accessibility services and has a higher z-order
+    than TYPE_APPLICATION_OVERLAY, meaning it appears above any ransomware overlay
+    without requiring the SYSTEM_ALERT_WINDOW permission.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="#CC000000"
+    android:padding="20dp">
+
+    <TextView
+        android:id="@+id/overlay_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="⚠ SHIELD: Locker Ransomware Detected"
+        android:textColor="#FF4444"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="8dp" />
+
+    <TextView
+        android:id="@+id/overlay_package"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Blocking app: ..."
+        android:textColor="#FFFFFF"
+        android:textSize="13sp"
+        android:layout_marginBottom="12dp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/overlay_btn_force_stop"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="FORCE STOP"
+            android:textSize="12sp"
+            android:backgroundTint="#EF4444"
+            android:textColor="#FFFFFF"
+            android:layout_marginEnd="8dp" />
+
+        <Button
+            android:id="@+id/overlay_btn_dismiss"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="DISMISS"
+            android:textSize="12sp"
+            android:backgroundTint="#6B7280"
+            android:textColor="#FFFFFF" />
+
+    </LinearLayout>
+
+</LinearLayout>

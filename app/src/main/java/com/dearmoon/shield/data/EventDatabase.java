@@ -427,6 +427,7 @@ public class EventDatabase extends SQLiteOpenHelper {
         if ("FILE_SYSTEM".equals(eventType)) tableName = TABLE_FILE_SYSTEM;
         else if ("HONEYFILE_ACCESS".equals(eventType)) tableName = TABLE_HONEYFILE;
         else if ("NETWORK".equals(eventType)) tableName = TABLE_NETWORK;
+        else if ("LOCKER_SHIELD".equals(eventType)) tableName = TABLE_LOCKER_SHIELD;
         else return results;
 
         Cursor cursor = null;
@@ -465,6 +466,10 @@ public class EventDatabase extends SQLiteOpenHelper {
                     json.put("destinationPort", cursor.getInt(cursor.getColumnIndexOrThrow("destination_port")));
                     json.put("protocol", cursor.getString(cursor.getColumnIndexOrThrow("protocol")));
                     json.put("appUid", cursor.getInt(cursor.getColumnIndexOrThrow("app_uid")));
+                } else if ("LOCKER_SHIELD".equals(eventType)) {
+                    json.put("packageName", cursor.getString(cursor.getColumnIndexOrThrow("package_name")));
+                    json.put("threatType", cursor.getString(cursor.getColumnIndexOrThrow("threat_type")));
+                    json.put("riskScore", cursor.getInt(cursor.getColumnIndexOrThrow("risk_score")));
                 }
                 results.add(json);
             } catch (Exception e) {

@@ -1,0 +1,535 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.core.widget.NestedScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/bg_static_shield"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingBottom="32dp">
+
+        <!-- ── Top bar ──────────────────────────────────────────────────── -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingHorizontal="16dp"
+            android:background="#CC000000">
+
+            <ImageView
+                android:id="@+id/ivDemoShield"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:src="@android:drawable/ic_lock_idle_lock"
+                app:tint="#9D00FF"
+                android:contentDescription="SHIELD" />
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="SHIELD — LIVE DEMO"
+                android:textColor="#FFFFFF"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.15"
+                android:paddingStart="12dp" />
+
+            <TextView
+                android:id="@+id/tvDemoStatusLine"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="🛡  Armed"
+                android:textColor="#10B981"
+                android:textSize="11sp" />
+        </LinearLayout>
+
+        <!-- ── Threat indicator bar ──────────────────────────────────────── -->
+        <View
+            android:id="@+id/demoThreatBar"
+            android:layout_width="match_parent"
+            android:layout_height="3dp"
+            android:background="#10B981" />
+
+        <!-- ── Stats row ─────────────────────────────────────────────────── -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:padding="12dp"
+            android:gravity="center">
+
+            <!-- Files Protected -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:background="#1A1A1A"
+                android:padding="10dp"
+                android:layout_marginHorizontal="4dp">
+                <TextView
+                    android:id="@+id/tvDemoFilesProtected"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="247"
+                    android:textColor="#10B981"
+                    android:textSize="22sp"
+                    android:textStyle="bold" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Files Protected"
+                    android:textColor="#888888"
+                    android:textSize="10sp" />
+            </LinearLayout>
+
+            <!-- Attacks Blocked -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:background="#1A1A1A"
+                android:padding="10dp"
+                android:layout_marginHorizontal="4dp">
+                <TextView
+                    android:id="@+id/tvDemoAttacksBlocked"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="0"
+                    android:textColor="#EF4444"
+                    android:textSize="22sp"
+                    android:textStyle="bold" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Attacks Blocked"
+                    android:textColor="#888888"
+                    android:textSize="10sp" />
+            </LinearLayout>
+
+            <!-- Detection Time -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:background="#1A1A1A"
+                android:padding="10dp"
+                android:layout_marginHorizontal="4dp">
+                <TextView
+                    android:id="@+id/tvDemoDetectionTime"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="—"
+                    android:textColor="#3B82F6"
+                    android:textSize="22sp"
+                    android:textStyle="bold" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Detection Time"
+                    android:textColor="#888888"
+                    android:textSize="10sp" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- ── Confidence meter ──────────────────────────────────────────── -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="12dp"
+            android:layout_marginBottom="12dp"
+            app:cardBackgroundColor="#111111"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="4dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="8dp">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="THREAT CONFIDENCE SCORE"
+                        android:textColor="#9D00FF"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="0.1" />
+
+                    <TextView
+                        android:id="@+id/tvDemoConfidenceVal"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="0 / 100"
+                        android:textColor="#3B82F6"
+                        android:textSize="18sp"
+                        android:textStyle="bold"
+                        android:fontFamily="monospace" />
+                </LinearLayout>
+
+                <ProgressBar
+                    android:id="@+id/pbDemoConfidence"
+                    style="@style/Widget.AppCompat.ProgressBar.Horizontal"
+                    android:layout_width="match_parent"
+                    android:layout_height="14dp"
+                    android:max="100"
+                    android:progress="0"
+                    android:progressBackgroundTint="#222222"
+                    android:progressTint="#3B82F6" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginTop="4dp">
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="0"
+                        android:textColor="#444444"
+                        android:textSize="10sp" />
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Detect threshold: 70"
+                        android:textColor="#555555"
+                        android:textSize="10sp" />
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="100"
+                        android:textColor="#444444"
+                        android:textSize="10sp"
+                        android:gravity="end" />
+                </LinearLayout>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- ── Stage timeline ────────────────────────────────────────────── -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="12dp"
+            android:layout_marginBottom="12dp"
+            app:cardBackgroundColor="#111111"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="4dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="12dp">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="ATTACK TIMELINE"
+                    android:textColor="#9D00FF"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.1"
+                    android:paddingBottom="10dp" />
+
+                <!-- Row 0: Idle / Armed -->
+                <LinearLayout android:id="@+id/demoRow0"
+                    android:layout_width="match_parent" android:layout_height="36dp"
+                    android:orientation="horizontal" android:gravity="center_vertical"
+                    android:paddingHorizontal="8dp" android:layout_marginBottom="2dp">
+                    <ImageView android:id="@+id/demoIcon0"
+                        android:layout_width="18dp" android:layout_height="18dp"
+                        android:src="@android:drawable/ic_lock_idle_lock"
+                        app:tint="#444444" android:layout_marginEnd="10dp"/>
+                    <TextView android:id="@+id/demoLabel0"
+                        android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:text="Shield Armed" android:textColor="#666666" android:textSize="13sp"/>
+                </LinearLayout>
+
+                <!-- Row 1: Recon -->
+                <LinearLayout android:id="@+id/demoRow1"
+                    android:layout_width="match_parent" android:layout_height="36dp"
+                    android:orientation="horizontal" android:gravity="center_vertical"
+                    android:paddingHorizontal="8dp" android:layout_marginBottom="2dp">
+                    <ImageView android:id="@+id/demoIcon1"
+                        android:layout_width="18dp" android:layout_height="18dp"
+                        android:src="@android:drawable/ic_menu_search"
+                        app:tint="#444444" android:layout_marginEnd="10dp"/>
+                    <TextView android:id="@+id/demoLabel1"
+                        android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:text="Reconnaissance" android:textColor="#666666" android:textSize="13sp"/>
+                </LinearLayout>
+
+                <!-- Row 2: C2 -->
+                <LinearLayout android:id="@+id/demoRow2"
+                    android:layout_width="match_parent" android:layout_height="36dp"
+                    android:orientation="horizontal" android:gravity="center_vertical"
+                    android:paddingHorizontal="8dp" android:layout_marginBottom="2dp">
+                    <ImageView android:id="@+id/demoIcon2"
+                        android:layout_width="18dp" android:layout_height="18dp"
+                        android:src="@android:drawable/ic_dialog_alert"
+                        app:tint="#444444" android:layout_marginEnd="10dp"/>
+                    <TextView android:id="@+id/demoLabel2"
+                        android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:text="C2 Communication Attempt" android:textColor="#666666" android:textSize="13sp"/>
+                </LinearLayout>
+
+                <!-- Row 3: Honeyfile -->
+                <LinearLayout android:id="@+id/demoRow3"
+                    android:layout_width="match_parent" android:layout_height="36dp"
+                    android:orientation="horizontal" android:gravity="center_vertical"
+                    android:paddingHorizontal="8dp" android:layout_marginBottom="2dp">
+                    <ImageView android:id="@+id/demoIcon3"
+                        android:layout_width="18dp" android:layout_height="18dp"
+                        android:src="@android:drawable/ic_menu_save"
+                        app:tint="#444444" android:layout_marginEnd="10dp"/>
+                    <TextView android:id="@+id/demoLabel3"
+                        android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:text="Honeyfile Trap Triggered" android:textColor="#666666" android:textSize="13sp"/>
+                </LinearLayout>
+
+                <!-- Row 4: Encryption -->
+                <LinearLayout android:id="@+id/demoRow4"
+                    android:layout_width="match_parent" android:layout_height="36dp"
+                    android:orientation="horizontal" android:gravity="center_vertical"
+                    android:paddingHorizontal="8dp" android:layout_marginBottom="2dp">
+                    <ImageView android:id="@+id/demoIcon4"
+                        android:layout_width="18dp" android:layout_height="18dp"
+                        android:src="@android:drawable/ic_lock_lock"
+                        app:tint="#444444" android:layout_marginEnd="10dp"/>
+                    <TextView android:id="@+id/demoLabel4"
+                        android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:text="Encryption Burst Detected" android:textColor="#666666" android:textSize="13sp"/>
+                </LinearLayout>
+
+                <!-- Row 5: Detected + Blocked -->
+                <LinearLayout android:id="@+id/demoRow5"
+                    android:layout_width="match_parent" android:layout_height="36dp"
+                    android:orientation="horizontal" android:gravity="center_vertical"
+                    android:paddingHorizontal="8dp" android:layout_marginBottom="2dp">
+                    <ImageView android:id="@+id/demoIcon5"
+                        android:layout_width="18dp" android:layout_height="18dp"
+                        android:src="@android:drawable/ic_delete"
+                        app:tint="#444444" android:layout_marginEnd="10dp"/>
+                    <TextView android:id="@+id/demoLabel5"
+                        android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:text="Attack Neutralised + Network Isolated" android:textColor="#666666" android:textSize="13sp"/>
+                </LinearLayout>
+
+                <!-- Row 6: Recovery -->
+                <LinearLayout android:id="@+id/demoRow6"
+                    android:layout_width="match_parent" android:layout_height="36dp"
+                    android:orientation="horizontal" android:gravity="center_vertical"
+                    android:paddingHorizontal="8dp">
+                    <ImageView android:id="@+id/demoIcon6"
+                        android:layout_width="18dp" android:layout_height="18dp"
+                        android:src="@android:drawable/ic_menu_revert"
+                        app:tint="#444444" android:layout_marginEnd="10dp"/>
+                    <TextView android:id="@+id/demoLabel6"
+                        android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:text="Files Restored — Zero Data Loss" android:textColor="#666666" android:textSize="13sp"/>
+                </LinearLayout>
+
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- ── Narrative card ────────────────────────────────────────────── -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="12dp"
+            android:layout_marginBottom="16dp"
+            app:cardBackgroundColor="#0D0D1A"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="4dp"
+            app:strokeColor="#9D00FF"
+            app:strokeWidth="1dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:id="@+id/tvDemoNarrativeTitle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Demo Ready"
+                    android:textColor="#FFFFFF"
+                    android:textSize="15sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="8dp" />
+
+                <TextView
+                    android:id="@+id/tvDemoNarrativeDesc"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Tap 'Launch Attack Demo' to begin."
+                    android:textColor="#AAAAAA"
+                    android:textSize="13sp"
+                    android:lineSpacingExtra="3dp" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- ── Results card (hidden until demo completes) ────────────────── -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/demoResultsCard"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="12dp"
+            android:layout_marginBottom="16dp"
+            android:visibility="gone"
+            app:cardBackgroundColor="#0A1A0A"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="4dp"
+            app:strokeColor="#10B981"
+            app:strokeWidth="1dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="VALIDATED RESULTS — ANDMAL2020 + CIC-MALDROID"
+                    android:textColor="#10B981"
+                    android:textSize="10sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.1"
+                    android:layout_marginBottom="14dp" />
+
+                <!-- Row 1 -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="10dp">
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:orientation="vertical" android:gravity="center">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="85.7%"
+                            android:textColor="#10B981" android:textSize="22sp" android:textStyle="bold"/>
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Ransomware Detected"
+                            android:textColor="#5A8A6A" android:textSize="11sp" android:gravity="center"/>
+                    </LinearLayout>
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:orientation="vertical" android:gravity="center">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="0.0%"
+                            android:textColor="#10B981" android:textSize="22sp" android:textStyle="bold"/>
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="False Positives"
+                            android:textColor="#5A8A6A" android:textSize="11sp" android:gravity="center"/>
+                    </LinearLayout>
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:orientation="vertical" android:gravity="center">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:id="@+id/tvResultDetectionTime"
+                            android:text="—"
+                            android:textColor="#3B82F6" android:textSize="22sp" android:textStyle="bold"/>
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="This Demo"
+                            android:textColor="#5A8A6A" android:textSize="11sp" android:gravity="center"/>
+                    </LinearLayout>
+                </LinearLayout>
+
+                <!-- Divider -->
+                <View android:layout_width="match_parent" android:layout_height="1dp"
+                    android:background="#1A3A1A" android:layout_marginBottom="10dp"/>
+
+                <!-- Dataset info -->
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:gravity="center_vertical"
+                    android:layout_marginBottom="6dp">
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="📊  " android:textSize="13sp"/>
+                    <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:text="Tested on 11,598 real malware samples from CICMalDroid-2020 (5 families: Adware, Banking Trojan, SMS, Riskware, Ransomware)"
+                        android:textColor="#7AAA7A" android:textSize="12sp" android:lineSpacingExtra="2dp"/>
+                </LinearLayout>
+
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:gravity="center_vertical">
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="🧪  " android:textSize="13sp"/>
+                    <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:text="3-layer detection: Shannon Entropy · KL-Divergence · SPRT — 0.0% false positives across 2,500 benign samples"
+                        android:textColor="#7AAA7A" android:textSize="12sp" android:lineSpacingExtra="2dp"/>
+                </LinearLayout>
+
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- ── Buttons ───────────────────────────────────────────────────── -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingHorizontal="12dp">
+
+            <Button
+                android:id="@+id/btnDemoStart"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:text="Launch Attack Demo"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                android:textColor="#FFFFFF"
+                android:backgroundTint="#9D00FF"
+                android:layout_marginBottom="10dp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <Button
+                    android:id="@+id/btnDemoReset"
+                    android:layout_width="0dp"
+                    android:layout_height="48dp"
+                    android:layout_weight="1"
+                    android:text="Reset"
+                    android:textColor="#CCCCCC"
+                    android:backgroundTint="#222222"
+                    android:layout_marginEnd="8dp" />
+
+                <Button
+                    android:id="@+id/btnDemoLogs"
+                    android:layout_width="0dp"
+                    android:layout_height="48dp"
+                    android:layout_weight="1"
+                    android:text="View Logs"
+                    android:textColor="#CCCCCC"
+                    android:backgroundTint="#1C2A3A" />
+            </LinearLayout>
+        </LinearLayout>
+
+    </LinearLayout>
+</androidx.core.widget.NestedScrollView>

@@ -2,18 +2,74 @@ package com.dearmoon.shield.detection;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 
 public class EntropyAnalyzer {
     private static final int SAMPLE_SIZE = 8192; // 8KB sample per region
     private static final long FULL_ANALYSIS_THRESHOLD = 10 * 1024 * 1024; // 10MB
 
     /**
+     * File extensions whose content is already compressed or encoded and therefore
+     * has naturally high Shannon entropy (typically > 7.5 bits/byte) regardless of
+     * whether ransomware has touched them. Scoring these files generates false positives
+     * on every normal download, media-sync, or app-cache write event.
+     *
+     * Criteria for inclusion: the format is either compressed (deflate, zstd, brotli,
+     * opus, AAC), encrypted-at-rest by its own codec (encrypted container), or
+     * uses dense binary encoding (JPEG DCT coefficients, MP4 video frames) such
+     * that byte-level entropy is indistinguishable from AES-256-CBC ciphertext.
+     */
+    private static final Set<String> NATURALLY_HIGH_ENTROPY_EXTENSIONS =
+        Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
+            // Image formats (DCT / wavelet compressed)
+            ".jpg", ".jpeg", ".png", ".webp", ".heic", ".heif", ".gif",
+            // Video formats
+            ".mp4", ".mkv", ".mov", ".avi", ".webm", ".m4v", ".3gp",
+            // Audio formats
+            ".mp3", ".aac", ".ogg", ".opus", ".flac", ".m4a", ".wma",
+            // Archive / compressed containers
+            ".zip", ".rar", ".7z", ".gz", ".bz2", ".xz", ".zst", ".tar",
+            // Android / Java packages (ZIP-based)
+            ".apk", ".jar", ".aar", ".aab",
+            // Document formats with internal compression
+            ".docx", ".xlsx", ".pptx", ".odt", ".ods", ".odp",
+            // PDF (often contains compressed streams)
+            ".pdf",
+            // Encrypted credential / key stores
+            ".p12", ".pfx", ".jks"
+        )));
+
+    /**
+     * Returns true if the file's extension is in the naturally-high-entropy allowlist,
+     * meaning entropy analysis would produce a high score regardless of ransomware.
+     * The calling code should skip entropy+KL scoring for these files entirely.
+     */
+    public boolean isNaturallyHighEntropy(File file) {
+        String name = file.getName().toLowerCase();
+        int dot = name.lastIndexOf('.');
+        if (dot < 0) return false;
+        return NATURALLY_HIGH_ENTROPY_EXTENSIONS.contains(name.substring(dot));
+    }
+
+    /**
      * SECURITY FIX: Multi-region entropy sampling to prevent bypass attacks.
      * Samples beginning, middle, and end of file. Returns MAXIMUM entropy found.
      * For files <10MB, analyzes entire file for maximum accuracy.
+     *
+     * Returns 0.0 (treated as "analysis skipped" by the caller) for files whose
+     * extension is on the naturally-high-entropy allowlist, preventing false positives
+     * from normal compressed / media file writes.
      */
     public double calculateEntropy(File file) {
         if (!file.exists() || !file.canRead() || file.length() == 0) return 0.0;
+
+        // Skip allowlisted extensions — their entropy is high by design, not because
+        // ransomware encrypted them.  Returning 0.0 triggers the early-exit in
+        // UnifiedDetectionEngine ("entropy calculation failed") which skips the file.
+        if (isNaturallyHighEntropy(file)) return 0.0;
 
         long fileSize = file.length();
         

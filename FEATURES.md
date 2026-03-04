@@ -29,6 +29,15 @@
    - [IntegrityLogger — Persistent Event Audit Trail](#3-integritylogger--persistent-event-audit-trail)
    - [EventDatabase v3 Migration](#4-eventdatabase-v3-migration)
    - [ShieldProtectionService — Integrity Gate](#5-shieldprotectionservice--integrity-gate)
+4. [Process Attribution System](#process-attribution-system)
+   - [Path-Based UID Resolution](#1-path-based-uid-resolution)
+   - [Foreground-Process Heuristic Fallback](#2-foreground-process-heuristic-fallback)
+   - [Unattributed Event Handling in BehaviorCorrelationEngine](#3-unattributed-event-handling-in-behaviorcorrelationengine)
+5. [Detection Accuracy Fixes](#detection-accuracy-fixes)
+   - [Entropy Extension Allowlist](#1-entropy-extension-allowlist)
+   - [SPRT Single-Event False-Trigger Fix](#2-sprt-single-event-false-trigger-fix)
+   - [SPRT Timestamp Initialisation](#3-sprt-timestamp-initialisation)
+   - [LockerGuard Wired into Behavior Score](#4-lockerguard-wired-into-behavior-score)
 
 ---
 
@@ -282,7 +291,95 @@ The `EventDatabase` schema version was bumped from 2 to 3. The `integrity_events
 
 ---
 
-## Summary Table
+## Process Attribution System
+
+> This section documents the fix for the critical process attribution flaw identified in the audit (Critical Issue #1). The original code passed `Process.myUid()` — SHIELD's own UID — to `BehaviorCorrelationEngine`, meaning the entire behavior correlation column was profiling SHIELD's own activity rather than the suspect application. The following three components together replace that incorrect value with the best available attribution for each file event.
+
+---
+
+### 1. Path-Based UID Resolution
+
+**File:** `UnifiedDetectionEngine.java` — `resolveAttributionUid()`, `extractPackageFromPrivatePath()`, `extractPackageFromSharedStoragePath()`
+
+Before passing a UID to `BehaviorCorrelationEngine`, `UnifiedDetectionEngine` now calls `resolveAttributionUid(filePath)` which applies two deterministic path-parsing strategies in order.
+
+**Strategy 1 — App-private storage:** Android's filesystem layout encodes the owning package name directly in the path. Files under `/data/data/<pkg>/` (API 24–) or `/data/user/<userId>/<pkg>/` (multi-user, work profiles) can only be written by the app identified by `<pkg>`. The method extracts the package name with a regular expression, resolves it to a UID via `PackageManager.getApplicationInfo(pkg, 0).uid`, and returns that UID. This is **deterministic** — no ambiguity is possible because Android enforces the directory ownership at the OS level.
+
+**Strategy 2 — Shared-storage subdirectory:** The segment `Android/data/<pkg>/` or `Android/obb/<pkg>/` appears in shared-storage paths that apps write to using scoped storage (`Context.getExternalFilesDir()`). The method parses this segment from paths under `/sdcard/` and `/storage/emulated/N/` and resolves the same way as Strategy 1. This covers the `DCIM`, `Downloads`, and `Documents` paths where most ransomware activity occurs.
+
+---
+
+### 2. Foreground-Process Heuristic Fallback
+
+**File:** `UnifiedDetectionEngine.java` — `resolveAttributionUid()` (Strategy 3 branch)
+
+When neither path pattern matches — typically files written directly into the root of shared storage without a package-scoped subdirectory (e.g., `/sdcard/RANSOM_NOTE.txt`) — the method queries `ActivityManager.getRunningAppProcesses()` and returns the UID of the **first foreground non-SHIELD process** at the moment the `FileObserver` event fires. This is a time-correlation heuristic: the assumption is that the app currently in the foreground is the most likely candidate for the event. It is wrong for pure background writers, but is dramatically more accurate than `Process.myUid()`, which was always wrong.
+
+If no non-SHIELD foreground process exists (e.g., the device screen is off), the method returns **-1 (unattributed)** rather than inventing a value.
+
+---
+
+### 3. Unattributed Event Handling in BehaviorCorrelationEngine
+
+**File:** `BehaviorCorrelationEngine.java` — `queryRecentNetworkEvents()`
+
+When `fileUid` is `-1` (unattributed), filtering network events by UID would incorrectly return zero results (no event has UID -1), silently zeroing the network component of the behavior score. The method now detects the `-1` sentinel and returns **all** recent network events in the 5-second window instead of UID-filtered events. This means the behavior score still captures concurrent C2 communication patterns when the file write cannot be attributed — a deliberate trade-off that prefers detection sensitivity over false precision.
+
+The class-level Javadoc has also been updated to replace the misleading "Pseudo-Kernel Detection Layer" label with an accurate description of what the correlation engine does and what its attribution limitations are.
+
+---
+
+**Known limitation:** `FileObserver` does not expose the writing PID or UID at the kernel level. The strategies above cover the majority of real ransomware scenarios (app-private file manipulation, scoped-storage media directories), but files written to the root of shared storage by a background process remain inherently ambiguous without root access or a kernel eBPF probe. This limitation is now explicitly documented in the source code rather than hidden behind a `Process.myUid()` call.
+
+---
+
+## Detection Accuracy Fixes
+
+> This section documents four targeted fixes to the detection pipeline identified by an independent audit of the live codebase. Each fix addresses a flaw that either generated constant false positives on real devices or silently prevented a detection signal from contributing to the composite score.
+
+---
+
+### 1. Entropy Extension Allowlist
+
+**File:** `EntropyAnalyzer.java` — `NATURALLY_HIGH_ENTROPY_EXTENSIONS`, `isNaturallyHighEntropy()`, `calculateEntropy()`
+
+A static, unmodifiable `HashSet` of 40+ file extensions whose content is already compressed, DCT-encoded, or otherwise byte-randomised at the format level is now checked at the top of `calculateEntropy()`. When a file's extension is on this list, the method returns `0.0` immediately. In `UnifiedDetectionEngine`, `0.0` entropy triggers the existing `"entropy calculation failed"` early-exit path, skipping both entropy and KL-divergence scoring for that file entirely.
+
+Without this fix, any write to a monitored directory of a `.jpg`, `.mp4`, `.zip`, `.apk`, `.png`, `.aac`, or `.opus` file scores 40 (entropy) + 30 (KL) = 70 points — exactly at the HIGH_RISK threshold — triggering emergency network isolation on WhatsApp photo receipts, Spotify cache writes, or any app update. This was the dominant source of false positives on real devices.
+
+The list covers images (`.jpg`, `.png`, `.webp`, `.heic`), video (`.mp4`, `.mkv`, `.mov`), audio (`.mp3`, `.aac`, `.opus`, `.flac`), archives (`.zip`, `.rar`, `.7z`, `.gz`), Android packages (`.apk`, `.aar`, `.aab`), compressed document formats (`.docx`, `.xlsx`, `.pptx`), PDF, and encrypted credential stores (`.p12`, `.pfx`).
+
+---
+
+### 2. SPRT Single-Event False-Trigger Fix
+
+**File:** `SPRTDetector.java` — `MIN_SAMPLES_FOR_H1`, `updateState()`
+
+A `MIN_SAMPLES_FOR_H1 = 3` constant gates the `ACCEPT_H1` decision branch. `updateState()` now only moves to `ACCEPT_H1` when **both** `logLikelihoodRatio >= log(B)` **and** `sampleCount >= 3`.
+
+The root cause: with `λ₁/λ₀ = 5.0/0.1 = 50` and `α = β = 0.05`, the per-event LLR increment is `log(50) ≈ 3.91` and the Wald boundary is `log(B) = log(19) ≈ 2.94`. Because `3.91 > 2.94`, a single `recordEvent()` call always exceeds the boundary, causing `ACCEPT_H1` to fire on the very first file event of every session. This permanently contributed 30 points to every subsequent score regardless of actual file modification rate. Requiring at least 3 events ensures a minimum burst consistent with ransomware behavior before committing to H1.
+
+---
+
+### 3. SPRT Timestamp Initialisation
+
+**File:** `UnifiedDetectionEngine.java` — constructor
+
+`lastEventTimestamp` is now initialised to `System.currentTimeMillis()` in the constructor rather than `0`. Previously, the guard `if (lastEventTimestamp > 0)` was false on the first event, so `recordTimePassed()` was never called for the initial inter-event interval. This meant the SPRT received no time-decay for the period between service start and the first file event. Now the first event correctly computes `deltaSeconds = currentTime - constructorTime` and passes the time elapsed since service start to `recordTimePassed()`, giving the SPRT a proper baseline.
+
+---
+
+### 4. LockerGuard Wired into Behavior Score
+
+**Files:** `EventDatabase.java` — `queryEventsSince()`, `parseTableSpecificCursor()` | `BehaviorCorrelationEngine.java` — `queryRecentLockerEvents()`
+
+**`EventDatabase`:** The `queryEventsSince()` switch now includes a `"LOCKER_SHIELD"` → `TABLE_LOCKER_SHIELD` mapping. The `parseTableSpecificCursor()` parser includes a `"LOCKER_SHIELD"` branch that reads `package_name`, `threat_type`, and `risk_score` from the cursor.
+
+**`BehaviorCorrelationEngine`:** `queryRecentLockerEvents()` was a dead stub (`return new ArrayList<>()`) with a comment noting the database extension was missing. It now calls `database.queryEventsSince("LOCKER_SHIELD", start, 50)` and returns real results.
+
+**Effect:** The behavior pattern `lockerCount > 0 && fileCount > 0` can now fire, contributing up to 5 points for hybrid ransomware families that combine a locker screen with file encryption. Before this fix, LockerGuard operated on a completely isolated scoring track with zero contribution to the composite score used by the main detection engine.
+
+---
 
 | # | Feature | Category | Status |
 |---|---------|----------|--------|
@@ -322,3 +419,12 @@ The `EventDatabase` schema version was bumped from 2 to 3. The `integrity_events
 | 34 | IntegrityLogger (integrity_events table) | TEE Integrity | **New** |
 | 35 | EventDatabase v3 Non-Destructive Migration | TEE Integrity | **New** |
 | 36 | ShieldProtectionService Integrity Gate | TEE Integrity | **New** |
+| 37 | Path-Based UID Resolution (private storage) | Process Attribution | **New** |
+| 38 | Shared-Storage Path UID Resolution | Process Attribution | **New** |
+| 39 | Foreground-Process Heuristic Fallback | Process Attribution | **New** |
+| 40 | Unattributed Event Handling (uid=-1) | Process Attribution | **New** |
+| 41 | Entropy Extension Allowlist | Detection Accuracy | **New** |
+| 42 | SPRT Min-Sample Guard (single-event false trigger fix) | Detection Accuracy | **New** |
+| 43 | SPRT Timestamp Initialisation Fix | Detection Accuracy | **New** |
+| 44 | LockerGuard wired into BehaviorCorrelationEngine | Detection Accuracy | **New** |
+| 45 | LOCKER_SHIELD query support in EventDatabase | Detection Accuracy | **New** |

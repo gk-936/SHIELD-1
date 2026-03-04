@@ -99,10 +99,16 @@
             android:label="Snapshot Recovery" />
 
         <!-- Emergency Recovery Activity (Locker Shield) -->
+        <!-- showWhenLocked / turnScreenOn: API 27+ declarative equivalents of the -->
+        <!-- FLAG_SHOW_WHEN_LOCKED and FLAG_TURN_SCREEN_ON window flags. Both the  -->
+        <!-- manifest attributes and the runtime flag calls are set so the activity -->
+        <!-- pierces the lockscreen across the full API 24+ range.                 -->
         <activity
             android:name=".lockerguard.EmergencyRecoveryActivity"
             android:exported="false"
             android:parentActivityName=".MainActivity"
+            android:showWhenLocked="true"
+            android:turnScreenOn="true"
             android:label="Emergency Recovery" />
 
         <!-- Locker Shield Service -->
@@ -156,6 +162,20 @@
             android:exported="false"
             android:parentActivityName=".MainActivity"
             android:label="Ransomware Test Suite" />
+
+        <!-- Demo Mode Activity -->
+        <activity
+            android:name=".DemoActivity"
+            android:exported="false"
+            android:parentActivityName=".MainActivity"
+            android:label="Live Demo" />
+
+        <!-- Root Mode Info Activity -->
+        <activity
+            android:name=".RootModeInfoActivity"
+            android:exported="false"
+            android:parentActivityName=".MainActivity"
+            android:label="Root Mode" />
 
         <!-- Settings Activity -->
         <activity
