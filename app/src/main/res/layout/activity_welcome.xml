@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#0A0A0A">
+
+    <!-- ── Layer 0: Animated blob gradient background ── -->
+    <com.dearmoon.shield.ui.BlobGradientBackgroundView
+        android:id="@+id/blobBackground"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"/>
+
+    <!-- ── Layer 1: All UI content on top of the gradient ── -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@android:color/transparent">
+
+        <!-- Subtle SHIELD icon at top-centre -->
+        <ImageView
+            android:id="@+id/welcomeShieldIcon"
+            android:layout_width="64dp"
+            android:layout_height="64dp"
+            android:src="@mipmap/ic_launcher_round"
+            android:contentDescription="SHIELD logo"
+            android:alpha="0.7"
+            android:layout_marginTop="80dp"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"/>
+
+        <!-- ── Main "Namaste!" animated text with wavy underline ── -->
+        <com.dearmoon.shield.ui.WavyUnderlineTextView
+            android:id="@+id/namasteText"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="32dp"
+            android:layout_marginTop="48dp"
+            app:layout_constraintTop_toBottomOf="@id/welcomeShieldIcon"
+            app:layout_constraintBottom_toTopOf="@id/namasteSubtitle"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintVertical_chainStyle="packed"
+            app:wut_text="Namaste!"
+            app:wut_textSize="42sp"
+            app:wut_textColor="#FFFFFF"
+            app:wut_underlineColor="#A259FF"
+            app:wut_underlineStrokeWidth="3dp"
+            app:wut_underlineDuration="1500"
+            app:wut_textSlideDuration="600"
+            app:wut_wavyAmplitude="8dp"
+            app:wut_underlineOffset="10dp"/>
+
+        <!-- ── "Welcome to SHIELD" subtitle ── -->
+        <com.dearmoon.shield.ui.WavyUnderlineTextView
+            android:id="@+id/namasteSubtitle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="32dp"
+            android:layout_marginTop="20dp"
+            app:layout_constraintTop_toBottomOf="@id/namasteText"
+            app:layout_constraintBottom_toTopOf="@id/continueButton"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:wut_text="Welcome to SHIELD"
+            app:wut_textSize="18sp"
+            app:wut_textColor="#999999"
+            app:wut_underlineColor="#666666"
+            app:wut_underlineStrokeWidth="1.5dp"
+            app:wut_underlineDuration="1200"
+            app:wut_textSlideDuration="600"
+            app:wut_wavyAmplitude="5dp"
+            app:wut_underlineOffset="6dp"/>
+
+        <!-- ── "Get Started" button — alpha=0, faded in at 1600ms by code ── -->
+        <com.dearmoon.shield.ui.ScrambleTextButton
+            android:id="@+id/continueButton"
+            android:layout_width="280dp"
+            android:layout_height="56dp"
+            android:minHeight="56dp"
+            android:background="@drawable/bg_button_neon"
+            app:backgroundTint="@null"
+            android:text="Get Started"
+            android:textColor="#00F3FF"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:fontFamily="sans-serif-medium"
+            android:letterSpacing="0.05"
+            android:elevation="0dp"
+            android:stateListAnimator="@null"
+            android:alpha="0"
+            android:layout_marginBottom="60dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"/>
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+</FrameLayout>

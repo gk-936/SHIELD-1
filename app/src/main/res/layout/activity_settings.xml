@@ -43,58 +43,67 @@
             <!-- DEMO MODE — top of Actions, impossible to miss -->
             <Button
                 android:id="@+id/btnDemoMode"
+                style="@style/Widget.Shield.Button.Frosted"
                 android:layout_width="match_parent"
                 android:layout_height="72dp"
                 android:text="▶  LIVE DEMO MODE"
                 android:textSize="17sp"
-                android:textStyle="bold"
-                android:textColor="#FFFFFF"
-                android:backgroundTint="#9D00FF"
-                android:layout_marginBottom="16dp" />
+                android:layout_marginBottom="16dp"
+                app:backgroundTint="@null"/>
 
             <Button
                 android:id="@+id/btnClearHoneyfilesSettings"
+                style="@style/Widget.Shield.Button.Frosted"
                 android:layout_width="match_parent"
                 android:layout_height="60dp"
                 android:text="Clear Honeyfiles"
                 android:textSize="16sp"
                 android:textColor="#EF4444"
-                android:background="@drawable/bg_glass_button_inactive"
-                app:backgroundTint="@null"
-                android:layout_marginBottom="12dp" />
+                android:layout_marginBottom="12dp"
+                app:backgroundTint="@null"/>
 
             <Button
                 android:id="@+id/btnTestSuiteSettings"
+                style="@style/Widget.Shield.Button.Frosted"
                 android:layout_width="match_parent"
                 android:layout_height="60dp"
                 android:text="Test Suite"
                 android:textSize="16sp"
                 android:textColor="#FF6F00"
-                android:background="@drawable/bg_glass_button_inactive"
-                app:backgroundTint="@null"
-                android:layout_marginBottom="12dp" />
+                android:layout_marginBottom="12dp"
+                app:backgroundTint="@null"/>
 
             <Button
                 android:id="@+id/btnUserGuide"
+                style="@style/Widget.Shield.Button.Frosted"
                 android:layout_width="match_parent"
                 android:layout_height="60dp"
                 android:text="User Guide"
                 android:textSize="16sp"
-                android:textColor="@color/primary"
-                android:background="@drawable/bg_glass_button_inactive"
-                app:backgroundTint="@null"
-                android:layout_marginBottom="12dp" />
+                android:layout_marginBottom="12dp"
+                app:backgroundTint="@null"/>
 
             <Button
                 android:id="@+id/btnManageWhitelist"
+                style="@style/Widget.Shield.Button.Frosted"
                 android:layout_width="match_parent"
                 android:layout_height="60dp"
                 android:text="Manage Whitelist"
                 android:textSize="16sp"
                 android:textColor="#00E676"
-                android:background="@drawable/bg_glass_button_inactive"
-                app:backgroundTint="@null"
-                android:layout_marginBottom="24dp" />
+                android:layout_marginBottom="12dp"
+                app:backgroundTint="@null"/>
+
+            <Button
+                android:id="@+id/btnAccessibility"
+                style="@style/Widget.Shield.Button.Frosted"
+                android:layout_width="match_parent"
+                android:layout_height="60dp"
+                android:text="♿  Accessibility Service"
+                android:textSize="16sp"
+                android:textColor="#60A5FA"
+                android:layout_marginBottom="24dp"
+                app:backgroundTint="@null"/>
 
             <!-- Permissions Section (Collapsible) -->
             <TextView

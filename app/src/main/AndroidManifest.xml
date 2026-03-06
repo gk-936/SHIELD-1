@@ -33,14 +33,26 @@
         android:theme="@style/Theme.SHIELD"
         android:requestLegacyExternalStorage="true">
         
+        <!-- WelcomeActivity is the true launcher — shown only on first install.
+             It immediately forwards to SplashActivity on subsequent launches.
+             hardwareAccelerated=true is required for canvas.saveLayer() +
+             PorterDuff.Mode.SCREEN to composite blobs correctly. -->
         <activity
-            android:name=".SplashActivity"
-            android:exported="true">
+            android:name=".WelcomeActivity"
+            android:exported="true"
+            android:hardwareAccelerated="true"
+            android:theme="@style/Theme.SHIELD">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- SplashActivity: no longer the launcher, but still declared for
+             direct navigation from WelcomeActivity and on subsequent launches. -->
+        <activity
+            android:name=".SplashActivity"
+            android:exported="false"/>
 
         <activity
             android:name=".MainActivity"
@@ -188,7 +200,8 @@
         <activity
             android:name=".UserGuideActivity"
             android:exported="false"
-            android:label="User Guide" />
+            android:theme="@style/Theme.AppCompat.NoActionBar"
+            android:label="Help &amp; Guide" />
 
         <!-- Whitelist Management Activity -->
         <activity

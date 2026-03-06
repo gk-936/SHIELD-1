@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
@@ -92,12 +93,14 @@
 
     <Button
         android:id="@+id/btnTest6"
+        style="@style/Widget.Shield.Button.Frosted"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Test 6: FULL RANSOMWARE SIMULATION"
         android:textStyle="bold"
-        android:backgroundTint="#D32F2F"
-        android:layout_margin="4dp"/>
+        android:textColor="#EF4444"
+        android:layout_margin="4dp"
+        app:backgroundTint="@null"/>
 
     <TextView
         android:layout_width="match_parent"
@@ -115,29 +118,34 @@
 
         <Button
             android:id="@+id/btnStopTest"
+            style="@style/Widget.Shield.Button.Frosted"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="Stop Test"
-            android:backgroundTint="#FF6F00"
-            android:layout_margin="4dp"/>
+            android:textColor="#EF4444"
+            android:layout_margin="4dp"
+            app:backgroundTint="@null"/>
 
         <Button
             android:id="@+id/btnCleanup"
+            style="@style/Widget.Shield.Button.Frosted"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="Cleanup"
-            android:layout_margin="4dp"/>
+            android:layout_margin="4dp"
+            app:backgroundTint="@null"/>
 
         <Button
             android:id="@+id/btnViewLogs"
+            style="@style/Widget.Shield.Button.Frosted"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="View Logs"
-            android:backgroundTint="#1976D2"
-            android:layout_margin="4dp"/>
+            android:layout_margin="4dp"
+            app:backgroundTint="@null"/>
     </LinearLayout>
 
     <TextView

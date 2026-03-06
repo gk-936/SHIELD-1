@@ -9,6 +9,9 @@
         <item name="android:windowBackground">@color/bg_main</item>
         <item name="android:statusBarColor">@color/black</item>
         <item name="android:navigationBarColor">@color/black</item>
+        <!-- Global frosted-glass button style — applies to ALL Button widgets -->
+        <item name="buttonStyle">@style/Widget.Shield.Button.Frosted</item>
+        <item name="android:buttonStyle">@style/Widget.Shield.Button.Frosted</item>
     </style>
 
     <style name="Theme.SHIELD" parent="Base.Theme.SHIELD" />

@@ -496,14 +496,13 @@
 
             <Button
                 android:id="@+id/btnDemoStart"
+                style="@style/Widget.Shield.Button.Frosted"
                 android:layout_width="match_parent"
                 android:layout_height="56dp"
                 android:text="Launch Attack Demo"
                 android:textSize="15sp"
-                android:textStyle="bold"
-                android:textColor="#FFFFFF"
-                android:backgroundTint="#9D00FF"
-                android:layout_marginBottom="10dp" />
+                android:layout_marginBottom="10dp"
+                app:backgroundTint="@null"/>
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -512,22 +511,22 @@
 
                 <Button
                     android:id="@+id/btnDemoReset"
+                    style="@style/Widget.Shield.Button.Frosted"
                     android:layout_width="0dp"
                     android:layout_height="48dp"
                     android:layout_weight="1"
                     android:text="Reset"
-                    android:textColor="#CCCCCC"
-                    android:backgroundTint="#222222"
-                    android:layout_marginEnd="8dp" />
+                    android:layout_marginEnd="8dp"
+                    app:backgroundTint="@null"/>
 
                 <Button
                     android:id="@+id/btnDemoLogs"
+                    style="@style/Widget.Shield.Button.Frosted"
                     android:layout_width="0dp"
                     android:layout_height="48dp"
                     android:layout_weight="1"
                     android:text="View Logs"
-                    android:textColor="#CCCCCC"
-                    android:backgroundTint="#1C2A3A" />
+                    app:backgroundTint="@null"/>
             </LinearLayout>
         </LinearLayout>
 

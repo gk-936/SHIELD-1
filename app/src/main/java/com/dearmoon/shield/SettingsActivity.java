@@ -64,6 +64,11 @@ public class SettingsActivity extends AppCompatActivity {
         // Manage Whitelist
         btnManageWhitelist.setOnClickListener(v -> startActivity(new Intent(this, WhitelistActivity.class)));
 
+        // Accessibility Service
+        Button btnAccessibility = findViewById(R.id.btnAccessibility);
+        btnAccessibility.setOnClickListener(v ->
+            startActivity(new Intent(android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS)));
+
         // Permission list container
         android.view.View permissionListContainer = findViewById(R.id.permissionListContainer);
 
@@ -168,9 +173,8 @@ public class SettingsActivity extends AppCompatActivity {
     }
 
     private void showUserGuide() {
-        Intent intent = new Intent(this, MainActivity.class);
-        intent.putExtra("START_GUIDE", true);
-        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        Intent intent = new Intent(this, UserGuideActivity.class);
+        intent.putExtra(UserGuideActivity.EXTRA_FROM_SETTINGS, true);
         startActivity(intent);
     }
 }

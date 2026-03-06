@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  bg_teal_circle_40dp.xml
+  Teal semi-transparent circle used as the icon background in
+  the "How It Works" rows on guide screen 2.
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="oval">
+    <solid android:color="#1A00897B"/>
+</shape>

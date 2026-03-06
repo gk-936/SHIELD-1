@@ -115,14 +115,13 @@
             <!-- Glassmorphism Button to Show Logs -->
             <Button
                 android:id="@+id/btnShowDetailedLogs"
+                style="@style/Widget.Shield.Button.Frosted"
                 android:layout_width="match_parent"
                 android:layout_height="60dp"
                 android:text="View Detailed Logs"
                 android:textSize="16sp"
-                android:textColor="@color/primary"
-                android:background="@drawable/bg_glass_button_inactive"
-                app:backgroundTint="@null"
-                android:layout_marginBottom="16dp" />
+                android:layout_marginBottom="16dp"
+                app:backgroundTint="@null"/>
 
             <!-- Detailed Logs RecyclerView (Initially Hidden) -->
             <LinearLayout
@@ -150,12 +149,13 @@
 
                     <Button
                         android:id="@+id/btnClearAllLogs"
+                        style="@style/Widget.Shield.Button.Frosted"
                         android:layout_width="wrap_content"
                         android:layout_height="36dp"
                         android:text="CLEAR ALL"
                         android:textSize="12sp"
-                        android:backgroundTint="#EF4444"
-                        android:textColor="#FFFFFF" />
+                        android:textColor="#EF4444"
+                        app:backgroundTint="@null"/>
                 </LinearLayout>
 
                 <androidx.recyclerview.widget.RecyclerView

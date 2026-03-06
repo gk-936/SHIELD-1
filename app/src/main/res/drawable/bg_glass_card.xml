@@ -1,14 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<shape xmlns:android="http://schemas.android.com/apk/res/android"
-    android:shape="rectangle">
-    
-    <!-- Translucent glass background -->
-    <solid android:color="#1AFFFFFF" />
-    
-    <!-- Very thin white border -->
-    <stroke
-        android:width="0.5dp"
-        android:color="#33FFFFFF" />
-    
-    <corners android:radius="20dp" />
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <solid android:color="#26FFFFFF"/> <!-- 15% opacity white for glassmorphism -->
+    <corners android:radius="24dp"/>
+    <stroke android:width="1dp" android:color="#33FFFFFF"/> <!-- subtle inner edge reflection -->
 </shape>

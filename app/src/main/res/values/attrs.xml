@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <declare-styleable name="AnimatedLetterTextView">
+        <!-- The text string to animate letter by letter -->
+        <attr name="alt_text" format="string"/>
+        <!-- Milliseconds of delay between each letter starting its animation -->
+        <attr name="alt_letterDelay" format="integer"/>
+        <!-- Spring damping ratio (0.0 – 1.0). Stored for future use; animation
+             is currently tuned via ofFloat keyframes to mimic damping=0.6. -->
+        <attr name="alt_springDamping" format="float"/>
+        <!-- Text size (use sp units in XML, e.g. 36sp) -->
+        <attr name="alt_textSize" format="dimension"/>
+        <!-- Text colour -->
+        <attr name="alt_textColor" format="color"/>
+        <!-- Start colour of the gradient underline (left edge) -->
+        <attr name="alt_underlineGradientStart" format="color"/>
+        <!-- End colour of the gradient underline (right edge) -->
+        <attr name="alt_underlineGradientEnd" format="color"/>
+        <!-- Thickness of the underline bar (use dp units, e.g. 3dp) -->
+        <attr name="alt_underlineHeight" format="dimension"/>
+        <!-- Gap between text baseline and the top of the underline bar (dp) -->
+        <attr name="alt_underlineOffset" format="dimension"/>
+    </declare-styleable>
+
+    <declare-styleable name="WavyUnderlineTextView">
+        <!-- Text to display -->
+        <attr name="wut_text" format="string"/>
+        <!-- Text size, use sp (e.g. 32sp) -->
+        <attr name="wut_textSize" format="dimension"/>
+        <!-- Text colour -->
+        <attr name="wut_textColor" format="color"/>
+        <!-- Stroke colour of the wavy underline -->
+        <attr name="wut_underlineColor" format="color"/>
+        <!-- Stroke width of the wavy underline (dp) -->
+        <attr name="wut_underlineStrokeWidth" format="dimension"/>
+        <!-- Duration in ms for the underline draw animation -->
+        <attr name="wut_underlineDuration" format="integer"/>
+        <!-- Duration in ms for the text slide+fade animation -->
+        <attr name="wut_textSlideDuration" format="integer"/>
+        <!-- Peak-to-trough amplitude of the wave in dp -->
+        <attr name="wut_wavyAmplitude" format="dimension"/>
+        <!-- Gap between text baseline and the top of the wave (dp) -->
+        <attr name="wut_underlineOffset" format="dimension"/>
+    </declare-styleable>
+
+</resources>

@@ -5,8 +5,9 @@
     android:layout_height="match_parent"
     android:background="@drawable/bg_static_shield">
 
-    <!-- Horizontal Layout for Both Logos -->
+    <!-- ── Logo row, centred on screen ── -->
     <LinearLayout
+        android:id="@+id/logoBlock"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
@@ -16,14 +17,13 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
 
-        <!-- Shield App Logo -->
+        <!-- ── Shield App Logo column ── -->
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:gravity="center">
 
-            <!-- Shield App Logo -->
             <ImageView
                 android:layout_width="100dp"
                 android:layout_height="100dp"
@@ -31,29 +31,31 @@
                 android:contentDescription="Shield Logo"
                 android:alpha="0.95"/>
 
-            <TextView
+            <!-- Animated label replacing the old "SHIELD" TextView -->
+            <com.dearmoon.shield.ui.AnimatedLetterTextView
+                android:id="@+id/animatedShieldLabel"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="SHIELD"
-                android:textColor="#00E5FF"
-                android:textSize="14sp"
-                android:textStyle="bold"
-                android:letterSpacing="0.4"
                 android:layout_marginTop="8dp"
-                android:shadowColor="#00E5FF"
-                android:shadowDx="0"
-                android:shadowDy="0"
-                android:shadowRadius="10"/>
+                app:alt_text="SHIELD"
+                app:alt_letterDelay="80"
+                app:alt_textSize="14sp"
+                app:alt_textColor="#00C8FF"
+                app:alt_underlineGradientStart="#00C8FF"
+                app:alt_underlineGradientEnd="#7B2FBE"
+                app:alt_underlineHeight="2dp"
+                app:alt_underlineOffset="3dp"/>
+
         </LinearLayout>
 
-        <!-- Small Straight Vertical Line -->
+        <!-- ── Cyan glowing divider ── -->
         <View
             android:layout_width="1.5dp"
             android:layout_height="80dp"
             android:layout_marginHorizontal="32dp"
-            android:background="#6600E5FF" /> <!-- Cyan glowing line -->
+            android:background="#6600E5FF"/>
 
-        <!-- DSCI Logo -->
+        <!-- ── DSCI Logo column ── -->
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -67,15 +69,21 @@
                 android:contentDescription="DSCI Logo"
                 android:alpha="0.95"/>
 
-            <TextView
+            <!-- Animated label replacing the old "DSCI" TextView -->
+            <com.dearmoon.shield.ui.AnimatedLetterTextView
+                android:id="@+id/animatedDsciLabel"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="DSCI"
-                android:textColor="#AAAAAA"
-                android:textSize="14sp"
-                android:textStyle="bold"
-                android:letterSpacing="0.4"
-                android:layout_marginTop="8dp"/>
+                android:layout_marginTop="8dp"
+                app:alt_text="DSCI"
+                app:alt_letterDelay="80"
+                app:alt_textSize="14sp"
+                app:alt_textColor="#8892A4"
+                app:alt_underlineGradientStart="#8892A4"
+                app:alt_underlineGradientEnd="#444F60"
+                app:alt_underlineHeight="2dp"
+                app:alt_underlineOffset="3dp"/>
+
         </LinearLayout>
 
     </LinearLayout>

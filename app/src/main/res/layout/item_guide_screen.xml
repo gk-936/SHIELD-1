@@ -1,0 +1,234 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  item_guide_screen.xml
+  Standard guide screen card used by GuideScreenAdapter for STANDARD
+  and HOW_IT_WORKS screen types.
+
+  Structure:
+    FrameLayout (full page)
+    ├── View  gradientBg  — warm gradient fills bottom 45%
+    └── ScrollView        — scrollable content in top 60% region
+        └── LinearLayout  — SHIELD logo + ornament + badge + icon + texts
+            └── howItWorksContainer  — 3 info rows (visible only on screen 2)
+            └── letsGoButton         — pill button (visible only on screen 6)
+-->
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@android:color/transparent">
+
+
+    <!-- Scrollable content area -->
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scrollbars="none"
+        android:overScrollMode="never"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center_horizontal"
+            android:background="@drawable/bg_glass_card"
+            android:layout_marginHorizontal="20dp"
+            android:layout_marginTop="48dp"
+            android:layout_marginBottom="24dp"
+            android:paddingHorizontal="32dp"
+            android:paddingTop="24dp"
+            android:paddingBottom="32dp">
+
+            <!-- SHIELD app icon — small, 40dp -->
+            <ImageView
+                android:id="@+id/shieldLogo"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:src="@mipmap/ic_launcher"
+                android:scaleType="fitCenter"
+                android:layout_marginBottom="8dp"/>
+
+            <!-- Ornamental header line -->
+            <com.dearmoon.shield.ui.OrnamentsHeaderView
+                android:id="@+id/ornamentsHeader"
+                android:layout_width="match_parent"
+                android:layout_height="24dp"
+                android:layout_marginBottom="20dp"/>
+
+            <!-- Badge pill (MODE A / MODE B) -->
+            <TextView
+                android:id="@+id/badge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:paddingHorizontal="14dp"
+                android:paddingVertical="4dp"
+                android:textSize="10sp"
+                android:textColor="#FFFFFF"
+                android:textStyle="bold"
+                android:letterSpacing="0.10"
+                android:background="@drawable/bg_badge_pill"
+                android:layout_marginBottom="12dp"
+                android:visibility="gone"/>
+
+            <!-- Main step icon -->
+            <ImageView
+                android:id="@+id/stepIcon"
+                android:layout_width="80dp"
+                android:layout_height="80dp"
+                android:scaleType="fitCenter"
+                android:layout_marginTop="4dp"
+                android:layout_marginBottom="8dp"/>
+
+            <!-- How-It-Works 3-row container (shown only for screen 2) -->
+            <LinearLayout
+                android:id="@+id/howItWorksContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone"
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="8dp">
+
+                <!-- Row 1: Monitor -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="20dp">
+
+                    <ImageView
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:src="@drawable/ic_eye"
+                        android:background="@drawable/bg_button_frosted_circle"
+                        android:padding="10dp"
+                        android:tint="#52B788"
+                        android:scaleType="fitCenter"
+                        android:layout_marginEnd="16dp"/>
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Monitors file behaviour in real time"
+                        android:textColor="#FFFFFF"
+                        android:textSize="14sp"
+                        android:maxLines="3"/>
+                </LinearLayout>
+
+                <!-- Row 2: Score -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="20dp">
+
+                    <ImageView
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:src="@drawable/ic_dna"
+                        android:background="@drawable/bg_button_frosted_circle"
+                        android:padding="10dp"
+                        android:tint="#52B788"
+                        android:scaleType="fitCenter"
+                        android:layout_marginEnd="16dp"/>
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Scores threats using 3 detection engines"
+                        android:textColor="#FFFFFF"
+                        android:textSize="14sp"
+                        android:maxLines="3"/>
+                </LinearLayout>
+
+                <!-- Row 3: Block -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <ImageView
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:src="@drawable/ic_snapshot"
+                        android:background="@drawable/bg_button_frosted_circle"
+                        android:padding="10dp"
+                        android:tint="#52B788"
+                        android:scaleType="fitCenter"
+                        android:layout_marginEnd="16dp"/>
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Blocks and recovers before you notice"
+                        android:textColor="#FFFFFF"
+                        android:textSize="14sp"
+                        android:maxLines="3"/>
+                </LinearLayout>
+
+            </LinearLayout>
+
+            <!-- Main heading -->
+            <TextView
+                android:id="@+id/mainText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textSize="26sp"
+                android:textColor="#FFFFFF"
+                android:textStyle="bold"
+                android:gravity="center"
+                android:lineSpacingMultiplier="1.2"
+                android:layout_marginTop="16dp"/>
+
+            <!-- Sub text -->
+            <TextView
+                android:id="@+id/subText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textSize="13sp"
+                android:textColor="#8892A4"
+                android:gravity="center"
+                android:layout_marginTop="10dp"
+                android:maxLines="3"/>
+
+            <!-- Note text (root warning / compatibility) -->
+            <TextView
+                android:id="@+id/noteText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="11sp"
+                android:layout_marginTop="12dp"
+                android:visibility="gone"/>
+
+            <!-- "Let's Go" pill button for last screen (screen 6) -->
+            <com.dearmoon.shield.ui.ScrambleTextButton
+                android:id="@+id/letsGoButton"
+                android:layout_width="200dp"
+                android:layout_height="52dp"
+                android:layout_marginTop="32dp"
+                android:background="@drawable/bg_button_frosted"
+                android:text="Let's Go"
+                android:textColor="#FFFFFF"
+                android:textStyle="bold"
+                android:textSize="16sp"
+                android:fontFamily="sans-serif-medium"
+                android:letterSpacing="0.05"
+                android:stateListAnimator="@null"
+                android:elevation="0dp"
+                app:backgroundTint="@null"
+                android:visibility="gone"
+                xmlns:app="http://schemas.android.com/apk/res-auto"/>
+
+        </LinearLayout>
+    </ScrollView>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

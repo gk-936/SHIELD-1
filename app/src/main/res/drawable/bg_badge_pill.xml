@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  bg_badge_pill.xml
+  Fully-rounded pill background for MODE A / MODE B badges.
+  Solid colour can be overridden programmatically via drawable.mutate().setColor().
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <corners android:radius="50dp"/>
+    <solid android:color="#00897B"/>
+</shape>

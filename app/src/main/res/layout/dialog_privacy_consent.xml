@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@drawable/bg_dialog_plate"
+    android:padding="28dp">
+
+    <FrameLayout
+        android:layout_width="80dp"
+        android:layout_height="80dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginBottom="16dp">
+        
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@drawable/bg_button_frosted_circle"
+            android:alpha="0.4"/>
+            
+        <View
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:layout_gravity="center"
+            android:background="@drawable/bg_button_frosted_circle"
+            android:alpha="0.7"/>
+
+        <ImageView
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_gravity="center"
+            android:src="@drawable/ic_guide_shield"
+            android:tint="#52B788" />
+    </FrameLayout>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="DATA COLLECTION DISCLOSURE"
+        android:textColor="#FFFFFF"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:gravity="center_horizontal"
+        android:letterSpacing="0.05"
+        android:layout_marginBottom="24dp"/>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="SHIELD collects the following data to detect ransomware on your device:"
+        android:textColor="#FFFFFF"
+        android:textSize="14sp"
+        android:lineSpacingMultiplier="1.2"
+        android:layout_marginBottom="16dp"/>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:layout_marginBottom="20dp"
+        android:paddingStart="12dp">
+        
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="• File system events"
+            android:textColor="#52B788"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="4dp"/>
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="• Network connection metadata"
+            android:textColor="#52B788"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="4dp"/>
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="• Honeyfile access events"
+            android:textColor="#52B788"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="4dp"/>
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="• Accessibility events"
+            android:textColor="#52B788"
+            android:textSize="13sp"
+            android:textStyle="bold"/>
+    </LinearLayout>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="All data is stored locally on your device and is never transmitted to any server. You can review or delete collected data at any time via Settings → Privacy → Purge Telemetry.\n\nDo you agree to allow SHIELD to collect this data?"
+        android:textColor="#8892A4"
+        android:textSize="12sp"
+        android:lineSpacingMultiplier="1.3"
+        android:layout_marginBottom="32dp"/>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:weightSum="2">
+
+        <Button
+            android:id="@+id/btnDecline"
+            android:layout_width="0dp"
+            android:layout_height="52dp"
+            android:layout_weight="1"
+            android:text="Decline"
+            android:textColor="#DDDDDD"
+            android:textSize="14sp"
+            android:background="@drawable/bg_dialog_btn_secondary"
+            android:layout_marginEnd="8dp"
+            android:textAllCaps="false"/>
+
+        <Button
+            android:id="@+id/btnAgree"
+            android:layout_width="0dp"
+            android:layout_height="52dp"
+            android:layout_weight="1"
+            android:text="I Agree"
+            android:textColor="#010201"
+            android:textStyle="bold"
+            android:textSize="16sp"
+            android:background="@drawable/bg_dialog_btn_primary"
+            android:layout_marginStart="8dp"
+            android:textAllCaps="false"/>
+    </LinearLayout>
+
+</LinearLayout>

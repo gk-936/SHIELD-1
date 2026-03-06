@@ -10,6 +10,7 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.dearmoon.shield.data.PrivacyConsentManager;
+import com.dearmoon.shield.ui.AnimatedLetterTextView;
 
 /**
  * Entry point of SHIELD.
@@ -34,6 +35,21 @@ public class SplashActivity extends AppCompatActivity {
             getWindow().getDecorView().setSystemUiVisibility(0);
         }
 
+        // ── Letter-drop animations ──────────────────────────────────────────
+        // Both logo labels animate simultaneously.
+        // underlineStartOverride = 780ms (= 6 letters × 80ms + 300ms) so that
+        // both underlines sweep at exactly the same moment regardless of word length.
+        AnimatedLetterTextView shieldLabel =
+                findViewById(R.id.animatedShieldLabel);
+        AnimatedLetterTextView dsciLabel =
+                findViewById(R.id.animatedDsciLabel);
+
+        shieldLabel.post(() -> {
+            shieldLabel.startAnimation(780L);
+            dsciLabel.startAnimation(780L);
+        });
+        // ───────────────────────────────────────────────────────────────────
+
         // M6 — Privacy Controls: gate on explicit user consent
         if (!PrivacyConsentManager.hasConsent(this)) {
             showConsentDialog();
@@ -47,31 +63,38 @@ public class SplashActivity extends AppCompatActivity {
     // -------------------------------------------------------------------------
 
     private void showConsentDialog() {
-        new AlertDialog.Builder(this)
-                .setTitle("Data Collection Disclosure")
-                .setMessage(
-                        "SHIELD collects the following data to detect ransomware on your device:\n\n"
-                        + "• File system events (paths, sizes, timestamps)\n"
-                        + "• Network connection metadata (IP, port, protocol)\n"
-                        + "• Honeyfile access events\n"
-                        + "• Accessibility events from suspicious apps\n\n"
-                        + "All data is stored locally on your device and is never transmitted "
-                        + "to any server.  You can review or delete collected data at any time "
-                        + "via Settings → Privacy → Purge Telemetry.\n\n"
-                        + "Do you agree to allow SHIELD to collect this data?")
-                .setCancelable(false)
-                .setPositiveButton("I Agree", (dialog, which) -> {
-                    PrivacyConsentManager.recordConsent(SplashActivity.this, true);
-                    proceedToMain();
-                })
-                .setNegativeButton("Decline", (dialog, which) -> {
-                    PrivacyConsentManager.recordConsent(SplashActivity.this, false);
-                    android.widget.Toast.makeText(this,
-                            "SHIELD requires consent to operate.  The app will now close.",
-                            android.widget.Toast.LENGTH_LONG).show();
-                    finish();
-                })
-                .show();
+        android.app.Dialog dialog = new android.app.Dialog(this);
+        dialog.requestWindowFeature(android.view.Window.FEATURE_NO_TITLE);
+        dialog.setContentView(R.layout.dialog_privacy_consent);
+        dialog.setCancelable(false);
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+            dialog.getWindow().setLayout(android.view.ViewGroup.LayoutParams.MATCH_PARENT, android.view.ViewGroup.LayoutParams.WRAP_CONTENT);
+            // Apply horizontal margins to the transparent dialog window itself
+            android.view.WindowManager.LayoutParams params = dialog.getWindow().getAttributes();
+            params.width = getResources().getDisplayMetrics().widthPixels - (int)(48 * getResources().getDisplayMetrics().density);
+            dialog.getWindow().setAttributes(params);
+        }
+
+        android.widget.Button btnAgree = dialog.findViewById(R.id.btnAgree);
+        android.widget.Button btnDecline = dialog.findViewById(R.id.btnDecline);
+
+        btnAgree.setOnClickListener(v -> {
+            PrivacyConsentManager.recordConsent(SplashActivity.this, true);
+            dialog.dismiss();
+            proceedToMain();
+        });
+
+        btnDecline.setOnClickListener(v -> {
+            PrivacyConsentManager.recordConsent(SplashActivity.this, false);
+            dialog.dismiss();
+            android.widget.Toast.makeText(this,
+                    "SHIELD requires consent to operate. The app will now close.",
+                    android.widget.Toast.LENGTH_LONG).show();
+            finish();
+        });
+
+        dialog.show();
     }
 
     private void proceedToMain() {
