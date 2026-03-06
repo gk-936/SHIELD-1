@@ -219,14 +219,16 @@ public class DemoActivity extends AppCompatActivity {
                 tvDetectionTime.setText(detTime);
                 attacksBlocked = 1;
                 tvAttacksBlocked.setText("1");
-                narrative("⚠  RANSOMWARE DETECTED — Confidence: 94/100",
+                // Use real engine score if it was captured; fall back to 94 for scripted run
+                int displayScore = animatedScore > 0 ? animatedScore : 94;
+                narrative("⚠  RANSOMWARE DETECTED — Confidence: " + displayScore + "/100",
                     "Score crossed threshold (≥70). In < 1 second:\n"
                     + "  • Attack process terminated\n"
                     + "  • Emergency network block engaged (ALL traffic)\n"
                     + "  • Snapshot restoration queued\n"
                     + "Detection time from first signal: " + detTime);
                 status("🛡  SHIELD: Attack neutralised. Network isolated.", 0xFF10B981);
-                animateTo(94, 0xFFEF4444);
+                animateTo(displayScore, 0xFFEF4444);
                 threat(0xFF10B981);
                 pulseShield();
                 break;
@@ -359,17 +361,39 @@ public class DemoActivity extends AppCompatActivity {
     private void registerReceiver() {
         receiver = new BroadcastReceiver() {
             @Override public void onReceive(Context ctx, Intent intent) {
-                if ("com.dearmoon.shield.HIGH_RISK_ALERT".equals(intent.getAction())
+                String action = intent.getAction();
+
+                if ("com.dearmoon.shield.HIGH_RISK_ALERT".equals(action)
                         && currentStage < STAGE_DETECTED) {
-                    // Real detection fired — fast-forward
+                    // ── Real detection fired: display the live score ──────────
+                    int realScore = intent.getIntExtra("confidence_score", 0);
+                    if (realScore > animatedScore) {
+                        // Snap confidence meter to the actual engine score
+                        animatedScore = realScore;
+                        pbConfidence.setProgress(realScore);
+                        tvConfidenceVal.setText(realScore + " / 100");
+                        tvConfidenceVal.setTextColor(0xFFEF4444);
+                        pbConfidence.setProgressTintList(
+                            ColorStateList.valueOf(0xFFEF4444));
+                    }
                     ui.removeCallbacksAndMessages(null);
                     ui.post(() -> stage(STAGE_DETECTED));
                     ui.postDelayed(() -> stage(STAGE_RECOVERY), 3_000);
                     ui.postDelayed(() -> stage(STAGE_DONE),     7_000);
+
+                } else if ("com.dearmoon.shield.RESTORE_COMPLETE".equals(action)
+                        && currentStage == STAGE_RECOVERY) {
+                    // ── Real RestoreEngine finished — advance to DONE ─────────
+                    int restored = intent.getIntExtra("restored_count", 0);
+                    filesProtected += Math.max(restored, 10);
+                    tvFilesProtected.setText(String.valueOf(filesProtected));
+                    ui.removeCallbacksAndMessages(null);
+                    ui.postDelayed(() -> stage(STAGE_DONE), 1_500);
                 }
             }
         };
         IntentFilter f = new IntentFilter("com.dearmoon.shield.HIGH_RISK_ALERT");
+        f.addAction("com.dearmoon.shield.RESTORE_COMPLETE");
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             registerReceiver(receiver, f, Context.RECEIVER_NOT_EXPORTED);
         } else {

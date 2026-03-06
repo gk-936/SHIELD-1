@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  file_provider_paths.xml
+  Exposes two external-files-path entries for FileProvider:
+  Documents/ for PDF exports and Downloads/ for CERT-In .txt exports.
+-->
+<paths>
+    <external-files-path name="documents" path="Documents/" />
+    <external-files-path name="downloads"  path="Downloads/" />
+</paths>

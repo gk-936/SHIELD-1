@@ -14,7 +14,7 @@ import java.util.List;
 public class EventDatabase extends SQLiteOpenHelper {
     private static final String TAG = "EventDatabase";
     private static final String DATABASE_NAME = "shield_events.db";
-    private static final int DATABASE_VERSION = 4;
+    private static final int DATABASE_VERSION = 5;
 
     private static EventDatabase instance;
     private final Context context;
@@ -162,12 +162,50 @@ public class EventDatabase extends SQLiteOpenHelper {
                 "detail TEXT)");
         db.execSQL("CREATE INDEX IF NOT EXISTS idx_priv_timestamp ON " + TABLE_PRIVACY_CONSENT + "(timestamp)");
 
+        // DNA Profiles Table (v5) — stores completed RansomwareDnaProfile snapshots
+        db.execSQL("CREATE TABLE IF NOT EXISTS dna_profiles (" +
+                "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                "profile_id TEXT NOT NULL, " +
+                "generated_at INTEGER NOT NULL, " +
+                "attack_window_start INTEGER, " +
+                "attack_window_end INTEGER, " +
+                "attack_family TEXT, " +
+                "composite_score INTEGER, " +
+                "files_at_risk INTEGER, " +
+                "files_restored INTEGER, " +
+                "c2_detected INTEGER, " +
+                "honeyfile_triggered INTEGER, " +
+                "suspect_package TEXT, " +
+                "full_report_text TEXT)");
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_dna_generated ON dna_profiles(generated_at)");
+
         Log.i(TAG, "Database tables created successfully");
     }
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
         Log.w(TAG, "Upgrading database from version " + oldVersion + " to " + newVersion);
+
+        // Non-destructive migration: add dna_profiles table for v4 -> v5 (Incident feature)
+        if (oldVersion < 5) {
+            db.execSQL("CREATE TABLE IF NOT EXISTS dna_profiles (" +
+                    "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                    "profile_id TEXT NOT NULL, " +
+                    "generated_at INTEGER NOT NULL, " +
+                    "attack_window_start INTEGER, " +
+                    "attack_window_end INTEGER, " +
+                    "attack_family TEXT, " +
+                    "composite_score INTEGER, " +
+                    "files_at_risk INTEGER, " +
+                    "files_restored INTEGER, " +
+                    "c2_detected INTEGER, " +
+                    "honeyfile_triggered INTEGER, " +
+                    "suspect_package TEXT, " +
+                    "full_report_text TEXT)");
+            db.execSQL("CREATE INDEX IF NOT EXISTS idx_dna_generated ON dna_profiles(generated_at)");
+            Log.i(TAG, "Migrated to v5: added dna_profiles table");
+            if (oldVersion == 4) return;
+        }
 
         // Non-destructive migration: add config_audit_events and privacy_consent_events for v3 -> v4
         if (oldVersion < 4) {

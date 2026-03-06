@@ -3,6 +3,7 @@ package com.dearmoon.shield.collectors;
 import android.os.FileObserver;
 import android.util.Log;
 import androidx.annotation.Nullable;
+import com.dearmoon.shield.ShieldStats;
 import com.dearmoon.shield.data.FileSystemEvent;
 import com.dearmoon.shield.data.TelemetryStorage;
 import com.dearmoon.shield.detection.UnifiedDetectionEngine;
@@ -17,6 +18,7 @@ public class FileSystemCollector extends FileObserver {
     private final String monitoredPath;
     private UnifiedDetectionEngine detectionEngine;
     private SnapshotManager snapshotManager;
+    private ShieldStats shieldStats;   // optional — set via setShieldStats()
 
     // LRU cache with max 1000 entries to prevent memory leak
     private final Map<String, Long> lastEventMap = new LinkedHashMap<String, Long>(100, 0.75f, true) {
@@ -40,6 +42,10 @@ public class FileSystemCollector extends FileObserver {
 
     public void setSnapshotManager(SnapshotManager manager) {
         this.snapshotManager = manager;
+    }
+
+    public void setShieldStats(ShieldStats stats) {
+        this.shieldStats = stats;
     }
 
     @Override
@@ -88,6 +94,8 @@ public class FileSystemCollector extends FileObserver {
                 lastEventMap.put(key, now);
                 FileSystemEvent logEvent = new FileSystemEvent(fullPath, logOperation, size, size);
                 storage.store(logEvent);
+                // Increment the live "files scanned" counter on the home dashboard.
+                if (shieldStats != null) shieldStats.incrementFilesScanned(1);
                 Log.i(TAG, "LOGGED: " + logOperation + " - " + fullPath + " (" + size + " bytes)");
             }
         }

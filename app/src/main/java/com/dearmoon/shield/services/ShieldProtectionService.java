@@ -137,7 +137,7 @@ public class ShieldProtectionService extends Service {
             if (directory.exists() && directory.isDirectory()) {
                 // Create recursive collector for this directory tree
                 RecursiveFileSystemCollector recursiveCollector = 
-                    new RecursiveFileSystemCollector(dir, storage);
+                    new RecursiveFileSystemCollector(dir, storage, this);
                 recursiveCollector.setDetectionEngine(detectionEngine);
                 recursiveCollector.setSnapshotManager(snapshotManager);
                 recursiveCollector.startWatching();

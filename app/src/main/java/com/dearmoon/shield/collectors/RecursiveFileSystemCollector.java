@@ -1,8 +1,10 @@
 package com.dearmoon.shield.collectors;
 
+import android.content.Context;
 import android.os.FileObserver;
 import android.util.Log;
 import androidx.annotation.Nullable;
+import com.dearmoon.shield.ShieldStats;
 import com.dearmoon.shield.data.FileSystemEvent;
 import com.dearmoon.shield.data.TelemetryStorage;
 import com.dearmoon.shield.detection.UnifiedDetectionEngine;
@@ -25,13 +27,21 @@ public class RecursiveFileSystemCollector {
     
     private final TelemetryStorage storage;
     private final String rootPath;
+    private final ShieldStats shieldStats;    // shared across all child collectors
     private UnifiedDetectionEngine detectionEngine;
     private SnapshotManager snapshotManager;
     private final List<FileSystemCollector> collectors = new ArrayList<>();
-    
+
     public RecursiveFileSystemCollector(String rootPath, TelemetryStorage storage) {
-        this.rootPath = rootPath;
-        this.storage = storage;
+        this.rootPath    = rootPath;
+        this.storage     = storage;
+        this.shieldStats = null;   // legacy constructor — stats not tracked
+    }
+
+    public RecursiveFileSystemCollector(String rootPath, TelemetryStorage storage, Context context) {
+        this.rootPath    = rootPath;
+        this.storage     = storage;
+        this.shieldStats = new ShieldStats(context);
     }
     
     public void setDetectionEngine(UnifiedDetectionEngine engine) {
@@ -89,7 +99,11 @@ public class RecursiveFileSystemCollector {
             if (snapshotManager != null) {
                 collector.setSnapshotManager(snapshotManager);
             }
-            
+
+            if (shieldStats != null) {
+                collector.setShieldStats(shieldStats);
+            }
+
             collector.startWatching();
             collectors.add(collector);
             Log.d(TAG, "Monitoring [depth=" + depth + "]: " + directory.getAbsolutePath());

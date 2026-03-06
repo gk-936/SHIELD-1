@@ -42,6 +42,15 @@
    - [M2 — Supply Chain: Certificate Pinning + Native Library Hashing](#owasp-m2--inadequate-supply-chain-security)
    - [M6 — Privacy Controls: Consent Gate + Telemetry Summary + Purge](#owasp-m6--inadequate-privacy-controls)
    - [M8 — Security Misconfiguration: Runtime Config Audit](#owasp-m8--security-misconfiguration)
+7. [Incident Analysis and Reporting System](#incident-analysis-and-reporting-system)
+   - [AttackFamily — Ransomware Classification Enum](#1-attackfamily--ransomware-classification-enum)
+   - [RansomwareDnaProfile — Incident Data Model](#2-ransomwarednaprofile--incident-data-model)
+   - [RansomwareDnaProfiler — Profile Builder](#3-ransomwarednaprofiler--profile-builder)
+   - [ShieldPdfReportGenerator — PDF Export](#4-shieldpdfreportgenerator--pdf-export)
+   - [IncidentActivity — Two-Tab Report UI](#5-incidentactivity--two-tab-report-ui)
+   - [EventDatabase v5 Migration — dna_profiles Table](#6-eventdatabase-v5-migration--dna_profiles-table)
+   - [INCIDENT Button and SharedPreferences Wiring in MainActivity](#7-incident-button-and-sharedpreferences-wiring-in-mainactivity)
+   - [Unit Tests — IncidentFeatureTest](#8-unit-tests--incidentfeaturetest)
 
 ---
 
@@ -460,6 +469,180 @@ Both tables have a timestamp index. The `onUpgrade()` path includes a `if (oldVe
 
 ---
 
+## Incident Analysis and Reporting System
+
+> This module adds a complete post-incident forensic analysis and reporting pipeline to SHIELD. When an attack is detected and mitigated, the user can open the **INCIDENT** screen from the main dashboard to see an annotated attack timeline, a DNA-style ransomware profile, and export-ready reports in both PDF and CERT-In plain-text formats. The entire module is written in Kotlin and runs alongside the existing Java codebase in a mixed-language project.
+
+---
+
+### 1. AttackFamily — Ransomware Classification Enum
+
+**File:** `analysis/AttackFamily.kt`
+
+`AttackFamily` is a five-value Kotlin enum that classifies the detected ransomware family. Each entry carries a human-readable `displayName`, a one-sentence `description`, a CERT-In-aligned `certInCategory` string, and an ARGB `severityColor` integer used in both the in-app report view and the PDF export. The five families are:
+
+| Value | Display Name | Colour |
+|---|---|---|
+| `CRYPTO_RANSOMWARE` | Crypto Ransomware | Red `#FF3B3B` |
+| `LOCKER_RANSOMWARE` | Locker Ransomware | Orange `#FF6D00` |
+| `HYBRID` | Hybrid Ransomware | Dark Red `#B71C1C` |
+| `RECONNAISSANCE` | Reconnaissance | Amber `#FFB300` |
+| `UNKNOWN` | Unknown Threat | Grey `#8892A4` |
+
+The classification rules used by `RansomwareDnaProfiler` follow a strict priority order: HYBRID (locker + high file rate) → LOCKER (locker-only) → CRYPTO (SPRT H1 + high entropy) → RECONNAISSANCE (moderate score) → UNKNOWN.
+
+---
+
+### 2. RansomwareDnaProfile — Incident Data Model
+
+**File:** `analysis/RansomwareDnaProfile.kt`
+
+`RansomwareDnaProfile` is an immutable Kotlin `data class` that is the single source of truth for one complete ransomware incident. It is built by `RansomwareDnaProfiler`, consumed by both report fragments in `IncidentActivity`, and passed to `ShieldPdfReportGenerator`. Key field groups:
+
+- **Identity:** `profileId` (UUID), `generatedAt`, `shieldVersion`, `attackWindowStart`, `attackWindowEnd`
+- **Classification:** `attackFamily`, `compositeScore` (0–130), `entropyScore`, `kldScore`, `sprtAcceptedH1`, `primaryDetector`, `confidenceLevel`
+- **Speed metrics:** `encryptionSpeedFilesPerMin`, `attackDurationSeconds`, `detectionTimeSeconds`
+- **Target:** `targetedExtensions` (top 5), `targetPriority`, `totalFilesAtRisk`
+- **Honeyfile:** `honeyfileTriggered`, `honeyfileTriggerDelaySeconds`
+- **Network:** `c2AttemptDetected`, `c2BlockedCount`, `torAttemptDetected`, `portsTargeted`
+- **Damage:** `filesEncryptedEstimate`, `filesRestoredCount`, `dataLossOccurred`, `estimatedRansomRupees`
+- **Attribution:** `suspectPackage`, `suspectAppName`
+- **Timeline:** `timelineEvents: List<TimelineEvent>`
+
+The nested `TimelineEvent` data class holds `timestamp`, `eventType` (`TimelineEventType` enum with 9 values), `description`, and `sourceTable`. Key methods:
+
+- `getConfidenceLevel()` — returns `"HIGH"` (≥70), `"MEDIUM"` (40–69), or `"LOW"` based on `compositeScore`
+- `getRiskSeverityLabel()` — returns `"CRITICAL"` (≥90), `"HIGH"` (≥70), `"MEDIUM"` (≥40), or `"LOW"`
+- `toCertInText()` — generates a full CERT-In plain-text report in IST timezone, including all 8 sections (classification, timeline, target profile, network activity, honeyfile intelligence, damage assessment, attribution, CERT-In footer)
+- `toShareableText()` — returns a 5-line shareable summary with emoji header
+
+---
+
+### 3. RansomwareDnaProfiler — Profile Builder
+
+**File:** `analysis/RansomwareDnaProfiler.kt`
+
+`RansomwareDnaProfiler` is a Kotlin `object` (singleton) with two `suspend` entry points:
+
+- `buildProfile(context, attackWindowStart, attackWindowEnd, compositeScore, entropyScore, kldScore, sprtAcceptedH1, restoredFileCount)` — queries six SQLite tables for events inside the attack window and assembles a complete `RansomwareDnaProfile`.
+- `buildProfileFromLatestAttack(context)` — looks up the most recent `HIGH_RISK_ALERT` event from the database and delegates to `buildProfile()`.
+
+The profiler executes six parallel database queries (file system events, network events, honeyfile events, detection results, locker events, restore events), merges and sorts all rows chronologically into a master timeline, caps it at 50 events, and overrides the first event to `TimelineEventType.FIRST_SIGNAL`. The family classification logic (ordered by priority) is:
+
+1. `lockerEventCount > 0 && fileModRate > 2.0` → `HYBRID`
+2. `lockerEventCount > 0 && fileModRate ≤ 2.0` → `LOCKER_RANSOMWARE`
+3. `sprtAcceptedH1 && entropyScore > 25` → `CRYPTO_RANSOMWARE`
+4. `compositeScore in 40..69` → `RECONNAISSANCE`
+5. else → `UNKNOWN`
+
+On completion, the finished profile is persisted to the `dna_profiles` table in `EventDatabase` so it can be recalled without re-querying.
+
+---
+
+### 4. ShieldPdfReportGenerator — PDF Export
+
+**File:** `analysis/ShieldPdfReportGenerator.kt`
+
+`ShieldPdfReportGenerator` is a Kotlin `object` that generates a formatted A4 PDF report using only `android.graphics.pdf.PdfDocument` and `android.graphics.Canvas` — no third-party libraries. Page dimensions are 595 × 842 points at 72 dpi (the `PdfDocument` native coordinate space). The generator draws 11 sections in sequence:
+
+1. Diagonal watermark (`SHIELD CONFIDENTIAL`) in translucent grey
+2. Header bar with SHIELD logo text, subtitle, and profile ID
+3. Footer line with generation timestamp
+4. Title block: severity label + family name + score bar
+5. Stat cards: Duration / Detection Time / Files at Risk / Restored / C2 Blocked
+6. Classification card: family description + CERT-In category + confidence level
+7. Visual attack timeline: coloured dots with timestamp + description for each `TimelineEvent`
+8. Target and network card: targeted extensions, priority, ports, C2/Tor status
+9. Damage assessment card: encrypted vs restored count, data loss label, ransom estimate
+10. Attribution and honeyfile card: suspect package/app, trigger delay
+11. CERT-In compliance bar (dark footer with 6-hour reporting reminder)
+
+Public API:
+- `fun generatePdf(context, profile): File` — writes to `getExternalFilesDir(DIRECTORY_DOCUMENTS)/SHIELD_Report_<profileId>.pdf` and returns the `File`
+- `fun generateAndShare(context, profile)` — calls `generatePdf()` then fires a `ACTION_SEND` share intent via `FileProvider`
+
+---
+
+### 5. IncidentActivity — Two-Tab Report UI
+
+**Files:** `IncidentActivity.kt`, `res/layout/activity_incident.xml`, `res/layout/item_timeline_event.xml`
+
+`IncidentActivity` is an `AppCompatActivity` with dark (`#0A0E1A`) theme, a `TabLayout` + `ViewPager2` hosting two swipeable fragments:
+
+**Tab 1 — Attack Timeline (`TimelineFragment`):**
+A `RecyclerView` with `LinearLayoutManager` that renders attack timeline events in chronological order using `item_timeline_event.xml` rows. Each row shows a 2 dp coloured left-border bar, a 10 dp circular dot (both tinted per `TimelineEventType`), an event description `TextView`, a source-table label, and a monospace timestamp. A `ProgressBar` spinner is shown while the profile is being built on `Dispatchers.IO`; an empty-state message is shown when there are no events. Colour mapping: FIRST_SIGNAL/HIGH_RISK_ALERT/HONEYFILE_HIT → red, NETWORK_BLOCKED/VPN_ACTIVATED/PROCESS_KILLED → cyan, FILE_MODIFIED → orange, RESTORE_STARTED/RESTORE_COMPLETE → green.
+
+**Tab 2 — DNA Report (`DnaReportFragment`):**
+A `ScrollView` containing 8 programmatically-built sections: Summary (score bar, severity, family, confidence), Statistics (attack duration, detection time, encryption speed, honeyfile delay), Classification (family description, CERT-In category, primary detector), Target Profile (file extensions, priority, total at risk), Network Activity (C2 count, Tor status, ports), Damage Assessment (encrypted, restored, data loss label, ransom estimate), Attribution (suspect package and app name), and Export (two buttons: **EXPORT PDF** and **EXPORT CERT-In TEXT**).
+
+**Export PDF flow:** Launches a `ProgressDialog`, runs `ShieldPdfReportGenerator.generatePdf()` + `generateAndShare()` on `Dispatchers.IO`, dismisses dialog and shows Toast on `Dispatchers.Main`.
+
+**Export CERT-In text flow:** Writes `profile.toCertInText()` to `getExternalFilesDir(DIRECTORY_DOWNLOADS)/SHIELD_Report_<id>.txt` on `Dispatchers.IO`, then fires an `ACTION_SEND` share intent using a `FileProvider` URI.
+
+The `IncidentViewModel` (inner `ViewModel`) holds `MutableLiveData<RansomwareDnaProfile?>` shared between the activity and both fragments. The activity populates it after `RansomwareDnaProfiler.buildProfile()` completes; fragments observe it and update their UI reactively.
+
+---
+
+### 6. EventDatabase v5 Migration — dna_profiles Table
+
+**File:** `data/EventDatabase.java`
+
+The `EventDatabase` schema version was bumped from 4 to 5. One new table and one index are created:
+
+```sql
+CREATE TABLE IF NOT EXISTS dna_profiles (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    profile_id  TEXT NOT NULL,
+    generated_at INTEGER NOT NULL,
+    attack_family TEXT NOT NULL,
+    composite_score INTEGER NOT NULL,
+    attack_window_start INTEGER NOT NULL,
+    attack_window_end   INTEGER NOT NULL,
+    profile_json TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_dna_generated ON dna_profiles(generated_at);
+```
+
+The `onUpgrade()` path includes an `if (oldVersion < 5)` guard that creates the table and index non-destructively, leaving all data in the previous four schema versions untouched. The `profile_json` column stores the full serialised profile so the `IncidentActivity` can reload historical incidents without re-querying the six event tables.
+
+---
+
+### 7. INCIDENT Button and SharedPreferences Wiring in MainActivity
+
+**Files:** `MainActivity.java`, `res/layout/activity_main.xml`
+
+A purple (`#9D00FF`) **INCIDENT** button (`@+id/btnIncident`) was added to the main button group below the Live Demo button in `activity_main.xml`. In `MainActivity.java`:
+
+- `private Button btnIncident` field and `initializeViews()` wiring
+- `openIncidentReport()` method reads the following keys from `shield_prefs` SharedPreferences and passes them as extras to `IncidentActivity`:
+  - `last_attack_start`, `last_attack_end` (epoch ms)
+  - `last_composite_score`, `last_entropy_score`, `last_kld_score` (int)
+  - `last_sprt_h1` (boolean)
+  - `last_restored_count` (int)
+- In the `HighRiskAlertReceiver.onReceive()` `HIGH_RISK_ALERT` branch: the five score/flag values are now persisted to SharedPreferences at the moment of detection so they are available when the user later opens the Incident screen.
+- In the `RESTORE_COMPLETE` branch: `last_restored_count` is written from `intent.getIntExtra("restored_count", 0)`.
+
+---
+
+### 8. Unit Tests — IncidentFeatureTest
+
+**File:** `app/src/test/java/com/dearmoon/shield/analysis/IncidentFeatureTest.kt`
+
+29 Robolectric unit tests (all passing, 0 failures) covering the analysis layer logic. The test class runs on the JVM via `@RunWith(RobolectricTestRunner::class)` with `@Config(sdk = [34])` so Android APIs (`Color.parseColor`) work without a device. A reusable `makeProfile()` builder with named overrides keeps each test focused on a single variable.
+
+| Test Group | Count | What is verified |
+|---|---|---|
+| `AttackFamily` enum | 4 | All 5 values exist, display names non-blank, CERT-In categories contain "Malicious Code", severity colors non-zero |
+| `getConfidenceLevel()` | 3 | HIGH (score ≥70), MEDIUM (40–69), LOW (<40) at all boundary values |
+| `getRiskSeverityLabel()` | 4 | CRITICAL (≥90), HIGH (70–89), MEDIUM (40–69), LOW (<40) at all boundary values |
+| `toCertInText()` data loss | 4 | NONE (no loss), NONE (restored ≥ encrypted), PARTIAL (some restored), SIGNIFICANT (none restored) |
+| `toCertInText()` ransom format | 3 | Lakh suffix above ₹1,00,000, plain below, exact Rs.1.0L at the boundary |
+| `toCertInText()` structure | 4 | CERT-In compliance block, profile ID, attack family display name, network section |
+| `toShareableText()` | 5 | Exactly 5 lines, SHIELD emoji header, score and severity present, suspect app present, UNKNOWN fallback when both null |
+| `TimelineEventType` enum | 2 | Exactly 9 values, all 9 expected names present |
+
+---
+
 | # | Feature | Category | Status |
 |---|---------|----------|--------|
 | 1 | Event-Driven File System Monitoring | Data Collection | Existing |
@@ -517,3 +700,14 @@ Both tables have a timestamp index. The `onUpgrade()` path includes a `if (oldVe
 | 53 | ADB / USB debugging detection | OWASP M8 | **New** |
 | 54 | Clear-text traffic configuration check | OWASP M8 | **New** |
 | 55 | Config audit event table (EventDatabase v4) | OWASP M8 | **New** |
+
+| 56 | AttackFamily classification enum (5 families) | Incident Analysis | **New** |
+| 57 | RansomwareDnaProfile immutable incident data model | Incident Analysis | **New** |
+| 58 | RansomwareDnaProfiler - DB-driven profile builder | Incident Analysis | **New** |
+| 59 | ShieldPdfReportGenerator - A4 PDF via PdfDocument | Incident Analysis | **New** |
+| 60 | IncidentActivity - Attack Timeline tab | Incident Analysis | **New** |
+| 61 | IncidentActivity - DNA Report tab with export buttons | Incident Analysis | **New** |
+| 62 | CERT-In plain-text export via FileProvider share intent | Incident Analysis | **New** |
+| 63 | EventDatabase v5 - dna_profiles table + index | Incident Analysis | **New** |
+| 64 | INCIDENT button and attack-window SharedPreferences wiring | UI | **New** |
+| 65 | IncidentFeatureTest - 29 Robolectric unit tests (100% pass) | Testing | **New** |

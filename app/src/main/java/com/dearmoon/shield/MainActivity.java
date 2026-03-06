@@ -35,6 +35,7 @@ public class MainActivity extends AppCompatActivity {
     private android.view.View timerContainer;
     private Button btnModeA;
     private Button btnModeB;
+    private Button btnIncident;
     private HighRiskAlertReceiver alertReceiver;
     private android.content.BroadcastReceiver dataUpdateReceiver;
     private com.dearmoon.shield.snapshot.SnapshotManager snapshotManager;
@@ -115,6 +116,10 @@ public class MainActivity extends AppCompatActivity {
                 v -> authenticateBiometric(() -> startActivity(new Intent(this, RootModeInfoActivity.class))));
         btnModeB.setOnClickListener(v -> authenticateBiometric(() -> toggleProtection()));
 
+        // INCIDENT button — launches Attack Timeline + DNA Report for last detected attack
+        btnIncident = findViewById(R.id.btnIncident);
+        btnIncident.setOnClickListener(v -> openIncidentReport());
+
         Button btnLiveDemo = findViewById(R.id.btnLiveDemo);
         btnLiveDemo.setOnClickListener(v -> startActivity(new Intent(this, DemoActivity.class)));
 
@@ -159,6 +164,20 @@ public class MainActivity extends AppCompatActivity {
         if (intent.getBooleanExtra("START_GUIDE", false)) {
             getWindow().getDecorView().post(this::startInteractiveGuide);
         }
+    }
+
+    /** Launches IncidentActivity with the most recent attack window parameters from SharedPreferences. */
+    private void openIncidentReport() {
+        android.content.SharedPreferences prefs = getSharedPreferences("shield_prefs", MODE_PRIVATE);
+        startActivity(new Intent(this, IncidentActivity.class)
+                .putExtra("attackWindowStart",  prefs.getLong("last_attack_start", 0L))
+                .putExtra("attackWindowEnd",    prefs.getLong("last_attack_end",   0L))
+                .putExtra("compositeScore",     prefs.getInt ("last_composite_score", 0))
+                .putExtra("entropyScore",       prefs.getInt ("last_entropy_score",  0))
+                .putExtra("kldScore",           prefs.getInt ("last_kld_score",      0))
+                .putExtra("sprtAcceptedH1",     prefs.getBoolean("last_sprt_h1",    false))
+                .putExtra("restoredFileCount",  prefs.getInt ("last_restored_count", 0)));
+        Log.d(TAG, "openIncidentReport() launched");
     }
 
     private void authenticateBiometric(Runnable onSuccess) {
@@ -488,6 +507,22 @@ public class MainActivity extends AppCompatActivity {
                 // Persist the detection event to stats counters
                 if (shieldStats != null) shieldStats.recordAttackDetected();
 
+                // Store attack window in SharedPreferences so IncidentActivity can read them.
+                // Window start is approximated as 30 seconds before the alert arrives.
+                android.content.SharedPreferences prefs =
+                    MainActivity.this.getSharedPreferences("shield_prefs", MODE_PRIVATE);
+                long attackStart = System.currentTimeMillis() - 30000L;
+                long attackEnd   = System.currentTimeMillis();
+                prefs.edit()
+                    .putLong   ("last_attack_start",     attackStart)
+                    .putLong   ("last_attack_end",       attackEnd)
+                    .putInt    ("last_composite_score",  score)
+                    .putInt    ("last_entropy_score",    intent.getIntExtra("entropy_score", 0))
+                    .putInt    ("last_kld_score",        intent.getIntExtra("kld_score",     0))
+                    .putBoolean("last_sprt_h1",          intent.getBooleanExtra("sprt_h1",   false))
+                    .apply();
+                Log.d(TAG, "Attack window stored in prefs: start=" + attackStart + " end=" + attackEnd);
+
                 runOnUiThread(() -> {
                     // Show persistent timer in UI
                     if (infectionTime > 0) {
@@ -512,6 +547,10 @@ public class MainActivity extends AppCompatActivity {
                 });
             } else if ("com.dearmoon.shield.RESTORE_COMPLETE".equals(action)) {
                 int restoredCount = intent.getIntExtra("restored_count", 0);
+                // Store restored count so IncidentActivity can report accurate recovery stats
+                MainActivity.this.getSharedPreferences("shield_prefs", MODE_PRIVATE)
+                    .edit().putInt("last_restored_count", restoredCount).apply();
+
                 runOnUiThread(() -> {
                     // Hide timer
                     timerContainer.setVisibility(android.view.View.GONE);

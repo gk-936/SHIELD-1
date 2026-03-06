@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  activity_incident.xml
+  Dark full-screen layout: Toolbar + TabLayout + ViewPager2
+-->
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#0A0E1A">
+
+    <!-- Toolbar: dark background, cyan title -->
+    <androidx.appcompat.widget.Toolbar
+        android:id="@+id/incidentToolbar"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:background="#0A0E1A"
+        app:titleTextColor="#00C8FF"
+        app:title="INCIDENT REPORT"
+        app:navigationIcon="?attr/homeAsUpIndicator" />
+
+    <!-- TabLayout: dark background, cyan indicator and selected text -->
+    <com.google.android.material.tabs.TabLayout
+        android:id="@+id/incidentTabLayout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="#101828"
+        app:tabSelectedTextColor="#00C8FF"
+        app:tabTextColor="#8892A4"
+        app:tabIndicatorColor="#00C8FF"
+        app:tabIndicatorHeight="3dp"
+        app:tabRippleColor="#1A2744"
+        app:tabMode="fixed"
+        app:tabGravity="fill" />
+
+    <!-- ViewPager2: fills remaining space, holds Timeline + DNA Report fragments -->
+    <androidx.viewpager2.widget.ViewPager2
+        android:id="@+id/incidentViewPager"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:background="#0A0E1A" />
+
+</LinearLayout>

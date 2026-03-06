@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  item_timeline_event.xml
+  One row in the attack timeline RecyclerView.
+  Left connector line + dot, middle description/source texts, right timestamp.
+  Colors on the bar, dot, and timestamp are applied programmatically.
+-->
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:padding="8dp"
+    android:gravity="center_vertical"
+    android:background="#0A0E1A">
+
+    <!-- Left: vertical connector line (2dp wide, full row height) -->
+    <View
+        android:id="@+id/timelineColorBar"
+        android:layout_width="2dp"
+        android:layout_height="match_parent"
+        android:minHeight="40dp"
+        android:background="#00C8FF" />
+
+    <!-- Dot — 10dp circle, tinted programmatically -->
+    <View
+        android:id="@+id/timelineDot"
+        android:layout_width="10dp"
+        android:layout_height="10dp"
+        android:layout_marginStart="4dp"
+        android:layout_marginEnd="8dp"
+        android:background="@android:drawable/presence_online"
+        android:backgroundTint="#00C8FF" />
+
+    <!-- Middle: description + source table label -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/timelineDescription"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="#E8EAF0"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:text="Event description" />
+
+        <TextView
+            android:id="@+id/timelineSourceTable"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="#8892A4"
+            android:textSize="9sp"
+            android:text="file_system_events" />
+
+    </LinearLayout>
+
+    <!-- Right: timestamp in monospace -->
+    <TextView
+        android:id="@+id/timelineTimestamp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:textColor="#8892A4"
+        android:textSize="10sp"
+        android:fontFamily="monospace"
+        android:text="00:00:00" />
+
+</LinearLayout>

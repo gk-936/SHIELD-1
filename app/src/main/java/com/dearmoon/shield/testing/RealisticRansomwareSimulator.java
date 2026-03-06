@@ -130,29 +130,61 @@ public class RealisticRansomwareSimulator {
     }
     
     /**
-     * Stage 3: Create and access fake honeyfiles (SAFE - doesn't touch real ones)
+     * Stage 3: Access the REAL honeyfiles planted by HoneyfileCollector.
+     * These files live in the top-level watched directories (Documents/, Download/)
+     * and are monitored by a dedicated HoneyfileObserver — opening them fires a
+     * genuine HoneyfileEvent and contributes to the composite detection score.
+     * Falls back to creating + accessing test honeyfiles inside SHIELD_TEST/ (which
+     * is now under Documents/ and therefore recursively watched).
      */
     private void createAndAccessFakeHoneyfiles() {
-        File testRoot = fileManager.getTestRootDir();
-        String[] honeyfileNames = {"IMPORTANT_BACKUP.txt", "PASSWORDS.txt", "PRIVATE_KEYS.dat"};
-        
-        for (String name : honeyfileNames) {
-            File honeyfile = new File(testRoot, name);
-            try {
-                // Create fake honeyfile
-                FileOutputStream fos = new FileOutputStream(honeyfile);
-                fos.write("Fake honeyfile content".getBytes());
-                fos.close();
-                fileManager.trackFile(honeyfile);
-                
-                // Access it (triggers detection)
-                FileInputStream fis = new FileInputStream(honeyfile);
-                fis.read();
-                fis.close();
-                
-                Log.d(TAG, "Accessed fake honeyfile: " + name);
-            } catch (Exception e) {
-                Log.e(TAG, "Failed to access fake honeyfile", e);
+        String[] honeyfileNames = {"PASSWORDS.txt", "CREDENTIALS.txt", "IMPORTANT_BACKUP.txt"};
+        String[] watchedDirs = {
+            android.os.Environment.getExternalStoragePublicDirectory(
+                android.os.Environment.DIRECTORY_DOCUMENTS).getAbsolutePath(),
+            android.os.Environment.getExternalStoragePublicDirectory(
+                android.os.Environment.DIRECTORY_DOWNLOADS).getAbsolutePath()
+        };
+
+        // ── Primary: open real planted honeyfiles ────────────────────────────
+        boolean accessedReal = false;
+        for (String dir : watchedDirs) {
+            if (accessedReal) break;
+            for (String name : honeyfileNames) {
+                File honeyfile = new File(dir, name);
+                if (!honeyfile.exists()) continue;
+                try {
+                    FileInputStream fis = new FileInputStream(honeyfile);
+                    byte[] buf = new byte[256];
+                    fis.read(buf);
+                    fis.close();
+                    // Do NOT track: we must not delete real honeyfiles on cleanup
+                    accessedReal = true;
+                    Log.d(TAG, "Accessed REAL honeyfile: " + honeyfile.getAbsolutePath());
+                } catch (Exception e) {
+                    Log.e(TAG, "Failed to read real honeyfile: " + name, e);
+                }
+            }
+        }
+
+        // ── Fallback: create test honeyfiles in Documents/SHIELD_TEST/ (watched) ─
+        if (!accessedReal) {
+            Log.w(TAG, "No real honeyfiles found — creating test ones in monitored directory");
+            File testRoot = fileManager.getTestRootDir();
+            for (String name : honeyfileNames) {
+                File honeyfile = new File(testRoot, name);
+                try {
+                    FileOutputStream fos = new FileOutputStream(honeyfile);
+                    fos.write("SHIELD TEST HONEYFILE - DO NOT ACCESS".getBytes());
+                    fos.close();
+                    fileManager.trackFile(honeyfile);
+                    FileInputStream fis = new FileInputStream(honeyfile);
+                    fis.read();
+                    fis.close();
+                    Log.d(TAG, "Accessed test honeyfile: " + name);
+                } catch (Exception e) {
+                    Log.e(TAG, "Failed with test honeyfile: " + name, e);
+                }
             }
         }
     }

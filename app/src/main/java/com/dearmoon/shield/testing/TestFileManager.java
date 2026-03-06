@@ -21,7 +21,12 @@ public class TestFileManager {
     
     public TestFileManager(Context context) {
         this.context = context;
-        this.testRootDir = new File(android.os.Environment.getExternalStorageDirectory(), TEST_ROOT);
+        // Root inside Documents/ so RecursiveFileSystemCollector and HoneyfileCollector
+        // both monitor this path — every write will be seen by the real detection engine.
+        this.testRootDir = new File(
+            android.os.Environment.getExternalStoragePublicDirectory(
+                android.os.Environment.DIRECTORY_DOCUMENTS),
+            TEST_ROOT);
         Log.i(TAG, "TestFileManager initialized: " + testRootDir.getAbsolutePath());
     }
     

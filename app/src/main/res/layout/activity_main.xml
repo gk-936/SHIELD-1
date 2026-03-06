@@ -223,6 +223,19 @@
             android:textStyle="bold"
             android:textColor="#FFFFFF"
             android:backgroundTint="#9D00FF"
+            android:letterSpacing="0.05"
+            android:layout_marginBottom="12dp" />
+
+        <!-- Incident Report Button — opens Attack Timeline + DNA Report -->
+        <Button
+            android:id="@+id/btnIncident"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:text="⚠  INCIDENT REPORT"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:textColor="#0A0E1A"
+            android:backgroundTint="#00C8FF"
             android:letterSpacing="0.05" />
 
     </LinearLayout>
