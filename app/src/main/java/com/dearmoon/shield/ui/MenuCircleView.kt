@@ -56,7 +56,7 @@ class MenuCircleView @JvmOverloads constructor(
     // ── Paints (created once here, never in onDraw) ───────────────────────────
     private val bgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.FILL
-        color = Color.argb(190, 28, 28, 30)
+        color = Color.argb(190, 1, 22, 43)
     }
 
     private val borderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -77,7 +77,7 @@ class MenuCircleView @JvmOverloads constructor(
 
     private val hamburgerPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.FILL
-        color = Color.parseColor("#A78BFA")
+        color = Color.parseColor("#d2dbeb")
         strokeCap = Paint.Cap.ROUND
     }
 
@@ -122,9 +122,9 @@ class MenuCircleView @JvmOverloads constructor(
         sweepPaint.shader = SweepGradient(
             cx, cy,
             intArrayOf(
-                Color.argb(0,   168, 85, 247),   // transparent purple
-                Color.argb(51,  168, 85, 247),   // #33A855F7  20% alpha
-                Color.argb(0,   168, 85, 247)    // back to transparent
+                Color.argb(0,   106, 144, 180),   // transparent arctic mist
+                Color.argb(51,  106, 144, 180),   // 20% alpha arctic mist
+                Color.argb(0,   106, 144, 180)    // back to transparent
             ),
             floatArrayOf(0f, 0.3f, 1f)
         )
@@ -148,7 +148,7 @@ class MenuCircleView @JvmOverloads constructor(
 
         // 3. Pulsing border ring
         pulsePaint.color = Color.argb(
-            (pulseAlpha * 255 * 0.2f).toInt(), 168, 85, 247
+            (pulseAlpha * 255 * 0.2f).toInt(), 106, 144, 180
         )
         canvas.save()
         canvas.scale(pulseScale, pulseScale, cx, cy)
@@ -193,7 +193,7 @@ class MenuCircleView @JvmOverloads constructor(
         val left = (cx - iconSize / 2f).toInt()
         val top  = (cy - iconSize / 2f + iconFloatY).toInt()
         icon.setBounds(left, top, left + iconSize, top + iconSize)
-        icon.setTint(Color.parseColor("#A78BFA"))
+        icon.setTint(Color.parseColor("#d2dbeb"))
         canvas.save()
         canvas.rotate(iconRotation, cx, cy)
         icon.draw(canvas)
@@ -318,13 +318,13 @@ class MenuCircleView @JvmOverloads constructor(
         val tooltipView = TextView(context).apply {
             text = label
             textSize = 12f
-            setTextColor(Color.parseColor("#A78BFA"))
+            setTextColor(Color.parseColor("#d2dbeb"))
             setPadding(dp(12), dp(8), dp(12), dp(8))
             background = GradientDrawable().apply {
                 shape = GradientDrawable.RECTANGLE
                 cornerRadius = dp(8).toFloat()
-                setColor(Color.argb(230, 17, 24, 39))
-                setStroke(1, Color.argb(25, 255, 255, 255))
+                setColor(Color.argb(230, 0, 56, 90))
+                setStroke(1, Color.argb(50, 210, 219, 235))
             }
         }
         tooltipView.measure(

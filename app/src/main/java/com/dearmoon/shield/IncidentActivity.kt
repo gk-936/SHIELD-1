@@ -64,8 +64,25 @@ class IncidentActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        // ── Edge-to-Edge Immersive Status Bar ───────────────────────────────
+        androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
+        window.statusBarColor = android.graphics.Color.TRANSPARENT
+        window.navigationBarColor = android.graphics.Color.TRANSPARENT
+        val insetsController = androidx.core.view.WindowInsetsControllerCompat(window, window.decorView)
+        insetsController.isAppearanceLightStatusBars = false   // dark bg → white icons
+        insetsController.isAppearanceLightNavigationBars = false
+        // ───────────────────────────────────────────────────────────────────
+
         // Load layout defined in activity_incident.xml
         setContentView(R.layout.activity_incident)
+
+        // Apply insets so toolbar clears the status bar
+        val root = findViewById<android.view.View>(R.id.incidentRoot)
+        androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(root) { v, windowInsets ->
+            val insets = windowInsets.getInsets(androidx.core.view.WindowInsetsCompat.Type.systemBars())
+            v.setPadding(0, insets.top, 0, insets.bottom)
+            windowInsets
+        }
 
         // Toolbar back navigation
         val toolbar = findViewById<androidx.appcompat.widget.Toolbar>(R.id.incidentToolbar)

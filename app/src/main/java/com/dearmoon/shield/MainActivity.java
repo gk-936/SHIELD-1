@@ -47,13 +47,32 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            getWindow().setStatusBarColor(0xFF000000);
+        // Immersive Edge-to-Edge display
+        androidx.core.view.WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
+        androidx.core.view.WindowInsetsControllerCompat windowInsetsController =
+                androidx.core.view.WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView());
+        if (windowInsetsController != null) {
+            // Because the theme is Abyssal Navy, force light icons for visibility
+            windowInsetsController.setAppearanceLightStatusBars(false); 
+            windowInsetsController.setAppearanceLightNavigationBars(false);
         }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            getWindow().getDecorView().setSystemUiVisibility(0);
+
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
+            getWindow().setStatusBarColor(android.graphics.Color.TRANSPARENT);
+            getWindow().setNavigationBarColor(android.graphics.Color.TRANSPARENT);
+        }
+
+        setContentView(R.layout.activity_main);
+        
+        // Prevent content overlap via insets while letting background stretch behind bars
+        android.view.View root = findViewById(R.id.mainRoot);
+        if (root != null) {
+            androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(root, (v, windowInsets) -> {
+                androidx.core.graphics.Insets insets = windowInsets.getInsets(
+                        androidx.core.view.WindowInsetsCompat.Type.systemBars());
+                v.setPadding(0, insets.top, 0, insets.bottom);
+                return windowInsets;
+            });
         }
 
         initializeViews();
@@ -278,7 +297,7 @@ public class MainActivity extends AppCompatActivity {
         if (isServiceRunning) {
             tvProtectionStatus.stopGlitchEffect();
             tvProtectionStatus.setText("System Protected" + (isVpnRunning ? " + Network Guard" : ""));
-            tvProtectionStatus.setTextColor(0xFF10B981);
+            tvProtectionStatus.setTextColor(0xFFD2DBEB);
             tvProtectionStatus.startScanBeam(() -> tvProtectionStatus.startCursorBlink());
 
             btnModeB.setBackgroundResource(R.drawable.bg_glass_button_active);
@@ -287,7 +306,7 @@ public class MainActivity extends AppCompatActivity {
         } else {
             tvProtectionStatus.stopCursorBlink();
             tvProtectionStatus.setText("Protection Inactive");
-            tvProtectionStatus.setTextColor(0xFF94A3B8);
+            tvProtectionStatus.setTextColor(0xFF6A90B4);
             tvProtectionStatus.startGlitchEffect();
 
             btnModeB.setBackgroundResource(R.drawable.bg_glass_button_inactive);

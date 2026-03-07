@@ -1,32 +1,33 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
   activity_incident.xml
-  Dark full-screen layout: Toolbar + TabLayout + ViewPager2
+  Edge-to-Edge layout: bg_static_shield gradient flows behind status bar
 -->
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/incidentRoot"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="#0A0E1A">
+    android:background="@drawable/bg_static_shield">
 
-    <!-- Toolbar: dark background, cyan title -->
+    <!-- Toolbar: transparent so gradient shows through -->
     <androidx.appcompat.widget.Toolbar
         android:id="@+id/incidentToolbar"
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
-        android:background="#0A0E1A"
+        android:background="@android:color/transparent"
         app:titleTextColor="#00C8FF"
         app:title="INCIDENT REPORT"
         app:navigationIcon="?attr/homeAsUpIndicator" />
 
-    <!-- TabLayout: dark background, cyan indicator and selected text -->
+    <!-- TabLayout: semi-transparent so gradient peeks through -->
     <com.google.android.material.tabs.TabLayout
         android:id="@+id/incidentTabLayout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="#101828"
+        android:background="#CC101828"
         app:tabSelectedTextColor="#00C8FF"
         app:tabTextColor="#8892A4"
         app:tabIndicatorColor="#00C8FF"
@@ -41,6 +42,6 @@
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:background="#0A0E1A" />
+        android:background="@android:color/transparent" />
 
 </LinearLayout>

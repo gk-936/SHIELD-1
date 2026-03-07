@@ -26,14 +26,19 @@ public class SplashActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_splash);
+        // ── Edge-to-Edge Immersive Status Bar ───────────────────────────────
+        androidx.core.view.WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
+        getWindow().setStatusBarColor(android.graphics.Color.TRANSPARENT);
+        getWindow().setNavigationBarColor(android.graphics.Color.TRANSPARENT);
+        // Dark navy background → force white (dark=false) status bar icons
+        androidx.core.view.WindowInsetsControllerCompat insetsController =
+                new androidx.core.view.WindowInsetsControllerCompat(
+                        getWindow(), getWindow().getDecorView());
+        insetsController.setAppearanceLightStatusBars(false);
+        insetsController.setAppearanceLightNavigationBars(false);
+        // ─────────────────────────────────────────────────────────────────────
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            getWindow().setStatusBarColor(0xFF000000);
-        }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            getWindow().getDecorView().setSystemUiVisibility(0);
-        }
+        setContentView(R.layout.activity_splash);
 
         // ── Letter-drop animations ──────────────────────────────────────────
         // Both logo labels animate simultaneously.

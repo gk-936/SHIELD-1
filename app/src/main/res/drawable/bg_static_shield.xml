@@ -3,7 +3,7 @@
     <!-- Base: Pure Black -->
     <item>
         <shape android:shape="rectangle">
-            <solid android:color="#000000" />
+            <solid android:color="#01162b" />
         </shape>
     </item>
     
@@ -15,8 +15,8 @@
                 android:gradientRadius="70%p"
                 android:centerX="0.15"
                 android:centerY="0.85"
-                android:startColor="#AA8B5CF6"
-                android:centerColor="#55663399"
+                android:startColor="#8800385a"
+                android:centerColor="#446a90b4"
                 android:endColor="#00000000" />
         </shape>
     </item>

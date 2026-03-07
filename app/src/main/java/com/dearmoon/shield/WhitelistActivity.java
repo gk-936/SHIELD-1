@@ -26,15 +26,18 @@ public class WhitelistActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_whitelist);
+        // ── Edge-to-Edge Immersive Status Bar ───────────────────────────────
+        androidx.core.view.WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
+        getWindow().setStatusBarColor(android.graphics.Color.TRANSPARENT);
+        getWindow().setNavigationBarColor(android.graphics.Color.TRANSPARENT);
+        androidx.core.view.WindowInsetsControllerCompat insetsController =
+                new androidx.core.view.WindowInsetsControllerCompat(
+                        getWindow(), getWindow().getDecorView());
+        insetsController.setAppearanceLightStatusBars(false);
+        insetsController.setAppearanceLightNavigationBars(false);
+        // ───────────────────────────────────────────────────────────────────
 
-        // Set status bar to permanent black
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            getWindow().setStatusBarColor(0xFF000000);
-        }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            getWindow().getDecorView().setSystemUiVisibility(0);
-        }
+        setContentView(R.layout.activity_whitelist);
 
         whitelistManager = new WhitelistManager(this);
 
@@ -44,6 +47,13 @@ public class WhitelistActivity extends AppCompatActivity {
             getSupportActionBar().setDisplayHomeAsUpEnabled(true);
             toolbar.setNavigationOnClickListener(v -> onBackPressed());
         }
+        // Push toolbar top padding to clear transparent status bar
+        androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(toolbar, (v, windowInsets) -> {
+            androidx.core.graphics.Insets insets = windowInsets.getInsets(
+                    androidx.core.view.WindowInsetsCompat.Type.systemBars());
+            v.setPadding(0, insets.top, 0, 0);
+            return windowInsets;
+        });
 
         EditText etPackageName = findViewById(R.id.etPackageName);
         Button btnAdd = findViewById(R.id.btnAddWhitelist);
