@@ -31,6 +31,7 @@ public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
     private static final int PERMISSION_REQUEST_CODE = 100;
     private static final int VPN_REQUEST_CODE = 200;
+    private static final int MODE_CONFIRM_REQUEST = 300;   // ModeConfirmActivity result
 
     private GlitchTextView tvProtectionStatus;
     private android.widget.TextView tvSafeFiles, tvInfectedFiles, tvTotalFiles, tvInfectionTimer;
@@ -109,11 +110,13 @@ public class MainActivity extends AppCompatActivity {
 
             boolean isRunning = isServiceRunning(ShieldProtectionService.class);
             if (isRunning) {
+                // Turning OFF → biometric required, no animation
                 authenticateBiometric(() -> toggleProtection());
             } else {
+                // Turning ON → show orb animation; actual start happens in onActivityResult
                 android.content.Intent stdIntent = new android.content.Intent(this, ModeConfirmActivity.class);
                 stdIntent.putExtra("mode", "STANDARD");
-                startActivity(stdIntent);
+                startActivityForResult(stdIntent, MODE_CONFIRM_REQUEST);
                 overridePendingTransition(R.anim.slide_up_from_bottom, 0);
             }
         });
@@ -322,6 +325,9 @@ public class MainActivity extends AppCompatActivity {
             } else {
                 Toast.makeText(this, "VPN permission required for network monitoring", Toast.LENGTH_LONG).show();
             }
+        } else if (requestCode == MODE_CONFIRM_REQUEST && resultCode == RESULT_OK) {
+            // User watched the animation — now actually start protection
+            toggleProtection();
         }
     }
 

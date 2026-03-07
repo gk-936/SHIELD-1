@@ -269,8 +269,12 @@ class OrbAnimationView @JvmOverloads constructor(
 
     // ── Orb ───────────────────────────────────────────────────────────────────
     private fun drawOrb(canvas: Canvas) {
-        val orbY     = orbCY - orbBreathValue * orbRiseRange
-        val orbR     = orbRadiusBase * (1f + orbBreathValue * 0.12f)
+        // Phase 1: orb breathes at orbCY (rises slightly)
+        // Phase 2: orb also compresses — moves from orbCY down to ring base Y
+        val cp       = compressProgress
+        val breathY  = orbCY - orbBreathValue * orbRiseRange * (1f - cp)  // breath stops as compress starts
+        val orbY     = lerp(breathY, ringRestY[RING_COUNT - 1], cp)        // drop toward base
+        val orbR     = orbRadiusBase * (1f + orbBreathValue * 0.12f * (1f - cp)) * lerp(1f, 0.55f, cp) // shrinks
 
         // Step 1: Outer soft ambient glow
         outerGlowPaint.shader = RadialGradient(

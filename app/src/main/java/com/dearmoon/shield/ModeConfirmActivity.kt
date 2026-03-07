@@ -63,9 +63,10 @@ class ModeConfirmActivity : AppCompatActivity() {
 
         val messageText: TextView = findViewById(R.id.messageText)
         messageText.text = when (mode) {
-            "ROOT" -> "Root protocols\nengaging now."
-            else   -> "S.H.I.E.L.D. is now\nwatching over you."
+            "ROOT" -> "Breathe in,\nroot protocols engaged."
+            else   -> "Breathe in,\nwe have covered you."
         }
+        messageText.setTextColor(Color.parseColor("#BEE0E0"))
 
         // 5. Animation starts automatically via OrbAnimationView.onAttachedToWindow()
 
@@ -89,25 +90,18 @@ class ModeConfirmActivity : AppCompatActivity() {
             .apply()
 
         when (mode) {
-            "ROOT" -> startActivity(Intent(this, RootModeInfoActivity::class.java))
-            else   -> {
-                val vpnIntent = android.net.VpnService.prepare(this)
-                if (vpnIntent != null) {
-                    setResult(RESULT_OK, Intent().putExtra("mode", mode))
-                } else {
-                    val svcIntent = Intent(this, ShieldProtectionService::class.java)
-                    svcIntent.putExtra("mode", mode)
-                    startForegroundService(svcIntent)
-                }
+            "ROOT" -> {
+                startActivity(Intent(this, RootModeInfoActivity::class.java))
+                finish()
+                overridePendingTransition(0, R.anim.slide_down_to_bottom)
+            }
+            else -> {
+                // Signal MainActivity to call toggleProtection() via onActivityResult
+                setResult(RESULT_OK)
+                finish()
+                overridePendingTransition(0, R.anim.slide_down_to_bottom)
             }
         }
-
-        finish()
-        // Slide back down on exit
-        overridePendingTransition(
-            0,  // no enter anim for what's behind us
-            R.anim.slide_down_to_bottom
-        )
     }
 
     @Suppress("OVERRIDE_DEPRECATION")

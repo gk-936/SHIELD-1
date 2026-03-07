@@ -43,8 +43,8 @@
 
         <!--
             Main headline — matches reference "Breathe in, we have got you":
-            - Large text, light weight, centred, near-white
-            - Top-third of the sheet so it sits above the orb
+            - Large text, light weight, centred
+            - Soft light teal color to blend with teal background
         -->
         <TextView
             android:id="@+id/messageText"
@@ -53,8 +53,8 @@
             android:layout_gravity="top|center_horizontal"
             android:layout_marginTop="72dp"
             android:layout_marginHorizontal="32dp"
-            android:text="S.H.I.E.L.D. is now\nwatching over you."
-            android:textColor="#DDFFFFFF"
+            android:text="Breathe in,\nwe have covered you."
+            android:textColor="#BEE0E0"
             android:textSize="30sp"
             android:fontFamily="sans-serif-light"
             android:gravity="center"
