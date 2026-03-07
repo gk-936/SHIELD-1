@@ -66,7 +66,7 @@
             android:exported="false"
             android:screenOrientation="portrait"
             android:hardwareAccelerated="true"
-            android:theme="@style/Theme.SHIELD" />
+            android:theme="@style/Theme.SHIELD.Translucent" />
 
         <!-- Log Viewer Activity -->
         <activity

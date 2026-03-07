@@ -99,28 +99,24 @@ public class MainActivity extends AppCompatActivity {
 
         btnModeA.setOnClickListener(v -> {
             triggerButtonRipple(btnModeA, true);
-            // Root mode: show confirmation orb screen then proceed to info
             android.content.Intent rootIntent = new android.content.Intent(this, ModeConfirmActivity.class);
             rootIntent.putExtra("mode", "ROOT");
             startActivity(rootIntent);
-            overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
+            overridePendingTransition(R.anim.slide_up_from_bottom, 0);
         });
         btnModeB.setOnClickListener(v -> {
             triggerButtonRipple(btnModeB, false);
 
             boolean isRunning = isServiceRunning(ShieldProtectionService.class);
             if (isRunning) {
-                // Turning OFF protection → require fingerprint, NO animation
                 authenticateBiometric(() -> toggleProtection());
             } else {
-                // Turning ON protection → show immersive orb confirmation screen
                 android.content.Intent stdIntent = new android.content.Intent(this, ModeConfirmActivity.class);
                 stdIntent.putExtra("mode", "STANDARD");
                 startActivity(stdIntent);
-                overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
+                overridePendingTransition(R.anim.slide_up_from_bottom, 0);
             }
         });
-
 
         // Start idle heartbeat once buttons are fully laid out
         btnModeB.post(() -> {
