@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Cyan glowing gradient accent line under the number -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <gradient
+        android:type="linear"
+        android:startColor="#0000C8FF"
+        android:centerColor="#AA00C8FF"
+        android:endColor="#0000C8FF"
+        android:angle="0" />
+    <corners android:radius="2dp" />
+</shape>
