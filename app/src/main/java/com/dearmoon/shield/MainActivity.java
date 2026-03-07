@@ -108,8 +108,13 @@ public class MainActivity extends AppCompatActivity {
         btnModeB.setOnClickListener(v -> {
             triggerButtonRipple(btnModeB, false);
 
-            boolean isRunning = isServiceRunning(ShieldProtectionService.class);
-            if (isRunning) {
+            // Use SharedPreferences as source of truth — getRunningServices() is 
+            // unreliable on Android 8+ and causes false positives (turns ON logic triggers
+            // biometric instead of showing the animation)
+            boolean isActive = getSharedPreferences("ShieldPrefs", Context.MODE_PRIVATE)
+                    .getBoolean("shield_active", false);
+
+            if (isActive) {
                 // Turning OFF → biometric required, no animation
                 authenticateBiometric(() -> toggleProtection());
             } else {
@@ -120,14 +125,8 @@ public class MainActivity extends AppCompatActivity {
                 overridePendingTransition(R.anim.slide_up_from_bottom, 0);
             }
         });
+        // Note: idle heartbeat removed — ModeConfirmActivity now provides the ON animation
 
-        // Start idle heartbeat once buttons are fully laid out
-        btnModeB.post(() -> {
-            if (securityRipple != null) {
-                android.util.Pair<Float, Float> centre = securityRipple.centreOf(btnModeB);
-                securityRipple.startIdleHeartbeat(centre.first, centre.second, false);
-            }
-        });
 
         updateStatusDisplay();
 
@@ -303,8 +302,9 @@ public class MainActivity extends AppCompatActivity {
 
 
     private void toggleProtection() {
-        boolean isServiceRunning = isServiceRunning(ShieldProtectionService.class);
-        if (isServiceRunning) {
+        boolean isActive = getSharedPreferences("ShieldPrefs", Context.MODE_PRIVATE)
+                .getBoolean("shield_active", false);
+        if (isActive) {
             stopShieldService();
         } else {
             Intent vpnIntent = VpnService.prepare(this);
@@ -332,9 +332,12 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void startShieldService() {
-        // Clear intentionally stopped flag
+        // Clear intentionally stopped flag, set active flag
         getSharedPreferences("ShieldPrefs", Context.MODE_PRIVATE)
-            .edit().putBoolean("intentionally_stopped", false).apply();
+            .edit()
+            .putBoolean("intentionally_stopped", false)
+            .putBoolean("shield_active", true)
+            .apply();
 
         if (!hasRequiredPermissions()) {
             Toast.makeText(this, "Please grant all permissions first", Toast.LENGTH_SHORT).show();
@@ -353,13 +356,18 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void stopShieldService() {
+        getSharedPreferences("ShieldPrefs", Context.MODE_PRIVATE)
+            .edit()
+            .putBoolean("shield_active", false)
+            .apply();
         stopService(new Intent(this, ShieldProtectionService.class));
         Toast.makeText(this, "Protection Disabled", Toast.LENGTH_SHORT).show();
         updateStatusDisplay();
     }
 
     private void updateStatusDisplay() {
-        boolean isServiceRunning = isServiceRunning(ShieldProtectionService.class);
+        boolean isServiceRunning = getSharedPreferences("ShieldPrefs", Context.MODE_PRIVATE)
+                .getBoolean("shield_active", false);
         boolean isVpnRunning = isServiceRunning(NetworkGuardService.class);
 
         // Update Stats — use persistent ShieldStats counters so dashboard never shows zeros
