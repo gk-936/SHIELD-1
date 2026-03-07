@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/bg_bottom_sheet_scan">
+
+    <!-- Top Handle/Pill -->
+    <View
+        android:id="@+id/handle"
+        android:layout_width="48dp"
+        android:layout_height="6dp"
+        android:layout_marginTop="16dp"
+        android:background="@drawable/bg_sheet_handle"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- Organic Animation View -->
+    <com.dearmoon.shield.ui.OrganicScanView
+        android:id="@+id/organicScanView"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginTop="32dp"
+        android:layout_marginBottom="32dp"
+        app:layout_constraintTop_toBottomOf="@id/handle"
+        app:layout_constraintBottom_toTopOf="@id/tvScanStatus"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintDimensionRatio="H,1:1"
+        app:layout_constraintWidth_percent="0.75" />
+
+    <!-- Scanning Text Status -->
+    <com.dearmoon.shield.ui.ScrambleTextButton
+        android:id="@+id/tvScanStatus"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Initiating Protocol..."
+        android:textSize="22sp"
+        android:textColor="#FFFFFF"
+        android:textStyle="bold"
+        android:fontFamily="sans-serif-medium"
+        android:letterSpacing="0.05"
+        android:layout_marginBottom="16dp"
+        android:background="@android:color/transparent"
+        app:layout_constraintBottom_toTopOf="@id/tvScanSubStatus"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- Sub Scanning Text Status -->
+    <TextView
+        android:id="@+id/tvScanSubStatus"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Validating system integrity across all sectors"
+        android:textSize="14sp"
+        android:textColor="#8892A4"
+        android:layout_marginBottom="64dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

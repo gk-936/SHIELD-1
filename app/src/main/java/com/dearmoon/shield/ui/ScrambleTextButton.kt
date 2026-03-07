@@ -86,6 +86,13 @@ class ScrambleTextButton @JvmOverloads constructor(
         stopScramble()
     }
 
+    fun scrambleText(newText: String) {
+        stopScramble()
+        baseText = newText.trim()
+        targetText = "[ $baseText ]"
+        startScramble()
+    }
+
     fun restartScramble() {
         stopScramble()
         startScramble()

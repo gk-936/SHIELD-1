@@ -99,11 +99,22 @@ public class MainActivity extends AppCompatActivity {
 
         btnModeA.setOnClickListener(v -> {
             triggerButtonRipple(btnModeA, true);
-            authenticateBiometric(() -> startActivity(new Intent(this, RootModeInfoActivity.class)));
+            // Root mode button is currently an info page, no need for fingerprint to view it
+            startActivity(new Intent(this, RootModeInfoActivity.class));
         });
         btnModeB.setOnClickListener(v -> {
             triggerButtonRipple(btnModeB, false);
-            authenticateBiometric(() -> toggleProtection());
+            
+            boolean isRunning = isServiceRunning(ShieldProtectionService.class);
+            if (isRunning) {
+                // Turning OFF -> Requires fingerprint
+                authenticateBiometric(() -> toggleProtection());
+            } else {
+                // Turning ON -> Show the immersive Scanning Bottom Sheet, NO fingerprint
+                com.dearmoon.shield.ui.ScanningBottomSheet sheet = new com.dearmoon.shield.ui.ScanningBottomSheet();
+                sheet.setOnScanCompleteListener(() -> toggleProtection());
+                sheet.show(getSupportFragmentManager(), "ScanningSheet");
+            }
         });
 
         // Start idle heartbeat once buttons are fully laid out
