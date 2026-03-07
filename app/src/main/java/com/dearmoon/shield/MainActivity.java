@@ -99,23 +99,28 @@ public class MainActivity extends AppCompatActivity {
 
         btnModeA.setOnClickListener(v -> {
             triggerButtonRipple(btnModeA, true);
-            // Root mode button is currently an info page, no need for fingerprint to view it
-            startActivity(new Intent(this, RootModeInfoActivity.class));
+            // Root mode: show confirmation orb screen then proceed to info
+            android.content.Intent rootIntent = new android.content.Intent(this, ModeConfirmActivity.class);
+            rootIntent.putExtra("mode", "ROOT");
+            startActivity(rootIntent);
+            overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
         });
         btnModeB.setOnClickListener(v -> {
             triggerButtonRipple(btnModeB, false);
-            
+
             boolean isRunning = isServiceRunning(ShieldProtectionService.class);
             if (isRunning) {
-                // Turning OFF -> Requires fingerprint
+                // Turning OFF protection → require fingerprint, NO animation
                 authenticateBiometric(() -> toggleProtection());
             } else {
-                // Turning ON -> Show the immersive Scanning Bottom Sheet, NO fingerprint
-                com.dearmoon.shield.ui.ScanningBottomSheet sheet = new com.dearmoon.shield.ui.ScanningBottomSheet();
-                sheet.setOnScanCompleteListener(() -> toggleProtection());
-                sheet.show(getSupportFragmentManager(), "ScanningSheet");
+                // Turning ON protection → show immersive orb confirmation screen
+                android.content.Intent stdIntent = new android.content.Intent(this, ModeConfirmActivity.class);
+                stdIntent.putExtra("mode", "STANDARD");
+                startActivity(stdIntent);
+                overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
             }
         });
+
 
         // Start idle heartbeat once buttons are fully laid out
         btnModeB.post(() -> {

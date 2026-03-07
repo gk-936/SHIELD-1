@@ -60,6 +60,14 @@
             android:exported="false">
         </activity>
 
+        <!-- Mode Confirmation Screen — breathing orb animation before protection starts -->
+        <activity
+            android:name=".ModeConfirmActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:hardwareAccelerated="true"
+            android:theme="@style/Theme.SHIELD" />
+
         <!-- Log Viewer Activity -->
         <activity
             android:name=".LogViewerActivity"
