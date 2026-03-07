@@ -104,12 +104,27 @@ class UserGuideActivity : AppCompatActivity() {
                 proceedCaption.visibility = if (isLast) View.GONE else View.VISIBLE
                 
                 if (isLast) {
-                    // Trigger scramble button animation immediately when landing on the 6th page
+                    // Trigger scramble + glow pulse when landing on the last page
                     viewPager.post {
                         val rv = viewPager.getChildAt(0) as? androidx.recyclerview.widget.RecyclerView
                         val vh = rv?.findViewHolderForAdapterPosition(position)
                         val btn = vh?.itemView?.findViewById<com.dearmoon.shield.ui.ScrambleTextButton>(R.id.letsGoButton)
                         btn?.restartScramble()
+
+                        // Pulse scale animation: breathes in/out to signal it's tappable
+                        btn?.postDelayed({
+                            android.animation.ObjectAnimator.ofPropertyValuesHolder(
+                                btn,
+                                android.animation.PropertyValuesHolder.ofFloat("scaleX", 1.0f, 1.04f, 1.0f),
+                                android.animation.PropertyValuesHolder.ofFloat("scaleY", 1.0f, 1.04f, 1.0f)
+                            ).apply {
+                                duration = 1600
+                                repeatCount = android.animation.ValueAnimator.INFINITE
+                                repeatMode  = android.animation.ValueAnimator.RESTART
+                                interpolator = android.view.animation.AccelerateDecelerateInterpolator()
+                                start()
+                            }
+                        }, 850L) // starts right after the 800ms scramble finishes
                     }
                 }
             }

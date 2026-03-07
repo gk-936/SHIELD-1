@@ -37,6 +37,7 @@ public class MainActivity extends AppCompatActivity {
     private android.view.View timerContainer;
     private Button btnModeA;
     private Button btnModeB;
+    private com.dearmoon.shield.ui.SecurityRippleView securityRipple;
     private HighRiskAlertReceiver alertReceiver;
     private android.content.BroadcastReceiver dataUpdateReceiver;
     private com.dearmoon.shield.snapshot.SnapshotManager snapshotManager;
@@ -91,17 +92,27 @@ public class MainActivity extends AppCompatActivity {
         btnModeA = findViewById(R.id.btnModeA);
         btnModeB = findViewById(R.id.btnModeB);
         statsCard = findViewById(R.id.statsCard);
-
-
+        securityRipple = findViewById(R.id.securityRipple);
 
         snapshotManager = new com.dearmoon.shield.snapshot.SnapshotManager(this);
         shieldStats = new ShieldStats(this);
 
-        btnModeA.setOnClickListener(
-                v -> authenticateBiometric(() -> startActivity(new Intent(this, RootModeInfoActivity.class))));
-        btnModeB.setOnClickListener(v -> authenticateBiometric(() -> toggleProtection()));
+        btnModeA.setOnClickListener(v -> {
+            triggerButtonRipple(btnModeA, true);
+            authenticateBiometric(() -> startActivity(new Intent(this, RootModeInfoActivity.class)));
+        });
+        btnModeB.setOnClickListener(v -> {
+            triggerButtonRipple(btnModeB, false);
+            authenticateBiometric(() -> toggleProtection());
+        });
 
-        // btnLiveDemo removed from layout — now accessed via FluidMenu → Settings
+        // Start idle heartbeat once buttons are fully laid out
+        btnModeB.post(() -> {
+            if (securityRipple != null) {
+                android.util.Pair<Float, Float> centre = securityRipple.centreOf(btnModeB);
+                securityRipple.startIdleHeartbeat(centre.first, centre.second, false);
+            }
+        });
 
         updateStatusDisplay();
 
@@ -182,6 +193,52 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
+    }
+
+    /**
+     * Triggers the full Security Ripple animation on button tap:
+     *  Phase 1 (0–60ms)   — press-in: scale 1.0 → 0.92  [Linear]
+     *  Phase 2 (60–210ms) — ping release: scale 0.92 → 1.08 [AnticipateOvershoot t=3]
+     *  Phase 3 (210–330ms)— settle: scale 1.08 → 1.0  [Decelerate]
+     *  Then fires SecurityRippleView burst.
+     */
+    private void triggerButtonRipple(android.view.View btn, boolean isRoot) {
+        if (securityRipple == null) return;
+
+        // Phase 1: press-in compression
+        android.animation.ObjectAnimator pressIn = android.animation.ObjectAnimator.ofPropertyValuesHolder(
+            btn,
+            android.animation.PropertyValuesHolder.ofFloat("scaleX", 1.0f, 0.92f),
+            android.animation.PropertyValuesHolder.ofFloat("scaleY", 1.0f, 0.92f)
+        );
+        pressIn.setDuration(60);
+        pressIn.setInterpolator(new android.view.animation.LinearInterpolator());
+
+        // Phase 2: overshoot ping
+        android.animation.ObjectAnimator pingRelease = android.animation.ObjectAnimator.ofPropertyValuesHolder(
+            btn,
+            android.animation.PropertyValuesHolder.ofFloat("scaleX", 0.92f, 1.08f),
+            android.animation.PropertyValuesHolder.ofFloat("scaleY", 0.92f, 1.08f)
+        );
+        pingRelease.setDuration(150);
+        pingRelease.setInterpolator(new android.view.animation.AnticipateOvershootInterpolator(3.0f));
+
+        // Phase 3: settle
+        android.animation.ObjectAnimator settle = android.animation.ObjectAnimator.ofPropertyValuesHolder(
+            btn,
+            android.animation.PropertyValuesHolder.ofFloat("scaleX", 1.08f, 1.0f),
+            android.animation.PropertyValuesHolder.ofFloat("scaleY", 1.08f, 1.0f)
+        );
+        settle.setDuration(120);
+        settle.setInterpolator(new android.view.animation.DecelerateInterpolator(2.0f));
+
+        android.animation.AnimatorSet bounce = new android.animation.AnimatorSet();
+        bounce.playSequentially(pressIn, pingRelease, settle);
+        bounce.start();
+
+        // Fire the ripple burst (centred on button)
+        android.util.Pair<Float, Float> centre = securityRipple.centreOf(btn);
+        securityRipple.triggerRipple(centre.first, centre.second, isRoot);
     }
 
     /** Launches IncidentActivity with the most recent attack window parameters from SharedPreferences. */

@@ -209,21 +209,21 @@
                 android:layout_marginTop="12dp"
                 android:visibility="gone"/>
 
-            <!-- "Let's Go" pill button for last screen (screen 6) -->
+            <!-- "Let's Go" — premium glowing CTA pill (screen 6 only) -->
             <com.dearmoon.shield.ui.ScrambleTextButton
                 android:id="@+id/letsGoButton"
-                android:layout_width="200dp"
-                android:layout_height="52dp"
-                android:layout_marginTop="32dp"
-                android:background="@drawable/bg_button_frosted"
-                android:text="Let's Go"
+                android:layout_width="240dp"
+                android:layout_height="58dp"
+                android:layout_marginTop="36dp"
+                android:background="@drawable/bg_button_get_started"
+                android:text="GET STARTED"
                 android:textColor="#FFFFFF"
                 android:textStyle="bold"
-                android:textSize="16sp"
+                android:textSize="14sp"
                 android:fontFamily="sans-serif-medium"
-                android:letterSpacing="0.05"
+                android:letterSpacing="0.18"
                 android:stateListAnimator="@null"
-                android:elevation="0dp"
+                android:elevation="8dp"
                 app:backgroundTint="@null"
                 android:visibility="gone"
                 xmlns:app="http://schemas.android.com/apk/res-auto"/>
