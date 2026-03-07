@@ -118,21 +118,6 @@
                     android:gravity="center"
                     android:paddingHorizontal="12dp">
 
-                    <!-- Icon badge -->
-                    <FrameLayout
-                        android:layout_width="44dp"
-                        android:layout_height="44dp"
-                        android:layout_gravity="center"
-                        android:background="@drawable/bg_stat_icon_cyan"
-                        android:layout_marginBottom="12dp">
-                        <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
-                            android:layout_gravity="center"
-                            android:src="@drawable/ic_stat_attacks"
-                            android:contentDescription="Attacks found icon" />
-                    </FrameLayout>
-
                     <!-- Big number -->
                     <TextView
                         android:id="@+id/tvSafeFiles"
@@ -184,21 +169,6 @@
                     android:orientation="vertical"
                     android:gravity="center"
                     android:paddingHorizontal="12dp">
-
-                    <!-- Icon badge -->
-                    <FrameLayout
-                        android:layout_width="44dp"
-                        android:layout_height="44dp"
-                        android:layout_gravity="center"
-                        android:background="@drawable/bg_stat_icon_green"
-                        android:layout_marginBottom="12dp">
-                        <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
-                            android:layout_gravity="center"
-                            android:src="@drawable/ic_stat_files"
-                            android:contentDescription="Files scanned icon" />
-                    </FrameLayout>
 
                     <!-- Big number -->
                     <TextView
