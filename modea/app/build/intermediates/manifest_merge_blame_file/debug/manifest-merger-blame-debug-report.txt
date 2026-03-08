@@ -1,0 +1,179 @@
+1<?xml version="1.0" encoding="utf-8"?>
+2<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+3    package="com.dearmoon.shield.modea"
+4    android:versionCode="1"
+5    android:versionName="1.0-prototype" >
+6
+7    <uses-sdk
+8        android:minSdkVersion="30"
+9        android:targetSdkVersion="34" />
+10
+11    <!--
+12         ================================================================
+13         SHIELD Mode-A — Standalone Prototype APK
+14         Package: com.dearmoon.shield.modea
+15         ================================================================
+16    -->
+17
+18
+19    <!-- Root / BPF access (requested at runtime via su) -->
+20    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+20-->C:\Users\gokul D\SHIELD-1\modea\app\src\main\AndroidManifest.xml:10:5-77
+20-->C:\Users\gokul D\SHIELD-1\modea\app\src\main\AndroidManifest.xml:10:22-74
+21    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+21-->C:\Users\gokul D\SHIELD-1\modea\app\src\main\AndroidManifest.xml:11:5-89
+21-->C:\Users\gokul D\SHIELD-1\modea\app\src\main\AndroidManifest.xml:11:22-86
+22    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+22-->C:\Users\gokul D\SHIELD-1\modea\app\src\main\AndroidManifest.xml:12:5-81
+22-->C:\Users\gokul D\SHIELD-1\modea\app\src\main\AndroidManifest.xml:12:22-78
+23
+24    <!-- Storage access for /sdcard monitoring -->
+25    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+25-->C:\Users\gokul D\SHIELD-1\modea\app\src\main\AndroidManifest.xml:15:5-80
+25-->C:\Users\gokul D\SHIELD-1\modea\app\src\main\AndroidManifest.xml:15:22-77
+26    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+26-->C:\Users\gokul D\SHIELD-1\modea\app\src\main\AndroidManifest.xml:16:5-81
+26-->C:\Users\gokul D\SHIELD-1\modea\app\src\main\AndroidManifest.xml:16:22-78
+27    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
+27-->C:\Users\gokul D\SHIELD-1\modea\app\src\main\AndroidManifest.xml:17:5-82
+27-->C:\Users\gokul D\SHIELD-1\modea\app\src\main\AndroidManifest.xml:17:22-79
+28
+29    <!-- Post notifications (Android 13+) -->
+30    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+30-->C:\Users\gokul D\SHIELD-1\modea\app\src\main\AndroidManifest.xml:20:5-77
+30-->C:\Users\gokul D\SHIELD-1\modea\app\src\main\AndroidManifest.xml:20:22-74
+31
+32    <permission
+32-->[androidx.core:core:1.13.1] C:\Users\gokul D\.gradle\caches\9.0-milestone-1\transforms\61f53c7548118299f05e2e4f514b7b8c\transformed\core-1.13.1\AndroidManifest.xml:22:5-24:47
+33        android:name="com.dearmoon.shield.modea.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
+33-->[androidx.core:core:1.13.1] C:\Users\gokul D\.gradle\caches\9.0-milestone-1\transforms\61f53c7548118299f05e2e4f514b7b8c\transformed\core-1.13.1\AndroidManifest.xml:23:9-81
+34        android:protectionLevel="signature" />
+34-->[androidx.core:core:1.13.1] C:\Users\gokul D\.gradle\caches\9.0-milestone-1\transforms\61f53c7548118299f05e2e4f514b7b8c\transformed\core-1.13.1\AndroidManifest.xml:24:9-44
+35
+36    <uses-permission android:name="com.dearmoon.shield.modea.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION" />
+36-->[androidx.core:core:1.13.1] C:\Users\gokul D\.gradle\caches\9.0-milestone-1\transforms\61f53c7548118299f05e2e4f514b7b8c\transformed\core-1.13.1\AndroidManifest.xml:26:5-97
+36-->[androidx.core:core:1.13.1] C:\Users\gokul D\.gradle\caches\9.0-milestone-1\transforms\61f53c7548118299f05e2e4f514b7b8c\transformed\core-1.13.1\AndroidManifest.xml:26:22-94
+37
+38    <application
+38-->C:\Users\gokul D\SHIELD-1\modea\app\src\main\AndroidManifest.xml:22:5-50:19
+39        android:allowBackup="false"
+39-->C:\Users\gokul D\SHIELD-1\modea\app\src\main\AndroidManifest.xml:23:9-36
+40        android:appComponentFactory="androidx.core.app.CoreComponentFactory"
+40-->[androidx.core:core:1.13.1] C:\Users\gokul D\.gradle\caches\9.0-milestone-1\transforms\61f53c7548118299f05e2e4f514b7b8c\transformed\core-1.13.1\AndroidManifest.xml:28:18-86
+41        android:debuggable="true"
+42        android:extractNativeLibs="false"
+43        android:icon="@mipmap/ic_launcher"
+43-->C:\Users\gokul D\SHIELD-1\modea\app\src\main\AndroidManifest.xml:24:9-43
+44        android:label="@string/app_name"
+44-->C:\Users\gokul D\SHIELD-1\modea\app\src\main\AndroidManifest.xml:25:9-41
+45        android:supportsRtl="true"
+45-->C:\Users\gokul D\SHIELD-1\modea\app\src\main\AndroidManifest.xml:27:9-35
+46        android:theme="@style/Theme.MaterialComponents.DayNight.DarkActionBar" >
+46-->C:\Users\gokul D\SHIELD-1\modea\app\src\main\AndroidManifest.xml:26:9-79
+47
+48        <!-- Main test UI -->
+49        <activity
+49-->C:\Users\gokul D\SHIELD-1\modea\app\src\main\AndroidManifest.xml:30:9-38:20
+50            android:name="com.dearmoon.shield.modea.MainActivity"
+50-->C:\Users\gokul D\SHIELD-1\modea\app\src\main\AndroidManifest.xml:31:13-41
+51            android:exported="true"
+51-->C:\Users\gokul D\SHIELD-1\modea\app\src\main\AndroidManifest.xml:32:13-36
+52            android:label="@string/app_name" >
+52-->C:\Users\gokul D\SHIELD-1\modea\app\src\main\AndroidManifest.xml:33:13-45
+53            <intent-filter>
+53-->C:\Users\gokul D\SHIELD-1\modea\app\src\main\AndroidManifest.xml:34:13-37:29
+54                <action android:name="android.intent.action.MAIN" />
+54-->C:\Users\gokul D\SHIELD-1\modea\app\src\main\AndroidManifest.xml:35:17-69
+54-->C:\Users\gokul D\SHIELD-1\modea\app\src\main\AndroidManifest.xml:35:25-66
+55
+56                <category android:name="android.intent.category.LAUNCHER" />
+56-->C:\Users\gokul D\SHIELD-1\modea\app\src\main\AndroidManifest.xml:36:17-77
+56-->C:\Users\gokul D\SHIELD-1\modea\app\src\main\AndroidManifest.xml:36:27-74
+57            </intent-filter>
+58        </activity>
+59
+60        <!-- Mode-A foreground service -->
+61        <service
+61-->C:\Users\gokul D\SHIELD-1\modea\app\src\main\AndroidManifest.xml:41:9-48:19
+62            android:name="com.dearmoon.shield.modea.ModeAService"
+62-->C:\Users\gokul D\SHIELD-1\modea\app\src\main\AndroidManifest.xml:42:13-41
+63            android:exported="false"
+63-->C:\Users\gokul D\SHIELD-1\modea\app\src\main\AndroidManifest.xml:43:13-37
+64            android:foregroundServiceType="specialUse" >
+64-->C:\Users\gokul D\SHIELD-1\modea\app\src\main\AndroidManifest.xml:44:13-55
+65            <property
+65-->C:\Users\gokul D\SHIELD-1\modea\app\src\main\AndroidManifest.xml:45:13-47:93
+66                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+66-->C:\Users\gokul D\SHIELD-1\modea\app\src\main\AndroidManifest.xml:46:17-76
+67                android:value="eBPF kernel telemetry collection for ransomware detection" />
+67-->C:\Users\gokul D\SHIELD-1\modea\app\src\main\AndroidManifest.xml:47:17-90
+68        </service>
+69
+70        <provider
+70-->[androidx.emoji2:emoji2:1.3.0] C:\Users\gokul D\.gradle\caches\9.0-milestone-1\transforms\e888638cfb5587f1838bc6e5ef2f7f60\transformed\jetified-emoji2-1.3.0\AndroidManifest.xml:24:9-32:20
+71            android:name="androidx.startup.InitializationProvider"
+71-->[androidx.emoji2:emoji2:1.3.0] C:\Users\gokul D\.gradle\caches\9.0-milestone-1\transforms\e888638cfb5587f1838bc6e5ef2f7f60\transformed\jetified-emoji2-1.3.0\AndroidManifest.xml:25:13-67
+72            android:authorities="com.dearmoon.shield.modea.androidx-startup"
+72-->[androidx.emoji2:emoji2:1.3.0] C:\Users\gokul D\.gradle\caches\9.0-milestone-1\transforms\e888638cfb5587f1838bc6e5ef2f7f60\transformed\jetified-emoji2-1.3.0\AndroidManifest.xml:26:13-68
+73            android:exported="false" >
+73-->[androidx.emoji2:emoji2:1.3.0] C:\Users\gokul D\.gradle\caches\9.0-milestone-1\transforms\e888638cfb5587f1838bc6e5ef2f7f60\transformed\jetified-emoji2-1.3.0\AndroidManifest.xml:27:13-37
+74            <meta-data
+74-->[androidx.emoji2:emoji2:1.3.0] C:\Users\gokul D\.gradle\caches\9.0-milestone-1\transforms\e888638cfb5587f1838bc6e5ef2f7f60\transformed\jetified-emoji2-1.3.0\AndroidManifest.xml:29:13-31:52
+75                android:name="androidx.emoji2.text.EmojiCompatInitializer"
+75-->[androidx.emoji2:emoji2:1.3.0] C:\Users\gokul D\.gradle\caches\9.0-milestone-1\transforms\e888638cfb5587f1838bc6e5ef2f7f60\transformed\jetified-emoji2-1.3.0\AndroidManifest.xml:30:17-75
+76                android:value="androidx.startup" />
+76-->[androidx.emoji2:emoji2:1.3.0] C:\Users\gokul D\.gradle\caches\9.0-milestone-1\transforms\e888638cfb5587f1838bc6e5ef2f7f60\transformed\jetified-emoji2-1.3.0\AndroidManifest.xml:31:17-49
+77            <meta-data
+77-->[androidx.lifecycle:lifecycle-process:2.6.2] C:\Users\gokul D\.gradle\caches\9.0-milestone-1\transforms\fbbdef99a6759882e6b215f00c36b942\transformed\jetified-lifecycle-process-2.6.2\AndroidManifest.xml:29:13-31:52
+78                android:name="androidx.lifecycle.ProcessLifecycleInitializer"
+78-->[androidx.lifecycle:lifecycle-process:2.6.2] C:\Users\gokul D\.gradle\caches\9.0-milestone-1\transforms\fbbdef99a6759882e6b215f00c36b942\transformed\jetified-lifecycle-process-2.6.2\AndroidManifest.xml:30:17-78
+79                android:value="androidx.startup" />
+79-->[androidx.lifecycle:lifecycle-process:2.6.2] C:\Users\gokul D\.gradle\caches\9.0-milestone-1\transforms\fbbdef99a6759882e6b215f00c36b942\transformed\jetified-lifecycle-process-2.6.2\AndroidManifest.xml:31:17-49
+80            <meta-data
+80-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\gokul D\.gradle\caches\9.0-milestone-1\transforms\ed4e82ae2f47ce339e47f4ef9b4da1f0\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:29:13-31:52
+81                android:name="androidx.profileinstaller.ProfileInstallerInitializer"
+81-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\gokul D\.gradle\caches\9.0-milestone-1\transforms\ed4e82ae2f47ce339e47f4ef9b4da1f0\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:30:17-85
+82                android:value="androidx.startup" />
+82-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\gokul D\.gradle\caches\9.0-milestone-1\transforms\ed4e82ae2f47ce339e47f4ef9b4da1f0\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:31:17-49
+83        </provider>
+84
+85        <receiver
+85-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\gokul D\.gradle\caches\9.0-milestone-1\transforms\ed4e82ae2f47ce339e47f4ef9b4da1f0\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:34:9-52:20
+86            android:name="androidx.profileinstaller.ProfileInstallReceiver"
+86-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\gokul D\.gradle\caches\9.0-milestone-1\transforms\ed4e82ae2f47ce339e47f4ef9b4da1f0\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:35:13-76
+87            android:directBootAware="false"
+87-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\gokul D\.gradle\caches\9.0-milestone-1\transforms\ed4e82ae2f47ce339e47f4ef9b4da1f0\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:36:13-44
+88            android:enabled="true"
+88-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\gokul D\.gradle\caches\9.0-milestone-1\transforms\ed4e82ae2f47ce339e47f4ef9b4da1f0\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:37:13-35
+89            android:exported="true"
+89-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\gokul D\.gradle\caches\9.0-milestone-1\transforms\ed4e82ae2f47ce339e47f4ef9b4da1f0\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:38:13-36
+90            android:permission="android.permission.DUMP" >
+90-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\gokul D\.gradle\caches\9.0-milestone-1\transforms\ed4e82ae2f47ce339e47f4ef9b4da1f0\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:39:13-57
+91            <intent-filter>
+91-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\gokul D\.gradle\caches\9.0-milestone-1\transforms\ed4e82ae2f47ce339e47f4ef9b4da1f0\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:40:13-42:29
+92                <action android:name="androidx.profileinstaller.action.INSTALL_PROFILE" />
+92-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\gokul D\.gradle\caches\9.0-milestone-1\transforms\ed4e82ae2f47ce339e47f4ef9b4da1f0\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:41:17-91
+92-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\gokul D\.gradle\caches\9.0-milestone-1\transforms\ed4e82ae2f47ce339e47f4ef9b4da1f0\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:41:25-88
+93            </intent-filter>
+94            <intent-filter>
+94-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\gokul D\.gradle\caches\9.0-milestone-1\transforms\ed4e82ae2f47ce339e47f4ef9b4da1f0\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:43:13-45:29
+95                <action android:name="androidx.profileinstaller.action.SKIP_FILE" />
+95-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\gokul D\.gradle\caches\9.0-milestone-1\transforms\ed4e82ae2f47ce339e47f4ef9b4da1f0\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:44:17-85
+95-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\gokul D\.gradle\caches\9.0-milestone-1\transforms\ed4e82ae2f47ce339e47f4ef9b4da1f0\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:44:25-82
+96            </intent-filter>
+97            <intent-filter>
+97-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\gokul D\.gradle\caches\9.0-milestone-1\transforms\ed4e82ae2f47ce339e47f4ef9b4da1f0\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:46:13-48:29
+98                <action android:name="androidx.profileinstaller.action.SAVE_PROFILE" />
+98-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\gokul D\.gradle\caches\9.0-milestone-1\transforms\ed4e82ae2f47ce339e47f4ef9b4da1f0\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:47:17-88
+98-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\gokul D\.gradle\caches\9.0-milestone-1\transforms\ed4e82ae2f47ce339e47f4ef9b4da1f0\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:47:25-85
+99            </intent-filter>
+100            <intent-filter>
+100-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\gokul D\.gradle\caches\9.0-milestone-1\transforms\ed4e82ae2f47ce339e47f4ef9b4da1f0\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:49:13-51:29
+101                <action android:name="androidx.profileinstaller.action.BENCHMARK_OPERATION" />
+101-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\gokul D\.gradle\caches\9.0-milestone-1\transforms\ed4e82ae2f47ce339e47f4ef9b4da1f0\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:50:17-95
+101-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\gokul D\.gradle\caches\9.0-milestone-1\transforms\ed4e82ae2f47ce339e47f4ef9b4da1f0\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:50:25-92
+102            </intent-filter>
+103        </receiver>
+104    </application>
+105
+106</manifest>

@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/colorBackground"
+    android:padding="16dp">
+
+    <!-- Header -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="SHIELD Mode-A Prototype"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:textColor="@color/colorAccent"
+        android:paddingBottom="8dp" />
+
+    <!-- Status row -->
+    <TextView
+        android:id="@+id/tvStatus"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/status_idle"
+        android:textSize="14sp"
+        android:textColor="@color/colorIdle"
+        android:paddingBottom="12dp" />
+
+    <!-- Control buttons -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingBottom="12dp">
+
+        <Button
+            android:id="@+id/btnStart"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/btn_start"
+            android:backgroundTint="@color/colorRunning"
+            android:textColor="#FFFFFF"
+            android:layout_marginEnd="8dp" />
+
+        <Button
+            android:id="@+id/btnStop"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/btn_stop"
+            android:backgroundTint="@color/colorError"
+            android:textColor="#FFFFFF"
+            android:enabled="false" />
+    </LinearLayout>
+
+    <!-- Events header -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingBottom="4dp">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/label_events"
+            android:textSize="14sp"
+            android:textColor="@color/colorAccent"
+            android:textStyle="bold" />
+
+        <Button
+            android:id="@+id/btnClear"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/btn_clear"
+            style="@style/Widget.MaterialComponents.Button.TextButton"
+            android:textColor="@color/colorAccent"
+            android:padding="4dp" />
+    </LinearLayout>
+
+    <!-- Scrollable event log -->
+    <ScrollView
+        android:id="@+id/scrollEvents"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:background="#1E1E1E"
+        android:padding="8dp">
+
+        <TextView
+            android:id="@+id/tvEvents"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/no_events"
+            android:textSize="11sp"
+            android:textColor="@color/colorEventText"
+            android:fontFamily="monospace"
+            android:lineSpacingExtra="3dp" />
+    </ScrollView>
+
+    <!-- Event count row -->
+    <TextView
+        android:id="@+id/tvEventCount"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Events received: 0"
+        android:textSize="12sp"
+        android:textColor="@color/colorIdle"
+        android:paddingTop="8dp" />
+
+</LinearLayout>

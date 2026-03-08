@@ -1,0 +1,119 @@
+[
+  {
+    "level_": 0,
+    "message_": "Start JSON generation. Platform version: 30 min SDK version: arm64-v8a",
+    "file_": "C:\\Users\\gokul D\\SHIELD-1\\build\\CMakeLists.txt",
+    "tag_": "debug|arm64-v8a",
+    "diagnosticCode_": 0,
+    "memoizedIsInitialized": 1,
+    "unknownFields": {
+      "fields": {}
+    },
+    "memoizedSize": -1,
+    "memoizedHashCode": 0
+  },
+  {
+    "level_": 0,
+    "message_": "rebuilding JSON C:\\Users\\gokul D\\SHIELD-1\\modea\\app\\.cxx\\Debug\\6bmo2d4l\\arm64-v8a\\android_gradle_build.json due to:",
+    "file_": "C:\\Users\\gokul D\\SHIELD-1\\build\\CMakeLists.txt",
+    "tag_": "debug|arm64-v8a",
+    "diagnosticCode_": 0,
+    "memoizedIsInitialized": 1,
+    "unknownFields": {
+      "fields": {}
+    },
+    "memoizedSize": -1,
+    "memoizedHashCode": 0
+  },
+  {
+    "level_": 0,
+    "message_": "- no fingerprint file, will remove stale configuration folder",
+    "file_": "C:\\Users\\gokul D\\SHIELD-1\\build\\CMakeLists.txt",
+    "tag_": "debug|arm64-v8a",
+    "diagnosticCode_": 0,
+    "memoizedIsInitialized": 1,
+    "unknownFields": {
+      "fields": {}
+    },
+    "memoizedSize": -1,
+    "memoizedHashCode": 0
+  },
+  {
+    "level_": 0,
+    "message_": "removing stale contents from \u0027C:\\Users\\gokul D\\SHIELD-1\\modea\\app\\.cxx\\Debug\\6bmo2d4l\\arm64-v8a\u0027",
+    "file_": "C:\\Users\\gokul D\\SHIELD-1\\build\\CMakeLists.txt",
+    "tag_": "debug|arm64-v8a",
+    "diagnosticCode_": 0,
+    "memoizedIsInitialized": 1,
+    "unknownFields": {
+      "fields": {}
+    },
+    "memoizedSize": -1,
+    "memoizedHashCode": 0
+  },
+  {
+    "level_": 0,
+    "message_": "created folder \u0027C:\\Users\\gokul D\\SHIELD-1\\modea\\app\\.cxx\\Debug\\6bmo2d4l\\arm64-v8a\u0027",
+    "file_": "C:\\Users\\gokul D\\SHIELD-1\\build\\CMakeLists.txt",
+    "tag_": "debug|arm64-v8a",
+    "diagnosticCode_": 0,
+    "memoizedIsInitialized": 1,
+    "unknownFields": {
+      "fields": {}
+    },
+    "memoizedSize": -1,
+    "memoizedHashCode": 0
+  },
+  {
+    "level_": 0,
+    "message_": "executing cmake @echo off\n\"C:\\\\Users\\\\gokul D\\\\AppData\\\\Local\\\\Android\\\\Sdk\\\\cmake\\\\3.22.1\\\\bin\\\\cmake.exe\" ^\n  \"-HC:\\\\Users\\\\gokul D\\\\SHIELD-1\\\\build\" ^\n  \"-DCMAKE_SYSTEM_NAME\u003dAndroid\" ^\n  \"-DCMAKE_EXPORT_COMPILE_COMMANDS\u003dON\" ^\n  \"-DCMAKE_SYSTEM_VERSION\u003d30\" ^\n  \"-DANDROID_PLATFORM\u003dandroid-30\" ^\n  \"-DANDROID_ABI\u003darm64-v8a\" ^\n  \"-DCMAKE_ANDROID_ARCH_ABI\u003darm64-v8a\" ^\n  \"-DANDROID_NDK\u003dC:\\\\Users\\\\gokul D\\\\AppData\\\\Local\\\\Android\\\\Sdk\\\\ndk\\\\27.0.12077973\" ^\n  \"-DCMAKE_ANDROID_NDK\u003dC:\\\\Users\\\\gokul D\\\\AppData\\\\Local\\\\Android\\\\Sdk\\\\ndk\\\\27.0.12077973\" ^\n  \"-DCMAKE_TOOLCHAIN_FILE\u003dC:\\\\Users\\\\gokul D\\\\AppData\\\\Local\\\\Android\\\\Sdk\\\\ndk\\\\27.0.12077973\\\\build\\\\cmake\\\\android.toolchain.cmake\" ^\n  \"-DCMAKE_MAKE_PROGRAM\u003dC:\\\\Users\\\\gokul D\\\\AppData\\\\Local\\\\Android\\\\Sdk\\\\cmake\\\\3.22.1\\\\bin\\\\ninja.exe\" ^\n  \"-DCMAKE_LIBRARY_OUTPUT_DIRECTORY\u003dC:\\\\Users\\\\gokul D\\\\SHIELD-1\\\\modea\\\\app\\\\build\\\\intermediates\\\\cxx\\\\Debug\\\\6bmo2d4l\\\\obj\\\\arm64-v8a\" ^\n  \"-DCMAKE_RUNTIME_OUTPUT_DIRECTORY\u003dC:\\\\Users\\\\gokul D\\\\SHIELD-1\\\\modea\\\\app\\\\build\\\\intermediates\\\\cxx\\\\Debug\\\\6bmo2d4l\\\\obj\\\\arm64-v8a\" ^\n  \"-DCMAKE_BUILD_TYPE\u003dDebug\" ^\n  \"-BC:\\\\Users\\\\gokul D\\\\SHIELD-1\\\\modea\\\\app\\\\.cxx\\\\Debug\\\\6bmo2d4l\\\\arm64-v8a\" ^\n  -GNinja ^\n  \"-DANDROID_STL\u003dc++_static\"\n",
+    "file_": "C:\\Users\\gokul D\\SHIELD-1\\build\\CMakeLists.txt",
+    "tag_": "debug|arm64-v8a",
+    "diagnosticCode_": 0,
+    "memoizedIsInitialized": 1,
+    "unknownFields": {
+      "fields": {}
+    },
+    "memoizedSize": -1,
+    "memoizedHashCode": 0
+  },
+  {
+    "level_": 0,
+    "message_": "@echo off\n\"C:\\\\Users\\\\gokul D\\\\AppData\\\\Local\\\\Android\\\\Sdk\\\\cmake\\\\3.22.1\\\\bin\\\\cmake.exe\" ^\n  \"-HC:\\\\Users\\\\gokul D\\\\SHIELD-1\\\\build\" ^\n  \"-DCMAKE_SYSTEM_NAME\u003dAndroid\" ^\n  \"-DCMAKE_EXPORT_COMPILE_COMMANDS\u003dON\" ^\n  \"-DCMAKE_SYSTEM_VERSION\u003d30\" ^\n  \"-DANDROID_PLATFORM\u003dandroid-30\" ^\n  \"-DANDROID_ABI\u003darm64-v8a\" ^\n  \"-DCMAKE_ANDROID_ARCH_ABI\u003darm64-v8a\" ^\n  \"-DANDROID_NDK\u003dC:\\\\Users\\\\gokul D\\\\AppData\\\\Local\\\\Android\\\\Sdk\\\\ndk\\\\27.0.12077973\" ^\n  \"-DCMAKE_ANDROID_NDK\u003dC:\\\\Users\\\\gokul D\\\\AppData\\\\Local\\\\Android\\\\Sdk\\\\ndk\\\\27.0.12077973\" ^\n  \"-DCMAKE_TOOLCHAIN_FILE\u003dC:\\\\Users\\\\gokul D\\\\AppData\\\\Local\\\\Android\\\\Sdk\\\\ndk\\\\27.0.12077973\\\\build\\\\cmake\\\\android.toolchain.cmake\" ^\n  \"-DCMAKE_MAKE_PROGRAM\u003dC:\\\\Users\\\\gokul D\\\\AppData\\\\Local\\\\Android\\\\Sdk\\\\cmake\\\\3.22.1\\\\bin\\\\ninja.exe\" ^\n  \"-DCMAKE_LIBRARY_OUTPUT_DIRECTORY\u003dC:\\\\Users\\\\gokul D\\\\SHIELD-1\\\\modea\\\\app\\\\build\\\\intermediates\\\\cxx\\\\Debug\\\\6bmo2d4l\\\\obj\\\\arm64-v8a\" ^\n  \"-DCMAKE_RUNTIME_OUTPUT_DIRECTORY\u003dC:\\\\Users\\\\gokul D\\\\SHIELD-1\\\\modea\\\\app\\\\build\\\\intermediates\\\\cxx\\\\Debug\\\\6bmo2d4l\\\\obj\\\\arm64-v8a\" ^\n  \"-DCMAKE_BUILD_TYPE\u003dDebug\" ^\n  \"-BC:\\\\Users\\\\gokul D\\\\SHIELD-1\\\\modea\\\\app\\\\.cxx\\\\Debug\\\\6bmo2d4l\\\\arm64-v8a\" ^\n  -GNinja ^\n  \"-DANDROID_STL\u003dc++_static\"\n",
+    "file_": "C:\\Users\\gokul D\\SHIELD-1\\build\\CMakeLists.txt",
+    "tag_": "debug|arm64-v8a",
+    "diagnosticCode_": 0,
+    "memoizedIsInitialized": 1,
+    "unknownFields": {
+      "fields": {}
+    },
+    "memoizedSize": -1,
+    "memoizedHashCode": 0
+  },
+  {
+    "level_": 0,
+    "message_": "Received process result: 1",
+    "file_": "C:\\Users\\gokul D\\SHIELD-1\\build\\CMakeLists.txt",
+    "tag_": "debug|arm64-v8a",
+    "diagnosticCode_": 0,
+    "memoizedIsInitialized": 1,
+    "unknownFields": {
+      "fields": {}
+    },
+    "memoizedSize": -1,
+    "memoizedHashCode": 0
+  },
+  {
+    "level_": 0,
+    "message_": "JSON generation completed with problem. Exception: com.android.ide.common.process.ProcessException: C++ build system [configure] failed while executing:\n    @echo off\n    \"C:\\\\Users\\\\gokul D\\\\AppData\\\\Local\\\\Android\\\\Sdk\\\\cmake\\\\3.22.1\\\\bin\\\\cmake.exe\" ^\n      \"-HC:\\\\Users\\\\gokul D\\\\SHIELD-1\\\\build\" ^\n      \"-DCMAKE_SYSTEM_NAME\u003dAndroid\" ^\n      \"-DCMAKE_EXPORT_COMPILE_COMMANDS\u003dON\" ^\n      \"-DCMAKE_SYSTEM_VERSION\u003d30\" ^\n      \"-DANDROID_PLATFORM\u003dandroid-30\" ^\n      \"-DANDROID_ABI\u003darm64-v8a\" ^\n      \"-DCMAKE_ANDROID_ARCH_ABI\u003darm64-v8a\" ^\n      \"-DANDROID_NDK\u003dC:\\\\Users\\\\gokul D\\\\AppData\\\\Local\\\\Android\\\\Sdk\\\\ndk\\\\27.0.12077973\" ^\n      \"-DCMAKE_ANDROID_NDK\u003dC:\\\\Users\\\\gokul D\\\\AppData\\\\Local\\\\Android\\\\Sdk\\\\ndk\\\\27.0.12077973\" ^\n      \"-DCMAKE_TOOLCHAIN_FILE\u003dC:\\\\Users\\\\gokul D\\\\AppData\\\\Local\\\\Android\\\\Sdk\\\\ndk\\\\27.0.12077973\\\\build\\\\cmake\\\\android.toolchain.cmake\" ^\n      \"-DCMAKE_MAKE_PROGRAM\u003dC:\\\\Users\\\\gokul D\\\\AppData\\\\Local\\\\Android\\\\Sdk\\\\cmake\\\\3.22.1\\\\bin\\\\ninja.exe\" ^\n      \"-DCMAKE_LIBRARY_OUTPUT_DIRECTORY\u003dC:\\\\Users\\\\gokul D\\\\SHIELD-1\\\\modea\\\\app\\\\build\\\\intermediates\\\\cxx\\\\Debug\\\\6bmo2d4l\\\\obj\\\\arm64-v8a\" ^\n      \"-DCMAKE_RUNTIME_OUTPUT_DIRECTORY\u003dC:\\\\Users\\\\gokul D\\\\SHIELD-1\\\\modea\\\\app\\\\build\\\\intermediates\\\\cxx\\\\Debug\\\\6bmo2d4l\\\\obj\\\\arm64-v8a\" ^\n      \"-DCMAKE_BUILD_TYPE\u003dDebug\" ^\n      \"-BC:\\\\Users\\\\gokul D\\\\SHIELD-1\\\\modea\\\\app\\\\.cxx\\\\Debug\\\\6bmo2d4l\\\\arm64-v8a\" ^\n      -GNinja ^\n      \"-DANDROID_STL\u003dc++_static\"\n  from C:\\Users\\gokul D\\SHIELD-1\\modea\\app\nCMake Error: The source directory \"C:/Users/gokul D/SHIELD-1/build\" does not appear to contain CMakeLists.txt.\nSpecify --help for usage, or press the help button on the CMake GUI.",
+    "file_": "C:\\Users\\gokul D\\SHIELD-1\\build\\CMakeLists.txt",
+    "tag_": "debug|arm64-v8a",
+    "diagnosticCode_": 0,
+    "memoizedIsInitialized": 1,
+    "unknownFields": {
+      "fields": {}
+    },
+    "memoizedSize": -1,
+    "memoizedHashCode": 0
+  }
+]

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Shield icon foreground for ic_launcher adaptive icon -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Shield shape -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,18 L82,30 L82,54 C82,70 68,82 54,90 C40,82 26,70 26,54 L26,30 Z" />
+    <!-- Letter S -->
+    <path
+        android:fillColor="#1565C0"
+        android:pathData="M46,42 Q46,38 50,38 L62,38 Q66,38 66,42 Q66,46 62,46 L50,46 Q46,46 46,50 Q46,54 50,54 L62,54 Q66,54 66,58 Q66,62 62,62 L50,62 Q46,62 46,66" />
+</vector>
+

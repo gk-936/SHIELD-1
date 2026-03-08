@@ -122,3 +122,169 @@ Priority order, highest impact first:
 ## Summary
 
 The features that are already at MVP quality and don't need more work: the cryptographic snapshot system, the TEE integrity gate, the three-tier network blocking, LockerGuard, and the auto-restart resilience mechanisms. Spend remaining time on the usability and evaluation correctness items listed above.
+
+---
+
+---
+
+# SHIELD Mode-A — Standalone APK Audit
+
+**Audit Date:** March 8, 2026  
+**Audited By:** GitHub Copilot (Claude Sonnet 4.6)  
+**Scope:** Full review of `modea/` — eBPF kernel program, self-contained BPF ELF loader, root daemon, JNI bridge, Android service layer, stub/merge architecture
+
+---
+
+## Architecture Summary
+
+The Mode-A stack has five distinct layers:
+
+```
+android_fs / sched tracepoints (kernel)
+        ↓  [eBPF: shield_bpf.c]
+shield_pid_activity BPF hash map (kernel)
+        ↓  [polled every 500 ms by root daemon]
+shield_modea_daemon (C++, UID 0, aarch64)
+        ↓  [Unix domain socket, length-framed]
+modea_jni.so (JNI bridge, loaded in app process)
+        ↓  [ShieldEventData, polled at 20 ms]
+ModeAService → ModeAFileCollector → UnifiedDetectionEngine
+```
+
+This is the correct architecture for kernel-level process attribution. The eBPF path solves the fundamental flaw identified in the main SHIELD audit (finding #1) where `Process.myUid()` attributed events to SHIELD itself instead of the attacking process.
+
+---
+
+## STRENGTHS
+
+**1. Self-contained BPF ELF loader removes the libbpf version matrix problem.**
+`bpf_loader.cpp` parses ELF64 headers, applies SHT_RELA/SHT_REL relocations, patches `BPF_PSEUDO_MAP_FD` load instructions, and calls `BPF_MAP_CREATE` / `BPF_PROG_LOAD` / `perf_event_open` directly via syscall. No libbpf, no UAPI header version mismatch, no Android's broken `libbpf.so` availability questions. It works on kernel 4.9+ as claimed.
+
+**2. Kernel-attributed UID via `bpf_get_current_uid_gid()` solves the root attribution problem.**
+This is the primary contribution of Mode-A over Mode-B. The UID is read at interrupt time in the kernel, in the executing process's context — it is cryptographically correct attribution, not a heuristic. The value flows all the way through `pid_activity.uid` → `ev.uid` → `ShieldEventData.uid` → `event.setUid(data.uid)`, and is correctly logged per event.
+
+**3. `__attribute__((packed))` + `_Static_assert` guards against silent ABI divergence.**
+The size assertion `sizeof(struct shield_event) == 292` is checked at compile time. Since the event struct crosses three ABI boundaries (BPF → C daemon → JNI → Java), this catches any accidental padding insertion before it causes a silent protocol desync. This is production-grade defensive engineering.
+
+**4. EEXIST case in `attach_tp_all_cpus()` is handled correctly.**
+On kernel 4.14, attaching a second BPF program to a tracepoint via `PERF_EVENT_IOC_SET_BPF` can return `EEXIST` when the tracepoint slot is already occupied at the system level. The loader continues with `PERF_EVENT_IOC_ENABLE` in this case, which correctly arms the perf event without failing the attachment. Most BPF loaders get this wrong and fail noisily.
+
+**5. SELinux solution is complete and correct.**
+The three-part fix — `magiskpolicy --live` (MAC rule injection) + `chcon u:object_r:shell_data_file:s0` (label) + `chmod 0666` (DAC) — correctly layers MAC and DAC policies. Neither alone would work: `chmod 0666` without the `chcon` is blocked by SELinux; `chcon` without `chmod` is blocked by DAC. This is a non-trivial Android security problem handled precisely.
+
+**6. Graceful degradation init sequence is well-engineered.**
+The service performs root check → kernel compatibility check (reading `/proc/config.gz`) → binary deploy → daemon launch → 10-second socket poll before connecting. Each step has clear error propagation via `ACTION_UNAVAILABLE` broadcast with a human-readable reason. The daemon logs its own stderr to `/data/local/tmp/shield_modea_daemon.log` and `ModeAController.readDaemonStderr()` can retrieve it on failure. The fallback path to Mode-B is explicit.
+
+**7. Socket reconnect-capable design.**
+The daemon's main loop goes back to `accept()` after a client disconnects — it does not exit. If the Android service crashes and restarts, it reconnects to the same daemon without needing to reload the BPF programs or re-attach tracepoints. This is correct for a long-running kernel telemetry engine.
+
+**8. Stub/merge architecture has zero ambiguity.**
+Every stub class has explicit `MERGE NOTE` comments with exact import replacements. `ModeAFileCollector`, `ModeAService`, `ModeAJni` are all written to be drop-in additions to the main SHIELD project — no behavioral changes needed, only import swaps. The stub `UnifiedDetectionEngine` correctly exposes the same `processFileEvent()` signature as the real one.
+
+**9. Kill protocol has basic sanity guards.**
+`process_kill_command()` rejects PID 0 and PID 1, uses a `killed_pids` set to prevent repeated SIGKILL to the same process, and marks the PID in `shield_suspect_pids` BPF map for future cross-reference. The 4-byte length prefix + "KILL" tag check prevents accidental misinterpretation of garbage data as a kill command.
+
+**10. Build system is correct and reproducible.**
+`build_real.sh` compiles BPF bytecode with `clang -target bpf` (architecture-independent), cross-compiles the daemon with the NDK's `aarch64-linux-android30-clang++`, verifies the output is an ARM64 ELF, copies assets into the APK asset folder, and pushes to device — all in one script with `set -euo pipefail`. This is clean automation.
+
+---
+
+## BLINDSPOTS AND WEAKNESSES
+
+### Critical (Will break in real use or invalidate research claims)
+
+**1. All detection filters are disabled — the system is in permanent test mode.**
+The three `android_fs` handlers have a `/* TEST: no filters */` comment and call `update_pid_activity()` unconditionally. `pid_activity.h` has `BURST_WRITE_THRESHOLD=1`, `BURST_READ_THRESHOLD=1`, `BURST_FSYNC_THRESHOLD=1`. The `uid_is_app()` check was removed from `tp_sched_exec`. `path_is_user_storage()` exists in the BPF source but is never called. This means every single read or write by every process on the device (kernel threads, `logd`, `zygote`, system services, `adbd`) fires a burst event. The map fills constantly, the daemon sends a continuous flood of events to the service, and the detection engine receives noise that bears no resemblance to ransomware behavior. The filters and thresholds that are the entire point of Mode-A exist in the code but are entirely bypassed. **Before any evaluation or demonstration, all three must be restored: `uid_is_app()` check in every handler, `path_is_user_storage()` check, and production thresholds (write≥50, read≥100, fsync≥20, window=5s).**
+
+**2. The KILL socket is an unauthenticated privilege escalation primitive.**
+The Unix socket at `/data/local/tmp/shield_modea.sock` is `chmod 0666` and labeled `shell_data_file`. The SELinux policy was explicitly patched to allow `untrusted_app` to write to `shell_data_file` sock_files. This means **any installed app** on the device can connect to the socket and send an 8-byte `KILL\x00\x00\x00\xNN` payload to issue a `kill(N, SIGKILL)` as root. The daemon accepts any connection from any peer with no authentication (no credential check, no SO_PEERCRED verification, no token). Any malicious app knowing the socket path can kill arbitrary PIDs including system processes and SHIELD itself. The socket must be authenticated — at minimum, read `SO_PEERCRED` on `accept()` and verify the connecting UID matches the expected app UID.
+
+**3. `system("mount -t bpf none /sys/fs/bpf")` in `ensure_bpf_fs()` runs a shell as UID 0.**
+`system()` spawns `/bin/sh -c "..."` as root. On Android, `/bin/sh` is `mksh` or the toybox shell, and the `PATH` used by the child process is inherited from the daemon's environment. If an attacker can place a binary named `mount` earlier in PATH than `/system/bin/mount`, or if the binary at `/bin/sh` has been replaced on a compromised device, this call executes arbitrary code as root. Replace with the direct `mount(2)` syscall: `mount(nullptr, "/sys/fs/bpf", "bpf", 0, nullptr)`, or use `execv("/system/bin/mount", ...)` with an absolute path and explicit argument vector.
+
+---
+
+### Significant (Limits correctness and reliability)
+
+**4. TOCTOU race in `check_activity_map()` silently overwrites kernel-side counter increments.**
+The burst-clear sequence is:
+```
+(a) map_lookup_elem(pid) → copy pa {write_count=N, burst_flags=SET}
+(b) send event to service ...         ← BPF increments write_count to N+K here
+(c) pa.burst_flags = 0; map_update_elem(pid, &pa)  ← writes back stale N, erasing K
+```
+The entire `pid_activity` struct is written back at step (c). BPF can increment counters between (a) and (c), and those increments are silently lost. The correct fix is to only update `burst_flags` in the map, not write back the whole struct: use a separate `map_update_elem` that writes only the flags field, or use `BPF_MAP_UPDATE_ELEM` with an atomic clear. Alternatively, clear `burst_flags` in a BPF-side program that runs on the next tracepoint hit for that PID.
+
+**5. `/proc/<pid>/fd/` filename scan is almost never correct and often empty.**
+`get_pid_last_file()` picks the file with the most recent `st_mtime` on its `/proc/<pid>/fd/<n>` symlink. Three problems:
+- **Wrong file**: A process that has written 1000 files still has all those fds open. The "newest mtime" is not the file being written during the burst; it is whichever file the OS most recently updated the metadata on.
+- **Empty on burst**: The 500ms polling latency means short-lived processes finish before the daemon polls. `opendir("/proc/<pid>/fd")` returns `EPERM` or fails, and the result is `""` → `<unknown>`.
+- **Wrong process**: If PID N exited and PID N+1 reused the PID, the scan reads the new process's fds, not the ransomware's.
+The correct approach for filename attribution requires capturing the pathname at tracepoint fire time in the BPF program (which has a verifier constraint on kernel 4.14 as discovered in this session), or maintaining a ring buffer of (pid, filename) pairs. Until then, the `<unknown>` result is the honest output and the `/proc/fd/` scan is misleading.
+
+**6. `nativeReadEvent()` blocks indefinitely after reading the 4-byte length header.**
+The JNI function sets the socket to `O_NONBLOCK`, reads 4 bytes with `MSG_DONTWAIT`, then **restores blocking mode** before calling `recv_all()` for the remaining 292 bytes. If the daemon stalls mid-send (e.g., blocked on a `send()` while its own client-fd write fails), the `recv_all()` loop in JNI blocks the `HandlerThread` forever. No timeout is set. The entire event poll loop is frozen: no more events reach `ModeAFileCollector`, detection stops, the UI stops updating. Use `MSG_DONTWAIT` or a `poll()` with timeout for all reads, or set `SO_RCVTIMEO` on the socket at connect time.
+
+**7. The BPF hash map size of 4096 entries is completely inadequate at threshold=1.**
+With all filters removed and burst threshold set to 1, every PID on the device — including hundreds of system processes — gets an entry on its first write. A typical rooted Android device has 300–800 active PIDs. When the map is full, `bpf_map_update_elem(&shield_pid_activity, &pid, &zero, BPF_ANY)` in `update_pid_activity()` silently returns an error inside the BPF program. The BPF program has no way to report this failure upward. New PIDs after map saturation are silently ignored — not a crash, but silent event loss with no visibility in userspace. Even with production filters re-enabled, 4096 is reasonable only if app-UID entries are evicted when the window expires. Add a daemon-side eviction pass: delete map entries where `burst_flags == 0` and `last_timestamp` is more than 2× `BURST_WINDOW_SEC` old.
+
+**8. Daemon crash leaves a stale socket file, causing false-positive "daemon running" detection.**
+`isDaemonRunning()` is `new File(SOCKET_PATH).exists()`. If the daemon crashes (SIGSEGV, OOM kill), the socket file is NOT cleaned up because `ModeADaemon::stop()` → `unlink(socket_path_)` only runs on graceful shutdown. The next call to `isDaemonRunning()` returns `true`, `nativeConnect()` fails with `ECONNREFUSED`, and the service reports "could not connect to daemon socket" and `stopSelf()`. The daemon is never restarted. Fix: if `isDaemonRunning()` returns true but `nativeConnect()` fails, delete the socket file and restart the daemon.
+
+---
+
+### Minor (Polish / correctness gaps)
+
+**9. `exec_count` in `pid_activity` is tracked but generates no detection signal.**
+`tp_sched_exec` increments `exec_count` and there is no `BURST_EXEC_THRESHOLD` and no `BURST_FLAG_EXEC` bit. The field is wasted space in every map entry. Either add an exec-burst detection path (useful for dropper-style ransomware that chains multiple executables) or remove the field.
+
+**10. `path_is_user_storage()` is a dead function in BPF context — it always was.**
+The function was defined but is now also never called. The BPF verifier does not warn about dead code. It consumes instruction budget from the BPF program if somehow called in future, and gives a misleading impression in code review that path filtering is operative.
+
+**11. `ModeAController` leaks the daemon `Process` handle on double-start.**
+If `startDaemon()` is called twice without an intervening `stopDaemon()`, the first `daemonProcess` reference is silently overwritten. The first `su` process becomes unreachable from Java (GC finalization may eventually call `destroy()`, but timing is undefined). More critically, `destroy()` sends SIGTERM to the `su` wrapper, not to the actual `shield_modea_daemon` child process — the daemon continues running after `stopDaemon()` returns unless the `pkill` command also succeeds.
+
+**12. `process_kill_command()` silently loses kill commands on partial `MSG_DONTWAIT` reads.**
+```cpp
+n = recv(client_fd, buf, msg_len, MSG_DONTWAIT);
+if (n < 8) return;
+```
+If `MSG_DONTWAIT` returns fewer bytes than `msg_len` (partial delivery), the function returns silently, leaving the remaining bytes in the socket buffer. On the next `poll()` tick, the daemon attempts to read a 4-byte length from the middle of the previous payload, gets a garbage value, and discards it. The kill command is lost with no log entry. Use `recv(MSG_WAITALL)` or a `recv_all()` loop for the payload read.
+
+**13. `g_sock_fd` in `modea_jni.cpp` is a bare global with no thread-safety.**
+`nativeConnect()` and `nativeDisconnect()` can be called from the service's `onDestroy()` on the main thread while `nativeReadEvent()` runs on `HandlerThread`. A concurrent `nativeDisconnect()` can close `g_sock_fd` while `nativeReadEvent()` has already read the fd value but hasn't called `recv()` yet. After `close()`, the fd number is available for reuse — the subsequent `recv()` on the stale fd hits a newly-opened file or socket. Guard all `g_sock_fd` accesses with a mutex, or use atomic CAS to swap it out on disconnect.
+
+**14. `ensure_bpf_fs()` creates a permanent tracefs symlink without checking if the target already exists as a mountpoint.**
+```cpp
+symlink("/sys/kernel/tracing", "/sys/kernel/debug/tracing");
+```
+On devices where `debugfs` is mounted at `/sys/kernel/debug` and tracefs is a submount at `/sys/kernel/debug/tracing`, this `symlink()` call attempts to create a symlink over an existing directory, which fails with `EEXIST` — silently, since the return value is not checked. If it succeeds on a device where `/sys/kernel/debug/tracing` does not exist, the symlink points to the correct location. But the unchecked return means a failed symlink is indistinguishable from a successful one in the logs.
+
+**15. `ModeAService.POLL_INTERVAL_MS = 20` fires 50 JNI round-trips per second during idle.**
+The Java event loop calls `nativeReadEvent()` every 20ms. Each call makes two `fcntl()` syscalls (get/set flags) and one `recv(MSG_DONTWAIT)` that immediately returns `EAGAIN` when there are no events — the daemon only produces events at 500ms intervals. This is 150 unnecessary syscalls per second just to poll for incoming data. Use `poll()` with a 20ms timeout inside `nativeReadEvent()` itself; it will sleep until data arrives or timeout expires, collapsing the busy-poll to zero syscalls when idle.
+
+**16. `struct android_fs_rw_args.pathname_loc` has a broken type comment that will mislead future developers.**
+The field is declared as `__u32 pathname_loc; /* __data_loc: bits[15:0]=offset from ctx, bits[31:16]=len */` but is never read. Worse, the struct's prior `char *pathname` was replaced with `__u32 pathname_loc` + `__u32 cmdline_loc_`, totalling 8 bytes — which matches the 8 bytes of the original 64-bit `char *pathname` + `__u32 cmdline`. However on 64-bit kernel ABIs where `char *pathname` was 8 bytes and `char *cmdline` was 8 bytes, the current 4+4 layout is correct in size but the field semantics are wrong: the actual first field is a 32-bit `__data_loc` (not a pointer), and the cmdline is a separate `__data_loc` field. The comment refers to a decoding method that was never tested against a live tracepoint before it was removed. If anyone attempts to re-enable filename reading, the starting assumptions in this struct definition will need independent verification against the actual kernel `tracefs/events/android_fs/android_fs_datawrite_start/format` file on the target device.
+
+---
+
+## WHERE TO FOCUS BEFORE MERGE
+
+Priority order, highest impact first:
+
+| Priority | What to fix | Why |
+|---|---|---|
+| 1 | **Restore all production filters** — re-enable `uid_is_app()` in all three `android_fs` handlers, re-enable `path_is_user_storage()`, restore `BURST_WRITE_THRESHOLD=50`, `BURST_READ_THRESHOLD=100`, `BURST_FSYNC_THRESHOLD=20` | Without this, Mode-A cannot be evaluated — it produces only system noise |
+| 2 | **Authenticate the KILL socket** — add `SO_PEERCRED` check on `accept()` and verify the connecting UID matches the expected app UID | This is a root-level privilege escalation on any device running Mode-A |
+| 3 | **Replace `system("mount ...")` with a direct `mount(2)` syscall** | `system()` as root is a command injection risk |
+| 4 | **Fix TOCTOU in `check_activity_map()`** — write back only `burst_flags=0`, not the entire `pa` struct | Current code silently drops kernel-side counter increments between read and write-back |
+| 5 | **Fix `nativeReadEvent()` blocking** — set `SO_RCVTIMEO` at connect time or use `MSG_DONTWAIT` throughout | A stalled daemon currently freezes the Android event loop permanently |
+| 6 | **Fix daemon crash → stale socket → no restart** — detect `ECONNREFUSED` on connect, clean the socket, restart the daemon | After a daemon OOM kill the service silently gives up with no recovery |
+| 7 | **Add `SO_PEERCRED` / mutex to `g_sock_fd`** in JNI — for thread safety between `onDestroy()` and `HandlerThread` | Low-probability race but produces use-after-close on a reused fd number |
+| 8 | **Add daemon-side map eviction** — delete `burst_flags==0` entries older than 2× window | Prevents the 4096-entry map from filling with idle PIDs under ANY filter configuration |
+
+---
+
+## Mode-A Summary
+
+The kernel infrastructure (eBPF loader, daemon, JNI bridge, socket protocol) is architecturally sound and runs correctly on kernel 4.14 / Android 12 with Magisk root. The core innovation — accurate kernel-attributed UID and PID telemetry — works and is a genuine improvement over Mode-B's `FileObserver` approach. The three items that block MVP use are: (1) test-mode filters left in production code, (2) the unauthenticated root-kill socket, and (3) the `system()` shell invocation. Fix those three and the detection logic is evaluation-ready for merge into the main SHIELD project.

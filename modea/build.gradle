@@ -1,0 +1,8 @@
+// Root build.gradle for the SHIELD Mode-A standalone APK project.
+// To open in Android Studio: File → Open → select this modea/ directory.
+
+plugins {
+    id 'com.android.application' version '8.2.2' apply false
+}
+
+// Repositories are declared in settings.gradle (dependencyResolutionManagement).

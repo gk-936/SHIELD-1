@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">SHIELD Mode-A</string>
+    <string name="btn_start">Start Mode-A</string>
+    <string name="btn_stop">Stop Mode-A</string>
+    <string name="status_idle">Status: Idle</string>
+    <string name="status_starting">Status: Starting…</string>
+    <string name="status_running">Status: Running (eBPF active)</string>
+    <string name="status_fallback">Status: Root unavailable — Mode-B fallback</string>
+    <string name="status_error">Status: Error — check logcat</string>
+    <string name="label_events">Live Events</string>
+    <string name="btn_clear">Clear</string>
+    <string name="no_events">No events yet. Start Mode-A and write a file to /sdcard.</string>
+</resources>
