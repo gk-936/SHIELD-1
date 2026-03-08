@@ -392,6 +392,8 @@ class SecurityRippleView @JvmOverloads constructor(
     // ── Heartbeat ────────────────────────────────────────────────────────────
 
     private fun drawHeartbeat(canvas: Canvas) {
+        ringPaint.shader = null
+        ringPaint.style = Paint.Style.STROKE
         ringPaint.color = heartbeatColor
         ringPaint.alpha = (heartbeatAlpha * 255).toInt()
         ringPaint.strokeWidth = dp(1f)
@@ -409,18 +411,66 @@ class SecurityRippleView @JvmOverloads constructor(
         val alpha   = ring.peakAlpha * (1f - (elapsed / (EXPAND_MS + 300f)).coerceAtMost(1f))
         if (alpha <= 0f) { ring.alive = false; return }
 
-        // Draw ring arc
-        ringPaint.color       = ring.primaryColor
-        ringPaint.alpha       = (alpha * 255).toInt()
-        ringPaint.strokeWidth = dp(ring.strokeDp)
+        // Draw ring as a thick, cloudy smoke/energy ring
+        val bandThickness = dp(100f) // Very thick volumetric vapor
+        val rInner = (r - bandThickness * 0.5f).coerceAtLeast(0.1f)
+        val rOuter = r + bandThickness * 0.5f
+
+        val rC = Color.red(ring.primaryColor)
+        val gC = Color.green(ring.primaryColor)
+        val bC = Color.blue(ring.primaryColor)
+
+        // Base opacity multiplier, keeping it soft and translucent
+        val baseAlpha = alpha * 0.65f
+
+        // Dense misty core with pastel/white mix
+        val coreA = (baseAlpha * 255).toInt().coerceIn(0, 255)
+        val mix = 0.6f // intense pastel core
+        val coreR = (rC + (255 - rC) * mix).toInt()
+        val coreG = (gC + (255 - gC) * mix).toInt()
+        val coreB = (bC + (255 - bC) * mix).toInt()
+        val cCore = Color.argb(coreA, coreR, coreG, coreB)
+
+        // Inner mid-core
+        val midA = (baseAlpha * 0.6f * 255).toInt().coerceIn(0, 255)
+        val mixMid = 0.3f
+        val midR = (rC + (255 - rC) * mixMid).toInt()
+        val midG = (gC + (255 - gC) * mixMid).toInt()
+        val midB = (bC + (255 - bC) * mixMid).toInt()
+        val cMid = Color.argb(midA, midR, midG, midB)
+
+        // Wispy semi-transparent edges
+        val wispyA = (baseAlpha * 0.15f * 255).toInt().coerceIn(0, 255)
+        val cWispy = Color.argb(wispyA, rC, gC, bC)
+
+        val t0 = (rInner / rOuter).coerceIn(0f, 1f)
+        val tCore = (r / rOuter).coerceIn(t0 + 0.01f, 0.99f)
+        
+        val t1 = t0 + (tCore - t0) * 0.3f
+        val t2 = t0 + (tCore - t0) * 0.7f
+        val t3 = tCore
+        val t4 = tCore + (1f - tCore) * 0.3f
+        val t5 = tCore + (1f - tCore) * 0.7f
+        val t6 = 1f
+
+        ringPaint.style = Paint.Style.FILL
+        ringPaint.shader = android.graphics.RadialGradient(
+            centerX, centerY, rOuter,
+            intArrayOf(Color.TRANSPARENT, cWispy, cMid, cCore, cMid, cWispy, Color.TRANSPARENT),
+            floatArrayOf(t0, t1, t2, t3, t4, t5, t6),
+            android.graphics.Shader.TileMode.CLAMP
+        )
 
         if (ring.isElliptical) {
-            // Root mode: 85% height ratio (slightly squished)
-            val oval = RectF(centerX - r, centerY - r * 0.85f, centerX + r, centerY + r * 0.85f)
-            canvas.drawOval(oval, ringPaint)
+            // Root mode: 85% height ratio squish using canvas scale for proper gradient squishing
+            canvas.save()
+            canvas.scale(1f, 0.85f, centerX, centerY)
+            canvas.drawCircle(centerX, centerY, rOuter, ringPaint)
+            canvas.restore()
         } else {
-            canvas.drawCircle(centerX, centerY, r, ringPaint)
+            canvas.drawCircle(centerX, centerY, rOuter, ringPaint)
         }
+        ringPaint.shader = null // Clear shader for other draw calls
 
         // Draw glyphs around the ring
         drawGlyphs(canvas, ring, r, alpha, now)

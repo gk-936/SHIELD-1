@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
   activity_incident.xml
-  Edge-to-Edge layout: bg_static_shield gradient flows behind status bar
+  Edge-to-Edge layout with centered tab buttons
 -->
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
@@ -12,29 +12,83 @@
     android:orientation="vertical"
     android:background="@drawable/bg_static_shield">
 
-    <!-- Toolbar: transparent so gradient shows through -->
-    <androidx.appcompat.widget.Toolbar
-        android:id="@+id/incidentToolbar"
-        android:layout_width="match_parent"
-        android:layout_height="?attr/actionBarSize"
-        android:background="@android:color/transparent"
-        app:titleTextColor="#00C8FF"
-        app:title="INCIDENT REPORT"
-        app:navigationIcon="?attr/homeAsUpIndicator" />
-
-    <!-- TabLayout: semi-transparent so gradient peeks through -->
-    <com.google.android.material.tabs.TabLayout
-        android:id="@+id/incidentTabLayout"
+    <!-- Custom HUD Header container -->
+    <LinearLayout
+        android:id="@+id/hudHeaderContainer"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="#CC101828"
-        app:tabSelectedTextColor="#00C8FF"
-        app:tabTextColor="#8892A4"
-        app:tabIndicatorColor="#00C8FF"
-        app:tabIndicatorHeight="3dp"
-        app:tabRippleColor="#1A2744"
-        app:tabMode="fixed"
-        app:tabGravity="fill" />
+        android:orientation="vertical"
+        android:background="@android:color/transparent">
+
+        <!-- Back button row -->
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            android:paddingHorizontal="12dp">
+
+            <ImageView
+                android:id="@+id/hudBackBtn"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_gravity="center_vertical|start"
+                android:src="?attr/homeAsUpIndicator"
+                app:tint="#00C8FF"
+                android:padding="8dp"
+                android:background="?attr/selectableItemBackgroundBorderless" />
+        </FrameLayout>
+
+        <!-- Premium heading with divider line behind it -->
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingHorizontal="24dp"
+            android:paddingTop="4dp"
+            android:paddingBottom="20dp">
+
+            <!-- Decorative horizontal divider — sits behind the title -->
+            <View
+                android:id="@+id/hudDividerLine"
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_gravity="center_vertical"
+                android:background="#2A3C5A" />
+
+            <!-- Title overlays the divider line, centered on it -->
+            <TextView
+                android:id="@+id/hudTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:text="INCIDENT REPORT"
+                android:textColor="#FFFFFF"
+                android:textSize="26sp"
+                android:textStyle="bold"
+                android:shadowColor="#00C8FF"
+                android:shadowDx="0"
+                android:shadowDy="0"
+                android:shadowRadius="16"
+                android:paddingHorizontal="16dp"
+                android:letterSpacing="0.18" />
+        </FrameLayout>
+
+    </LinearLayout>
+
+    <FrameLayout 
+        android:id="@+id/threatAlertHeader"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:visibility="gone"
+        android:background="#1AFF3B3B">
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:text="THREAT ALERT OVERRIDE"
+            android:textColor="#FF3B3B"
+            android:textStyle="bold"
+            android:textSize="18sp"
+            android:letterSpacing="0.1" />
+    </FrameLayout>
 
     <!-- ViewPager2: fills remaining space, holds Timeline + DNA Report fragments -->
     <androidx.viewpager2.widget.ViewPager2
@@ -43,5 +97,37 @@
         android:layout_height="0dp"
         android:layout_weight="1"
         android:background="@android:color/transparent" />
+
+    <!-- Centered tab buttons container — sits at the bottom center -->
+    <FrameLayout
+        android:id="@+id/tabButtonContainer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="#CC0A0E1A"
+        android:paddingTop="8dp"
+        android:paddingBottom="12dp">
+
+        <LinearLayout
+            android:id="@+id/tabButtonRow"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:orientation="horizontal"
+            android:background="@android:color/transparent"
+            android:gravity="center" />
+
+    </FrameLayout>
+
+    <!-- Hidden TabLayout — still needed for ViewPager2 binding -->
+    <com.google.android.material.tabs.TabLayout
+        android:id="@+id/incidentTabLayout"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:visibility="gone"
+        app:tabSelectedTextColor="#00C8FF"
+        app:tabTextColor="#8892A4"
+        app:tabIndicatorColor="#00C8FF"
+        app:tabMode="fixed"
+        app:tabGravity="fill" />
 
 </LinearLayout>

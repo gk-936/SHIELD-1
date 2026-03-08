@@ -4,6 +4,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
+import kotlin.math.roundToInt
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Timeline event type — each value maps to a specific UI colour in both the
@@ -43,6 +44,9 @@ data class RansomwareDnaProfile(
     val sprtAcceptedH1: Boolean,    // true when SPRTDetector chose ACCEPT_H1
     val primaryDetector: String,    // highest-scoring subsystem name
     val confidenceLevel: String,    // "HIGH" / "MEDIUM" / "LOW"
+
+    // computed field
+    val normalizedScore: Int = ((compositeScore / 130f) * 100).roundToInt().coerceIn(0, 100),
 
     // ── Speed metrics ─────────────────────────────────────────────────────────
     val encryptionSpeedFilesPerMin: Float,  // files modified per minute in window
@@ -93,28 +97,25 @@ data class RansomwareDnaProfile(
     // Helpers
     // ─────────────────────────────────────────────────────────────────────────
 
-    /** "HIGH" when compositeScore ≥ 70, "MEDIUM" 40-69, else "LOW". */
+    /** "HIGH" when normalizedScore >= 55, "MEDIUM" 30..54, else "LOW". */
     @JvmName("computeConfidenceLevel")
-    fun getConfidenceLevel(): String = when {
-        compositeScore >= 70 -> "HIGH"
-        compositeScore >= 40 -> "MEDIUM"
-        else                 -> "LOW"
+    fun getConfidenceLevel(): String = when (normalizedScore) {
+        in 0..29  -> "LOW"
+        in 30..54 -> "MEDIUM"  
+        in 55..74 -> "HIGH"
+        in 75..100 -> "CRITICAL"
+        else -> "LOW"
     }
 
     /** CERT-In-aligned severity label. */
-    fun getRiskSeverityLabel(): String = when {
-        compositeScore >= 90 -> "CRITICAL"
-        compositeScore >= 70 -> "HIGH"
-        compositeScore >= 40 -> "MEDIUM"
-        else                 -> "LOW"
-    }
+    fun getRiskSeverityLabel(): String = getConfidenceLevel()
 
     // ─────────────────────────────────────────────────────────────────────────
     // Short shareable summary (5 lines)
     // ─────────────────────────────────────────────────────────────────────────
     fun toShareableText(): String = buildString {
         appendLine("🛡️ SHIELD Incident Summary")
-        appendLine("Family  : ${attackFamily.displayName}  |  Score: $compositeScore/130  |  ${getRiskSeverityLabel()}")
+        appendLine("Family  : ${attackFamily.displayName}  |  Score: $normalizedScore/100  |  ${getRiskSeverityLabel()}")
         appendLine("Files   : ${totalFilesAtRisk} at risk, ${filesRestoredCount} restored")
         appendLine("Network : C2 ${if (c2AttemptDetected) "BLOCKED ($c2BlockedCount)" else "None"}  |  Tor: ${if (torAttemptDetected) "DETECTED" else "None"}")
         append("Suspect : ${suspectAppName ?: suspectPackage ?: "UNKNOWN"}  |  Profile: $profileId")
@@ -154,7 +155,7 @@ data class RansomwareDnaProfile(
             appendLine("  Attack Family     : ${attackFamily.displayName}")
             appendLine("  CERT-In Category  : ${attackFamily.certInCategory}")
             appendLine("  Primary Detector  : $primaryDetector")
-            appendLine("  Composite Score   : $compositeScore / 130")
+            appendLine("  Threat Score      : $normalizedScore / 100")
             appendLine("  Confidence        : $confidenceLevel")
             appendLine("  Severity          : ${getRiskSeverityLabel()}")
             appendLine()

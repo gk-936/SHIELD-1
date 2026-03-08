@@ -227,8 +227,10 @@ class OrbAnimationView @JvmOverloads constructor(
         val targetY = ringRestY[RING_COUNT - 1]
         val targetW = ringRestWidth[RING_COUNT - 1]
 
+        val bandThickness = 80f * resources.displayMetrics.density
+        ringPaint.style = Paint.Style.FILL
+
         for (i in 0 until RING_COUNT) {
-            // Phase-offset ripple: ring 0 pulses first, ring 4 last
             val phase = (rippleProgress + i * 0.18f) % 1.0f
             val rippleScale = 0.88f + phase * 0.25f
             val rippleAlpha = (1f - phase).coerceIn(0f, 1f)
@@ -237,34 +239,83 @@ class OrbAnimationView @JvmOverloads constructor(
             val cp = compressProgress          // 0f = Phase1, 1.0f = fully compressed
             val currentY = lerp(ringRestY[i],  targetY, cp)
             val currentHalfW = lerp(ringRestWidth[i], targetW, cp) * rippleScale / 2f
-            val currentHalfH = (currentHalfW * RING_ASPECT)
-
+            
             val alpha = (RING_BASE_ALPHA[i] * rippleAlpha * (1f - cp * 0.3f)).toInt()
                 .coerceIn(0, 255)
+            if (alpha <= 0) continue
 
-            ringOval.set(
-                cx - currentHalfW,
-                currentY - currentHalfH,
-                cx + currentHalfW,
-                currentY + currentHalfH
+            // Build thick soft vapor gradient ring limits
+            val rOuter = currentHalfW + bandThickness * 0.6f
+            val rInner = (currentHalfW - bandThickness * 0.4f).coerceAtLeast(0.1f)
+
+            val baseA = alpha / 255f
+
+            // Color palette: pale blue fading to white, hints of lavender/cyan
+            val cRim = Color.argb((baseA * 1.0f * 255).toInt(), 255, 255, 255) // solid glowing mist
+            val cCore = Color.argb((baseA * 0.85f * 255).toInt(), 220, 245, 255) // soft hazy core
+            val cLav = Color.argb((baseA * 0.55f * 255).toInt(), 220, 220, 250) // lavender hint
+            val cWispy = Color.argb((baseA * 0.25f * 255).toInt(), 180, 220, 245) // wispy blue tendril
+            
+            val cTransInner = Color.argb(0, 255, 255, 255)
+            val cTransOuter = Color.argb(0, 180, 220, 245)
+
+            // Gradient stops for volumetric bands
+            val t0 = (rInner / rOuter).coerceIn(0f, 1f)
+            val tRim = (t0 + (1f - t0) * 0.15f).coerceIn(t0, 1f)
+            val tCore = (t0 + (1f - t0) * 0.35f).coerceIn(tRim, 1f)
+            val tLav = (t0 + (1f - t0) * 0.65f).coerceIn(tCore, 1f)
+            val tWispy = (t0 + (1f - t0) * 0.85f).coerceIn(tLav, 1f)
+
+            // LAYER 1: Core thick vapor mist
+            ringPaint.shader = RadialGradient(
+                cx, currentY, rOuter,
+                intArrayOf(cTransInner, cTransInner, cRim, cCore, cLav, cWispy, cTransOuter),
+                floatArrayOf(0f, t0, tRim, tCore, tLav, tWispy, 1f),
+                Shader.TileMode.CLAMP
             )
+            canvas.save()
+            canvas.scale(1f, RING_ASPECT, cx, currentY)
+            canvas.drawCircle(cx, currentY, rOuter, ringPaint)
+            canvas.restore()
 
-            ringPaint.color = Color.argb(alpha, 210, 245, 245)
-            canvas.drawOval(ringOval, ringPaint)
+            // LAYER 2: Mid-air overlapping cloud (differing aspect creates 3D depth geometry)
+            val cRim2 = Color.argb((baseA * 0.7f * 255).toInt(), 250, 255, 255)
+            val cLav2 = Color.argb((baseA * 0.45f * 255).toInt(), 230, 210, 255)
+            
+            val l2T0 = (t0 * 0.9f).coerceIn(0f, 1f)
+            val l2TRim = (tRim * 0.92f).coerceIn(l2T0, 1f)
+            val l2TCore = (tCore * 0.95f).coerceIn(l2TRim, 1f)
+            val l2TWispy = (tWispy * 0.95f).coerceIn(l2TCore, 1f)
 
-            // Second inner ring (slightly smaller, more opaque) — the "double edge" look
-            val innerAlpha = (alpha * 0.55f).toInt()
-            if (innerAlpha > 8) {
-                ringOval.set(
-                    cx - currentHalfW * 0.82f,
-                    currentY - currentHalfH * 0.82f,
-                    cx + currentHalfW * 0.82f,
-                    currentY + currentHalfH * 0.82f
-                )
-                ringPaint.color = Color.argb(innerAlpha, 230, 255, 255)
-                canvas.drawOval(ringOval, ringPaint)
-            }
+            ringPaint.shader = RadialGradient(
+                cx, currentY, rOuter * 0.95f,
+                intArrayOf(cTransInner, cTransInner, cRim2, cLav2, cWispy, cTransOuter),
+                floatArrayOf(0f, l2T0, l2TRim, l2TCore, l2TWispy, 1f),
+                Shader.TileMode.CLAMP
+            )
+            canvas.save()
+            canvas.scale(1f, RING_ASPECT * 1.15f, cx, currentY)
+            canvas.drawCircle(cx, currentY, rOuter * 0.95f, ringPaint)
+            canvas.restore()
+
+            // LAYER 3: Ambient ethereal aura spread
+            val cAura = Color.argb((baseA * 0.25f * 255).toInt(), 190, 240, 255)
+            val cTransAura = Color.argb(0, 190, 240, 255)
+            
+            val l3T1 = (tLav * 1.05f).coerceIn(t0, 0.999f)
+
+            ringPaint.shader = RadialGradient(
+                cx, currentY, rOuter * 1.1f,
+                intArrayOf(cTransInner, cTransInner, cAura, cTransAura),
+                floatArrayOf(0f, t0, l3T1, 1f),
+                Shader.TileMode.CLAMP
+            )
+            canvas.save()
+            canvas.scale(1f, RING_ASPECT * 0.9f, cx, currentY)
+            canvas.drawCircle(cx, currentY, rOuter * 1.1f, ringPaint)
+            canvas.restore()
         }
+        ringPaint.shader = null // Clear for any other uses
     }
 
     // ── Orb ───────────────────────────────────────────────────────────────────

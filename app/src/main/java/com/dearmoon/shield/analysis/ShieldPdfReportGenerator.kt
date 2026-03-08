@@ -2,10 +2,10 @@ package com.dearmoon.shield.analysis
 
 import android.content.Context
 import android.content.Intent
+import com.dearmoon.shield.R
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
-import android.graphics.Path
 import android.graphics.RectF
 import android.graphics.Typeface
 import android.graphics.pdf.PdfDocument
@@ -13,6 +13,7 @@ import android.os.Environment
 import android.util.Log
 import androidx.core.content.FileProvider
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -20,72 +21,172 @@ import java.io.FileOutputStream
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import kotlin.math.roundToInt
 
 /**
- * Generates a SHIELD Threat Intelligence PDF using [PdfDocument] + [Canvas] only.
- *
- * IMPORTANT: PdfDocument coordinates are in points at 72 dpi.
- * A4 = 595 x 842 points.  We NEVER multiply by displayMetrics.density.
+ * Generates a purely monochrome (with red severity hints), professional,
+ * printable CERT-In compliant Incident Report PDF.
  */
 object ShieldPdfReportGenerator {
 
     private const val TAG = "SHIELD_PDF"
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // Colour palette (defined once to avoid repeated Color.parseColor calls)
-    // ─────────────────────────────────────────────────────────────────────────
-    private val DARK   = Color.parseColor("#0A0E1A")
-    private val BLUE   = Color.parseColor("#1A2744")
-    private val ACCENT = Color.parseColor("#00C8FF")   // cyan
-    private val RED    = Color.parseColor("#FF3B3B")
-    private val GREEN  = Color.parseColor("#00E676")
-    private val AMBER  = Color.parseColor("#FFB300")
-    private val GREY   = Color.parseColor("#8892A4")
-    private val WHITE  = Color.parseColor("#E8EAF0")
-    private val CARD   = Color.parseColor("#101828")
-    private val BORDER = Color.parseColor("#1E3050")
-
     // A4 page dimensions in points (72 dpi — no density scaling)
-    private const val PAGE_W = 595
-    private const val PAGE_H = 842
+    private const val PAGE_W = 595f
+    private const val PAGE_H = 842f
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Initialized Paints
+    // ─────────────────────────────────────────────────────────────────────────
+    private val wmPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.argb(12, 0, 0, 0)
+        textSize = 420f
+        typeface = Typeface.DEFAULT_BOLD
+        textAlign = Paint.Align.CENTER
+    }
+    private val headerTitlePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.BLACK
+        textSize = 24f
+        typeface = Typeface.DEFAULT_BOLD
+    }
+    private val headerSubPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.parseColor("#444444")
+        textSize = 9f
+    }
+    private val rulePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.parseColor("#AAAAAA")
+        style = Paint.Style.STROKE
+        strokeWidth = 0.5f
+    }
+    private val heavyRulePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.BLACK
+        style = Paint.Style.STROKE
+        strokeWidth = 1.5f
+    }
+    private val titlePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.BLACK
+        textSize = 9f
+        typeface = Typeface.DEFAULT_BOLD
+    }
+    private val whitePaint = Paint().apply {
+        color = Color.WHITE
+        style = Paint.Style.FILL
+    }
+    private val labelBoldPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.BLACK
+        textSize = 9f
+        typeface = Typeface.DEFAULT_BOLD
+    }
+    private val valuePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.parseColor("#222222")
+        textSize = 9f
+    }
+    private val altRowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.parseColor("#F7F7F7")
+        style = Paint.Style.FILL
+        strokeWidth = 1f
+    }
+    private val monoTimePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.parseColor("#666666")
+        textSize = 8f
+        typeface = Typeface.MONOSPACE
+    }
+    private val italicPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.parseColor("#666666")
+        textSize = 9f
+        typeface = Typeface.create(Typeface.DEFAULT, Typeface.ITALIC)
+    }
+    private val smallGreyPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.parseColor("#888888")
+        textSize = 7f
+    }
+    private val scoreBarPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.BLACK
+        style = Paint.Style.FILL
+    }
+    private val scoreBarBorderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.BLACK
+        style = Paint.Style.STROKE
+        strokeWidth = 0.8f
+    }
+    private val dotPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.BLACK
+        style = Paint.Style.FILL
+    }
 
     // ─────────────────────────────────────────────────────────────────────────
     // Public API
     // ─────────────────────────────────────────────────────────────────────────
-
-    /**
-     * Produces a PDF file and saves it to the app's external Documents directory.
-     * Must be called from a background thread (Dispatchers.IO).
-     * Returns the saved [File].
-     */
     fun generatePdf(context: Context, profile: RansomwareDnaProfile): File {
         Log.d(TAG, "generatePdf() start — profile ${profile.profileId}")
 
-        val doc  = PdfDocument()
-        val info = PdfDocument.PageInfo.Builder(PAGE_W, PAGE_H, 1).create()
+        val doc = PdfDocument()
+        val info = PdfDocument.PageInfo.Builder(PAGE_W.toInt(), PAGE_H.toInt(), 1).create()
         val page = doc.startPage(info)
-        val c    = page.canvas
+        val c = page.canvas
 
-        // Draw in the order specified: watermark first, then content layers
-        drawWatermark(c)
-        drawHeader(c, profile)
-        drawFooter(c, profile)
-        drawTitleBlock(c, profile)
-        drawStatCards(c, profile)
-        drawClassificationCard(c, profile)
-        drawTimelineVisual(c, profile)
-        drawTargetAndNetworkCards(c, profile)
-        drawDamageCard(c, profile)
-        drawAttributionAndHoneyfileCards(c, profile)
-        drawCertInBar(c, profile)
+        // Compute shared properties
+        val normalizedScore = ((profile.compositeScore / 130f) * 100).roundToInt().coerceIn(0, 100)
+        val confidenceLabel = when (normalizedScore) {
+            in 0..29 -> "LOW"
+            in 30..54 -> "MEDIUM"
+            in 55..74 -> "HIGH"
+            else -> "CRITICAL"
+        }
+        val severityColor = when (normalizedScore) {
+            in 0..29 -> Color.parseColor("#444444")
+            in 30..54 -> Color.parseColor("#886600")
+            in 55..74 -> Color.parseColor("#AA3300")
+            else -> Color.parseColor("#CC0000")
+        }
+
+        // PAGE 1
+        // 1. Watermark FIRST
+        drawWatermark(c, context)
+
+        // 2. Header
+        drawHeader(c)
+
+        // 3. Classification Badge
+        drawClassificationBadge(c, profile, confidenceLabel, severityColor)
+
+        // 4. Sections
+        var currentY = 110f
+        currentY = drawExecutiveSummary(c, profile, currentY)
+        currentY = drawIncidentClassification(c, profile, currentY, normalizedScore, confidenceLabel)
+        currentY = drawTargetProfile(c, profile, currentY)
+        currentY = drawNetworkIntelligence(c, profile, currentY)
+        
+        // 5. Footer LAST
+        drawFooter(c)
 
         doc.finishPage(page)
 
-        // Write to external Documents directory
-        val dir  = context.getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS)
-            ?: context.filesDir
+        // PAGE 2
+        val info2 = PdfDocument.PageInfo.Builder(PAGE_W.toInt(), PAGE_H.toInt(), 2).create()
+        val page2 = doc.startPage(info2)
+        val c2 = page2.canvas
+
+        drawWatermark(c2, context)
+        drawHeader(c2)
+
+        var currentY2 = 110f
+        currentY2 = drawDamageAssessment(c2, profile, currentY2)
+        currentY2 = drawAttribution(c2, profile, currentY2)
+        currentY2 = drawHoneyfileIntelligence(c2, profile, currentY2)
+        currentY2 = drawAttackTimeline(c2, profile, currentY2)
+
+        drawFooter(c2)
+        doc.finishPage(page2)
+
+        // Export
+        val dir = context.getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS) ?: context.filesDir
         if (!dir.exists()) dir.mkdirs()
-        val file = File(dir, "SHIELD_Report_${profile.profileId}.pdf")
+        
+        val shortId = profile.profileId.take(8)
+        val fileName = "SHIELD_Report_$shortId.pdf"
+        val file = File(dir, fileName)
+        
         FileOutputStream(file).use { doc.writeTo(it) }
         doc.close()
 
@@ -93,12 +194,8 @@ object ShieldPdfReportGenerator {
         return file
     }
 
-    /**
-     * Generates the PDF on IO, then fires a share intent on Main.
-     * Uses [FileProvider] so the receiving app can read the file safely.
-     */
     fun generateAndShare(context: Context, profile: RansomwareDnaProfile) {
-        kotlinx.coroutines.GlobalScope.launch(Dispatchers.IO) {
+        GlobalScope.launch(Dispatchers.IO) {
             try {
                 val file = generatePdf(context, profile)
                 withContext(Dispatchers.Main) {
@@ -108,13 +205,12 @@ object ShieldPdfReportGenerator {
                         file
                     )
                     val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                        type  = "application/pdf"
+                        type = "application/pdf"
                         putExtra(Intent.EXTRA_STREAM, uri)
-                        putExtra(Intent.EXTRA_SUBJECT, "SHIELD Threat Report — ${profile.profileId}")
+                        putExtra(Intent.EXTRA_SUBJECT, "CERT-In Incident Report — ${profile.profileId.take(8)}")
                         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                     }
-                    context.startActivity(Intent.createChooser(shareIntent, "Share SHIELD Report"))
-                    Log.d(TAG, "generateAndShare() share intent fired")
+                    context.startActivity(Intent.createChooser(shareIntent, "Share Official Report"))
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "generateAndShare() failed", e)
@@ -123,529 +219,296 @@ object ShieldPdfReportGenerator {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // Drawing helpers — reusable
+    // Layout Sections
     // ─────────────────────────────────────────────────────────────────────────
 
-    /**
-     * Draws a rounded-rectangle card with an optional title bar at the top.
-     * Callers render content on top after this call.
-     */
-    private fun drawCard(
-        canvas: Canvas,
-        x: Float, y: Float,
-        w: Float, h: Float,
-        title: String?,
-        titleColor: Int
-    ) {
-        val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private fun drawWatermark(c: Canvas, context: Context) {
+        val d = androidx.core.content.ContextCompat.getDrawable(context, R.drawable.ic_guide_shield)
+        if (d != null) {
+            val size = 350
+            val cx = 297f
+            val cy = 421f
+            d.setBounds((cx - size / 2).toInt(), (cy - size / 2).toInt(), (cx + size / 2).toInt(), (cy + size / 2).toInt())
+            d.alpha = 20 // slightly stronger faint mark
 
-        // Card body
-        paint.style = Paint.Style.FILL
-        paint.color = CARD
-        canvas.drawRoundRect(RectF(x, y, x + w, y + h), 6f, 6f, paint)
-
-        // Card border
-        paint.style       = Paint.Style.STROKE
-        paint.color       = BORDER
-        paint.strokeWidth = 0.8f
-        canvas.drawRoundRect(RectF(x, y, x + w, y + h), 6f, 6f, paint)
-
-        // Title text
-        if (title != null) {
-            paint.style    = Paint.Style.FILL
-            paint.color    = titleColor
-            paint.isFakeBoldText = true
-            paint.textSize = 8f
-            canvas.drawText(title, x + 8f, y + 13f, paint)
+            // The SVG is white. We MUST tint it black for the watermark to be visible on white paper.
+            d.colorFilter = android.graphics.PorterDuffColorFilter(Color.BLACK, android.graphics.PorterDuff.Mode.SRC_IN)
+            
+            d.draw(c)
         }
     }
 
-    /**
-     * Draws a two-column key-value row.
-     * Keys are rendered in [GREY], values in [WHITE] bold.
-     */
-    private fun drawKeyValue(
-        canvas: Canvas,
-        keyX: Float, valX: Float,
-        y: Float,
-        key: String, value: String
-    ) {
-        val p = Paint(Paint.ANTI_ALIAS_FLAG)
-        p.textSize = 7.5f
+    private fun drawHeader(c: Canvas) {
+        // Left
+        c.drawText("SHIELD", 36f, 36f, headerTitlePaint)
+        c.drawText("Ransomware Early Warning System", 36f, 50f, headerSubPaint)
+        
+        val tsPaintItalic = Paint(headerSubPaint).apply {
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.ITALIC)
+        }
+        c.drawText("Threat Intelligence Report", 36f, 62f, tsPaintItalic)
 
-        p.color          = GREY
-        p.isFakeBoldText = false
-        canvas.drawText(key, keyX, y, p)
+        // Right
+        val rightAlignPaint = Paint(headerSubPaint).apply {
+            textAlign = Paint.Align.RIGHT
+            color = Color.BLACK
+        }
+        val tsFormatted = SimpleDateFormat("dd MMMM yyyy  |  HH:mm z", Locale.ENGLISH).format(Date())
+        c.drawText(tsFormatted, 559f, 50f, rightAlignPaint)
 
-        p.color          = WHITE
-        p.isFakeBoldText = true
-        canvas.drawText(value, valX, y, p)
+        // Heavy rule
+        c.drawLine(36f, 82f, 559f, 82f, heavyRulePaint)
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // STEP 1 — Watermark
-    // ─────────────────────────────────────────────────────────────────────────
-    private fun drawWatermark(c: Canvas) {
-        val cx = 297f; val cy = 421f
-        val p  = Paint(Paint.ANTI_ALIAS_FLAG)
-        p.style = Paint.Style.STROKE
-        p.strokeWidth = 1f
-
-        // Three concentric rings (alpha 5, 6, 8 %)
-        val radii  = intArrayOf(160, 130, 105)
-        val alphas = intArrayOf(13, 15, 20)   // approx 5%, 6%, 8% of 255
-        for (i in radii.indices) {
-            p.color = Color.argb(alphas[i], 0, 200, 255)
-            c.drawCircle(cx, cy, radii[i].toFloat(), p)
-        }
-
-        // Shield outline path
-        val sx = 207f; val sy = 316f
-        val shield = Path().apply {
-            moveTo(cx, sy - 30f)                        // top center
-            lineTo(sx, sy + 58f)                        // top-left corner
-            lineTo(sx, sy + 151f)                       // mid-left
-            cubicTo(sx, sy + 200f, cx - 40f, sy + 230f, cx, sy + 242f)   // curved bottom-left to tip
-            cubicTo(cx + 40f, sy + 230f, sx + 180f, sy + 200f, sx + 180f, sy + 151f)  // tip to mid-right
-            lineTo(sx + 180f, sy + 58f)                 // top-right corner
-            close()
-        }
-
-        p.color = Color.argb(40, 26, 39, 68)
-        p.style = Paint.Style.FILL
-        c.drawPath(shield, p)
-
-        p.color       = Color.argb(25, 0, 200, 255)
-        p.style       = Paint.Style.STROKE
-        p.strokeWidth = 3f
-        c.drawPath(shield, p)
-
-        // "S" letter
+    private fun drawClassificationBadge(
+        c: Canvas,
+        profile: RansomwareDnaProfile,
+        confidenceLabel: String,
+        severityColor: Int
+    ) {
+        // Left - badge
+        val badgeY = 100f // Adjusted y to align texts visually near y=90-100
         val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color          = Color.argb(22, 0, 200, 255)
-            textSize       = 120f
-            isFakeBoldText = true
-            textAlign      = Paint.Align.CENTER
+            color = Color.parseColor("#444444")
+            textSize = 9f
         }
-        c.drawText("S", cx, 383f, textPaint)
-
-        // "SHIELD" label
-        textPaint.textSize = 22f
-        textPaint.color    = Color.argb(18, 0, 200, 255)
-        c.drawText("SHIELD", cx, 351f, textPaint)
+        c.drawText("Threat Level:  ", 36f, badgeY, textPaint)
+        
+        val w = textPaint.measureText("Threat Level:  ")
+        val sevPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = severityColor
+            textSize = 10f
+            typeface = Typeface.DEFAULT_BOLD
+        }
+        c.drawText("■ $confidenceLabel", 36f + w, badgeY, sevPaint)
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // STEP 2 — Dark header (y=0, h=52)
-    // ─────────────────────────────────────────────────────────────────────────
-    private fun drawHeader(c: Canvas, profile: RansomwareDnaProfile) {
-        val p = Paint(Paint.ANTI_ALIAS_FLAG)
+    private fun drawExecutiveSummary(c: Canvas, profile: RansomwareDnaProfile, startY: Float): Float {
+        var y = startY
+        y = drawSectionTitle(c, "EXECUTIVE SUMMARY", y, 523f, 36f)
+        
+        val left = 36f
+        val lh = 16f
+        
+        val rsVal = formatRupees(profile.estimatedRansomRupees)
+        
+        c.drawText("Detection Time:   ", left, y + lh, labelBoldPaint)
+        c.drawText("${profile.detectionTimeSeconds}s", left + 85f, y + lh, valuePaint)
+        
+        c.drawText("Files Protected:  ", left, y + lh * 2, labelBoldPaint)
+        c.drawText("${profile.filesRestoredCount}", left + 85f, y + lh * 2, valuePaint)
+        
+        c.drawText("Financial Risk:   ", left, y + lh * 3, labelBoldPaint)
+        c.drawText("$rsVal estimated", left + 85f, y + lh * 3, valuePaint)
 
-        // Background
-        p.color = DARK; p.style = Paint.Style.FILL
-        c.drawRect(0f, 0f, PAGE_W.toFloat(), 52f, p)
-
-        // Left cyan stripe
-        p.color = ACCENT
-        c.drawRect(0f, 0f, 5f, 52f, p)
-
-        // "SHIELD" brand text
-        p.color = ACCENT; p.isFakeBoldText = true; p.textSize = 15f
-        c.drawText("SHIELD", 18f, 33f, p)
-
-        // Subtitle
-        p.color = GREY; p.isFakeBoldText = false; p.textSize = 9f
-        c.drawText("Ransomware Early Warning System  |  Threat Intelligence Report", 18f, 46f, p)
-
-        // Severity badge
-        val badgeColor = when (profile.getRiskSeverityLabel()) {
-            "CRITICAL" -> RED
-            "HIGH"     -> AMBER
-            else       -> GREY
-        }
-        val badgeText = when (profile.getRiskSeverityLabel()) {
-            "CRITICAL" -> "CRITICAL THREAT"
-            "HIGH"     -> "HIGH THREAT"
-            else       -> "MEDIUM THREAT"
-        }
-        p.color = badgeColor; p.style = Paint.Style.FILL
-        c.drawRoundRect(RectF(490f, 14f, 578f, 34f), 4f, 4f, p)
-
-        p.color = WHITE; p.isFakeBoldText = true; p.textSize = 9f
-        p.textAlign = Paint.Align.CENTER
-        c.drawText(badgeText, 534f, 27f, p)
-        p.textAlign = Paint.Align.LEFT
+        return y + (lh * 3) + 48f
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // STEP 3 — Footer (y=806, h=36)
-    // ─────────────────────────────────────────────────────────────────────────
-    private fun drawFooter(c: Canvas, profile: RansomwareDnaProfile) {
-        val p = Paint(Paint.ANTI_ALIAS_FLAG)
+    private fun drawIncidentClassification(
+        c: Canvas,
+        profile: RansomwareDnaProfile,
+        startY: Float,
+        normalizedScore: Int,
+        confidenceLabel: String
+    ): Float {
+        var y = startY
+        y = drawSectionTitle(c, "INCIDENT CLASSIFICATION", y, 523f, 36f)
 
-        p.color = DARK; p.style = Paint.Style.FILL
-        c.drawRect(0f, 806f, PAGE_W.toFloat(), PAGE_H.toFloat(), p)
+        val lh = 17f
+        val left = 36f
+        val rightColX = 36f + (523f * 0.55f)
 
-        // Cyan left stripe
-        p.color = ACCENT
-        c.drawRect(0f, 806f, 5f, PAGE_H.toFloat(), p)
-
-        // Horizontal rule with accent color at 30% alpha
-        p.color       = Color.argb(77, 0, 200, 255)  // 30% of 255
-        p.style       = Paint.Style.STROKE
-        p.strokeWidth = 0.5f
-        c.drawLine(0f, 806f, PAGE_W.toFloat(), 806f, p)
-
-        // Footer text
-        p.color          = GREY
-        p.style          = Paint.Style.FILL
-        p.isFakeBoldText = false
-        p.textSize       = 7.5f
-        c.drawText(
-            "CONFIDENTIAL  |  Generated by SHIELD v1.0 MVP  |  CERT-In Incident Report Format v2",
-            18f, 819f, p
+        // Left Column 
+        val kvPairs = listOf(
+            "Attack Family:" to profile.attackFamily.displayName,
+            "Primary Detector:" to profile.primaryDetector,
+            "Confidence:" to confidenceLabel,
+            "SPRT Decision:" to if (profile.sprtAcceptedH1) "ACCEPT H1" else "ACCEPT H0",
+            "Entropy Score:" to "${profile.entropyScore}/40",
+            "KLD Score:" to "${profile.kldScore}/30",
+            "Composite Score:" to "$normalizedScore/100" // normalized 
         )
 
-        // Page number right-aligned
-        p.textAlign = Paint.Align.RIGHT
-        c.drawText("Page 1", 577f, 819f, p)
-        p.textAlign = Paint.Align.LEFT
-    }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // STEP 4 — Title block (y=62)
-    // ─────────────────────────────────────────────────────────────────────────
-    private fun drawTitleBlock(c: Canvas, profile: RansomwareDnaProfile) {
-        val p = Paint(Paint.ANTI_ALIAS_FLAG)
-
-        p.color = WHITE; p.isFakeBoldText = true; p.textSize = 18f
-        c.drawText("THREAT INTELLIGENCE REPORT", 30f, 77f, p)
-
-        val tsFormatted = SimpleDateFormat("dd MMM yyyy HH:mm", Locale.ENGLISH)
-            .format(Date(profile.generatedAt))
-        p.color = GREY; p.isFakeBoldText = false; p.textSize = 8.5f
-        c.drawText("Profile ID: ${profile.profileId}   |   Generated: $tsFormatted", 30f, 90f, p)
-
-        // Horizontal rule
-        p.color = BORDER; p.style = Paint.Style.STROKE; p.strokeWidth = 0.5f
-        c.drawLine(30f, 95f, 565f, 95f, p)
-        p.style = Paint.Style.FILL
-    }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // STEP 5 — Three stat cards (top=100, h=68)
-    // ─────────────────────────────────────────────────────────────────────────
-    private fun drawStatCards(c: Canvas, profile: RansomwareDnaProfile) {
-        val top      = 100f
-        val cardH    = 68f
-        val cardW    = 174f
-        val gap      = 6f
-        val startX   = 30f
-
-        data class StatCard(val value: String, val unit: String, val label: String, val color: Int)
-
-        val cards = listOf(
-            StatCard("${profile.detectionTimeSeconds}s",               "seconds",    "DETECTION TIME",    GREEN),
-            StatCard(profile.filesRestoredCount.toString(),            "files",      "FILES PROTECTED",   ACCENT),
-            StatCard(formatRupees(profile.estimatedRansomRupees),      "estimated",  "FINANCIAL RISK",    AMBER)
-        )
-
-        val p = Paint(Paint.ANTI_ALIAS_FLAG)
-        for (i in cards.indices) {
-            val x = startX + i * (cardW + gap)
-            drawCard(c, x, top, cardW, cardH, null, ACCENT)
-
-            val card = cards[i]
-
-            // Value (22sp bold)
-            p.color = card.color; p.isFakeBoldText = true; p.textSize = 22f
-            c.drawText(card.value, x + 10f, top + 34f, p)
-
-            // Unit (7sp grey)
-            p.color = GREY; p.isFakeBoldText = false; p.textSize = 7f
-            c.drawText(card.unit, x + 10f, top + 44f, p)
-
-            // Label (8sp white bold)
-            p.color = WHITE; p.isFakeBoldText = true; p.textSize = 8f
-            c.drawText(card.label, x + 10f, top + 58f, p)
-        }
-    }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // STEP 6 — Incident classification card (top=178, h=100)
-    // ─────────────────────────────────────────────────────────────────────────
-    private fun drawClassificationCard(c: Canvas, profile: RansomwareDnaProfile) {
-        val top = 178f
-        val h   = 100f
-
-        drawCard(c, 30f, top, 535f, h, "INCIDENT CLASSIFICATION", ACCENT)
-
-        val p = Paint(Paint.ANTI_ALIAS_FLAG)
-
-        // Attack family badge
-        p.color = RED; p.style = Paint.Style.FILL
-        c.drawRoundRect(RectF(45f, top + 18f, 185f, top + 44f), 5f, 5f, p)
-        p.color = WHITE; p.isFakeBoldText = true; p.textSize = 11f
-        p.textAlign = Paint.Align.CENTER
-        c.drawText(profile.attackFamily.displayName, 115f, top + 35f, p)
-        p.textAlign = Paint.Align.LEFT
-
-        // Left column key-value pairs (start y = top+76 step -13 = going downward, so top+58)
-        val rowY0 = top + 58f
-        val rowStep = 14f
-        drawKeyValue(c, 45f, 145f, rowY0,              "Primary Detector",  profile.primaryDetector)
-        drawKeyValue(c, 45f, 145f, rowY0 + rowStep,    "Composite Score",   "${profile.compositeScore}/130")
-        drawKeyValue(c, 45f, 145f, rowY0 + rowStep*2f, "Confidence",        profile.confidenceLevel)
-
-        // Right column
-        drawKeyValue(c, 310f, 400f, rowY0,              "SPRT Decision",  if (profile.sprtAcceptedH1) "ACCEPT H1" else "ACCEPT H0")
-        drawKeyValue(c, 310f, 400f, rowY0 + rowStep,    "Entropy Score",  "${profile.entropyScore}/40")
-        drawKeyValue(c, 310f, 400f, rowY0 + rowStep*2f, "KLD Score",      "${profile.kldScore}/30")
-    }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // STEP 7 — Attack timeline visual (top=288, h=80)
-    // ─────────────────────────────────────────────────────────────────────────
-    private fun drawTimelineVisual(c: Canvas, profile: RansomwareDnaProfile) {
-        val top  = 288f
-        val h    = 80f
-
-        drawCard(c, 30f, top, 535f, h, "ATTACK TIMELINE", ACCENT)
-
-        val timeFmt = SimpleDateFormat("HH:mm:ss", Locale.ENGLISH)
-        val events  = profile.timelineEvents.take(6)
-        if (events.isEmpty()) return
-
-        val p     = Paint(Paint.ANTI_ALIAS_FLAG)
-        val dotY  = top + 40f
-        val xFrom = 60f; val xTo = 535f
-        val step  = if (events.size > 1) (xTo - xFrom) / (events.size - 1).toFloat() else 0f
-
-        // Connector lines between dots
-        p.color       = BORDER
-        p.style       = Paint.Style.STROKE
-        p.strokeWidth = 0.8f
-        if (events.size > 1) {
-            c.drawLine(xFrom, dotY, xFrom + step * (events.size - 1), dotY, p)
+        for ((i, pair) in kvPairs.withIndex()) {
+            val rowY = y + (i * lh) + 12f
+            c.drawText(pair.first, left, rowY, labelBoldPaint)
+            c.drawText(pair.second, left + 90f, rowY, valuePaint)
         }
 
-        for (i in events.indices) {
-            val event = events[i]
-            val dotX  = xFrom + step * i
+        // Right Column - Score Visual
+        val barY = y + 12f
+        val titlePaint8pt = Paint(labelBoldPaint).apply { textSize = 8f }
+        c.drawText("Threat Score", rightColX, barY, titlePaint8pt)
 
-            val dotColor = when (event.eventType) {
-                TimelineEventType.FIRST_SIGNAL                       -> AMBER
-                TimelineEventType.FILE_MODIFIED,
-                TimelineEventType.HONEYFILE_HIT,
-                TimelineEventType.HIGH_RISK_ALERT                    -> RED
-                TimelineEventType.NETWORK_BLOCKED,
-                TimelineEventType.VPN_ACTIVATED,
-                TimelineEventType.PROCESS_KILLED                     -> ACCENT
-                TimelineEventType.RESTORE_STARTED,
-                TimelineEventType.RESTORE_COMPLETE                   -> GREEN
-            }
+        val barTop = barY + 8f
+        val barW = 160f
+        val barH = 12f
+        c.drawRect(rightColX, barTop, rightColX + barW, barTop + barH, scoreBarBorderPaint)
+        c.drawRect(rightColX, barTop, rightColX + (normalizedScore / 100f * barW), barTop + barH, scoreBarPaint)
 
-            // Dot
-            p.color = dotColor; p.style = Paint.Style.FILL
-            c.drawCircle(dotX, dotY, 5f, p)
-
-            // Timestamp below dot
-            p.textSize = 6.5f; p.isFakeBoldText = true
-            p.textAlign = Paint.Align.CENTER
-            c.drawText(timeFmt.format(Date(event.timestamp)), dotX, dotY + 14f, p)
-
-            // Description (max 8 chars per line, 2 lines)
-            val desc = event.description.take(16)
-            p.color = GREY; p.isFakeBoldText = false; p.textSize = 6f
-            c.drawText(desc.take(8), dotX, dotY + 23f, p)
-            if (desc.length > 8) c.drawText(desc.drop(8).take(8), dotX, dotY + 30f, p)
-
-            p.textAlign = Paint.Align.LEFT
+        val textBelowPaint = Paint(valuePaint).apply { 
+            textSize = 8f
+            textAlign = Paint.Align.CENTER
         }
+        c.drawText("$normalizedScore / 100", rightColX + (barW / 2f), barTop + barH + 12f, textBelowPaint)
+
+        return y + (kvPairs.size * lh) + 48f
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // STEP 8 — Target + Network cards (top=378, h=108)
-    // ─────────────────────────────────────────────────────────────────────────
-    private fun drawTargetAndNetworkCards(c: Canvas, profile: RansomwareDnaProfile) {
-        val top    = 378f
-        val h      = 108f
-        val colW   = (PAGE_W - 66f) / 2f  // (595 - 66) / 2 = 264.5
-
-        // Left — Target Profile
-        drawCard(c, 30f, top, colW, h, "TARGET PROFILE", ACCENT)
-
-        val lx = 38f; val lv = 138f
-        var ly = top + 28f
-        val step = 13f
-        drawKeyValue(c, lx, lv, ly,         "Files at Risk",    profile.totalFilesAtRisk.toString()); ly += step
-        drawKeyValue(c, lx, lv, ly,         "Priority",         profile.targetPriority); ly += step
-        drawKeyValue(c, lx, lv, ly,         "File Types",       profile.targetedExtensions.joinToString(" ").take(30)); ly += step
-        drawKeyValue(c, lx, lv, ly,         "Speed",            "%.1f files/min".format(profile.encryptionSpeedFilesPerMin)); ly += step
-        drawKeyValue(c, lx, lv, ly,         "Duration",         "${profile.attackDurationSeconds}s")
-
-        // Right — Network Intelligence
-        val rx    = 30f + colW + 6f
-        val netTitleColor = if (profile.c2AttemptDetected) RED else GREY
-        drawCard(c, rx, top, colW, h, "NETWORK INTELLIGENCE", netTitleColor)
-
-        if (!profile.c2AttemptDetected) {
-            val p = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                color = GREY; textSize = 7.5f; isFakeBoldText = false
-            }
-            c.drawText("No C2 activity detected", rx + 8f, top + 40f, p)
-        } else {
-            val nvx = rx + 8f; val nvv = rx + 100f
-            var ny  = top + 28f
-            drawKeyValue(c, nvx, nvv, ny,         "C2 Attempt",  "YES"); ny += step
-            drawKeyValue(c, nvx, nvv, ny,         "Ports",       profile.portsTargeted.joinToString(",").ifEmpty { "N/A" }); ny += step
-            drawKeyValue(c, nvx, nvv, ny,         "Tor Network", if (profile.torAttemptDetected) "DETECTED" else "NONE"); ny += step
-            drawKeyValue(c, nvx, nvv, ny,         "VPN",         "ACTIVATED"); ny += step
-            drawKeyValue(c, nvx, nvv, ny,         "Blocked",     profile.c2BlockedCount.toString())
-        }
+    private fun drawTargetProfile(c: Canvas, profile: RansomwareDnaProfile, startY: Float): Float {
+        var y = drawSectionTitle(c, "TARGET PROFILE", startY, 523f, 36f)
+        
+        y = drawTableRow(c, "Files at Risk", "${profile.totalFilesAtRisk}", y, 36f, 523f, false)
+        y = drawTableRow(c, "Priority", sanitizeString(profile.targetPriority), y, 36f, 523f, true)
+        
+        val exts = profile.targetedExtensions.joinToString(", ").ifEmpty { "Unknown" }
+        y = drawTableRow(c, "File Types Targeted", sanitizeString(exts), y, 36f, 523f, false)
+        y = drawTableRow(c, "Attack Speed", "%.1f files/min".format(profile.encryptionSpeedFilesPerMin), y, 36f, 523f, true)
+        y = drawTableRow(c, "Duration", "${profile.attackDurationSeconds}s", y, 36f, 523f, false)
+        
+        return y + 48f
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // STEP 9 — Damage assessment card (top=496, h=75)
-    // ─────────────────────────────────────────────────────────────────────────
-    private fun drawDamageCard(c: Canvas, profile: RansomwareDnaProfile) {
-        val top = 496f
-        val h   = 75f
+    private fun drawNetworkIntelligence(c: Canvas, profile: RansomwareDnaProfile, startY: Float): Float {
+        var y = drawSectionTitle(c, "NETWORK INTELLIGENCE", startY, 523f, 36f)
+        
+        y = drawTableRow(c, "C2 Activity Detected", if (profile.c2AttemptDetected) "YES" else "NO", y, 36f, 523f, false)
+        y = drawTableRow(c, "Network Block Applied", if (profile.c2BlockedCount > 0) "YES" else "NO", y, 36f, 523f, true)
+        y = drawTableRow(c, "C2 Domain / IP", sanitizeString(profile.portsTargeted.joinToString(", ").ifEmpty { "None detected" }), y, 36f, 523f, false)
+        
+        return y + 48f
+    }
 
-        drawCard(c, 30f, top, 535f, h, "DAMAGE ASSESSMENT & RECOVERY", GREEN)
-
+    private fun drawDamageAssessment(c: Canvas, profile: RansomwareDnaProfile, startY: Float): Float {
+        var y = drawSectionTitle(c, "DAMAGE ASSESSMENT", startY, 523f, 36f)
+        
         val dataLossLabel = when {
             !profile.dataLossOccurred                                           -> "NONE"
             profile.filesRestoredCount >= profile.filesEncryptedEstimate        -> "NONE"
             profile.filesRestoredCount > 0                                      -> "PARTIAL"
-            else                                                                -> "SIGNIFICANT"
-        }
-        val dataLossColor = when (dataLossLabel) {
-            "NONE"    -> GREEN
-            "PARTIAL" -> AMBER
-            else      -> RED
+            else                                                                -> "TOTAL"
         }
 
-        // Savings = restored * 15000
         val savings = formatRupees(profile.filesRestoredCount.toLong() * 15_000L)
+        
+        y = drawTableRow(c, "Files Modified", "${profile.filesEncryptedEstimate}", y, 36f, 523f, false)
+        y = drawTableRow(c, "Files Restored", "${profile.filesRestoredCount}", y, 36f, 523f, true)
+        y = drawTableRow(c, "Data Loss", dataLossLabel, y, 36f, 523f, false)
+        y = drawTableRow(c, "Ransom Demanded", formatRupees(profile.estimatedRansomRupees), y, 36f, 523f, true)
+        y = drawTableRow(c, "Savings via SHIELD", savings, y, 36f, 523f, false)
 
-        data class Stat(val value: String, val color: Int, val label: String)
-        val stats = listOf(
-            Stat(profile.filesEncryptedEstimate.toString(), RED,         "FILES\nMODIFIED"),
-            Stat(profile.filesRestoredCount.toString(),     GREEN,       "FILES\nRESTORED"),
-            Stat(dataLossLabel,                             dataLossColor,"DATA\nLOSS"),
-            Stat(formatRupees(profile.estimatedRansomRupees), AMBER,     "RANSOM\nDEMAND"),
-            Stat("Rs.$savings",                             GREEN,       "SAVINGS\nVIA SHIELD")
-        )
-
-        val p  = Paint(Paint.ANTI_ALIAS_FLAG)
-        val colW = 535f / stats.size
-        for (i in stats.indices) {
-            val s  = stats[i]
-            val px = 30f + i * colW + 8f
-
-            p.color = s.color; p.isFakeBoldText = true; p.textSize = 15f
-            c.drawText(s.value, px, top + 44f, p)
-
-            // Label — 2 lines
-            p.color = GREY; p.isFakeBoldText = false; p.textSize = 6.5f
-            val lines = s.label.split("\n")
-            c.drawText(lines[0], px, top + 55f, p)
-            if (lines.size > 1) c.drawText(lines[1], px, top + 63f, p)
+        if (profile.filesRestoredCount > 0) {
+            y += 8f
+            c.drawText("✓ SHIELD automatically restored ${profile.filesRestoredCount} file(s) without data loss.", 36f, y + 16f, labelBoldPaint)
+            y += 24f
         }
+
+        return y + 48f
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // STEP 10 — Attribution + Honeyfile cards (top=581, h=72)
-    // ─────────────────────────────────────────────────────────────────────────
-    private fun drawAttributionAndHoneyfileCards(c: Canvas, profile: RansomwareDnaProfile) {
-        val top  = 581f
-        val h    = 72f
-        val colW = (PAGE_W - 66f) / 2f
-
-        // Left — Attribution
-        drawCard(c, 30f, top, colW, h, "ATTRIBUTION", ACCENT)
-
+    private fun drawAttribution(c: Canvas, profile: RansomwareDnaProfile, startY: Float): Float {
+        var y = drawSectionTitle(c, "ATTRIBUTION", startY, 523f, 36f)
+        
+        y = drawTableRow(c, "Suspect Package", sanitizeString(profile.suspectPackage ?: "UNKNOWN"), y, 36f, 523f, false)
+        y = drawTableRow(c, "Application Name", sanitizeString(profile.suspectAppName ?: "UNKNOWN"), y, 36f, 523f, true)
+        y = drawTableRow(c, "Source", if (profile.suspectPackage != null) "Sideloaded APK" else "N/A", y, 36f, 523f, false)
+        
         val timeFmt = SimpleDateFormat("HH:mm:ss", Locale.ENGLISH)
-        val aRows = listOf(
-            Pair("Package",    profile.suspectPackage  ?: "UNKNOWN"),
-            Pair("App Name",   profile.suspectAppName  ?: "UNKNOWN"),
-            Pair("Source",     if (profile.suspectPackage != null) "Sideloaded APK" else "N/A"),
-            Pair("First Event", timeFmt.format(Date(profile.attackWindowStart)))
-        )
-        val lx = 38f; val lv = 118f; var ly = top + 26f
-        aRows.forEach { (k, v) ->
-            drawKeyValue(c, lx, lv, ly, k, v.take(28))
-            ly += 12f
+        y = drawTableRow(c, "First Event", timeFmt.format(Date(profile.attackWindowStart)), y, 36f, 523f, true)
+
+        return y + 48f
+    }
+
+    private fun drawHoneyfileIntelligence(c: Canvas, profile: RansomwareDnaProfile, startY: Float): Float {
+        var y = drawSectionTitle(c, "HONEYFILE INTELLIGENCE", startY, 523f, 36f)
+        
+        val delayStr = if (profile.honeyfileTriggerDelaySeconds < 0) "N/A" else "${profile.honeyfileTriggerDelaySeconds}s"
+        
+        y = drawTableRow(c, "Trap Triggered", if (profile.honeyfileTriggered) "YES" else "NO", y, 36f, 523f, false)
+        y = drawTableRow(c, "Trigger Delay", delayStr, y, 36f, 523f, true)
+        y = drawTableRow(c, "Target Node", "SHIELD_HONEYFILE_TRAP", y, 36f, 523f, false)
+        y = drawTableRow(c, "Response Strategy", "Immediate HIGH_RISK protocol", y, 36f, 523f, true)
+
+        return y + 48f
+    }
+
+    private fun drawAttackTimeline(c: Canvas, profile: RansomwareDnaProfile, startY: Float): Float {
+        var y = drawSectionTitle(c, "ATTACK TIMELINE", startY, 523f, 36f)
+        
+        if (profile.timelineEvents.isEmpty()) {
+            c.drawText("No timeline events recorded.", 36f, y + 12f, italicPaint)
+            return y + 36f
         }
 
-        // Right — Honeyfile Intelligence
-        val rx = 30f + colW + 6f
-        drawCard(c, rx, top, colW, h, "HONEYFILE INTELLIGENCE", AMBER)
+        // Limit to 8 to save space
+        val events = profile.timelineEvents.take(8) 
+        
+        val lineX = 54f
+        val rh = 28f // Timeline row height increased
+        val timeFmt = SimpleDateFormat("HH:mm:ss", Locale.ENGLISH)
 
-        val hRows = listOf(
-            Pair("Trap Triggered",  if (profile.honeyfileTriggered) "YES" else "NO"),
-            Pair("Trigger Delay",   "${profile.honeyfileTriggerDelaySeconds}s"),
-            Pair("Decoy File",      "SHIELD_HONEYFILE_TRAP"),
-            Pair("Escalation",      "Immediate HIGH_RISK")
-        )
-        val hvx = rx + 8f; val hvv = rx + 88f; var hy = top + 26f
-        hRows.forEach { (k, v) ->
-            drawKeyValue(c, hvx, hvv, hy, k, v)
-            hy += 12f
+        // Connecting vertical line 
+        c.drawLine(lineX, y + 10f, lineX, y + (events.size * rh) - 10f, rulePaint)
+
+        for (event in events) {
+            // Dot
+            c.drawCircle(lineX, y + 12f, 3.5f, dotPaint)
+            
+            // Time
+            c.drawText(timeFmt.format(Date(event.timestamp)), 62f, y + 16f, monoTimePaint)
+            
+            // Desc
+            c.drawText(sanitizeString(event.description).take(55), 120f, y + 16f, valuePaint)
+            
+            y += rh
         }
+        
+        return y + 48f
+    }
+
+    private fun drawFooter(c: Canvas) {
+        c.drawLine(36f, 810f, 559f, 810f, rulePaint)
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // STEP 11 — CERT-In bar (top=663, h=36)
+    // Helpers
     // ─────────────────────────────────────────────────────────────────────────
-    private fun drawCertInBar(c: Canvas, profile: RansomwareDnaProfile) {
-        val top = 663f
-        val h   = 36f
-        val p   = Paint(Paint.ANTI_ALIAS_FLAG)
 
-        // Background
-        p.color = BLUE; p.style = Paint.Style.FILL
-        c.drawRoundRect(RectF(30f, top, 565f, top + h), 6f, 6f, p)
-
-        p.color       = ACCENT; p.style = Paint.Style.STROKE; p.strokeWidth = 0.8f
-        c.drawRoundRect(RectF(30f, top, 565f, top + h), 6f, 6f, p)
-
-        // CERT-In title
-        p.color = ACCENT; p.style = Paint.Style.FILL; p.isFakeBoldText = true; p.textSize = 8.5f
-        c.drawText("CERT-In Reportable Incident", 44f, top + 22f, p)
-
-        // Detail line
-        p.color = WHITE; p.isFakeBoldText = false; p.textSize = 7.5f
-        c.drawText(
-            "Satisfies CERT-In Incident Reporting v2  |  6-hour reporting window: MET  |  Export: SHIELD_Report_${profile.profileId}.txt",
-            44f, top + 11f, p
-        )
-
-        // Ready indicator — green circle
-        p.color = GREEN; p.style = Paint.Style.FILL
-        c.drawCircle(545f, top + 18f, 6f, p)
-
-        // "READY" label
-        p.color = WHITE; p.isFakeBoldText = true; p.textSize = 6f
-        p.textAlign = Paint.Align.CENTER
-        c.drawText("READY", 545f, top + 20f, p)
-        p.textAlign = Paint.Align.LEFT
+    private fun drawSectionTitle(c: Canvas, title: String, y: Float, contentWidth: Float, margin: Float): Float {
+        val ruleY = y + 8f // Added padding above the title
+        c.drawLine(margin, ruleY, margin + contentWidth, ruleY, rulePaint)
+        val titleW = titlePaint.measureText("  $title  ")
+        c.drawRect(margin, ruleY - 9f, margin + titleW, ruleY + 2f, whitePaint)
+        c.drawText("  $title  ", margin, ruleY, titlePaint)
+        return ruleY + 24f // Increased spacing below the title
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // Utilities
-    // ─────────────────────────────────────────────────────────────────────────
+    private fun drawTableRow(c: Canvas, label: String, value: String, y: Float, margin: Float, contentWidth: Float, isAlt: Boolean): Float {
+        val rowH = 22f // Increased row height from 17f
+        if (isAlt) {
+            c.drawRect(margin, y, margin + contentWidth, y + rowH, altRowPaint) 
+        }
+        
+        val col2X = margin + contentWidth * 0.40f
+        c.drawText(label, margin + 8f, y + 15f, labelBoldPaint) // shifted text down accordingly
+        c.drawText(value, col2X + 4f, y + 15f, valuePaint)
+        
+        return y + rowH
+    }
 
-    /**
-     * Formats a rupee amount for display in the PDF stat row.
-     * Amounts ≥ 1 lakh use the "L" suffix (e.g. Rs.1.5L).
-     */
     private fun formatRupees(amount: Long): String {
-        return if (amount >= 100_000L) {
-            "Rs.${amount / 100_000}.${(amount % 100_000) / 10_000}L"
+        return "Rs. " + if (amount >= 100_000L) {
+            "${amount / 100_000}.${(amount % 100_000) / 10_000}L"
         } else {
-            "Rs.$amount"
+            "$amount"
         }
+    }
+
+    /** Ensure we don't present raw "UNKNOWN", "null", or empty to a pro analyst. */
+    private fun sanitizeString(s: String?): String {
+        if (s.isNullOrBlank() || s.equals("null", true) || s.equals("UNKNOWN", true)) {
+            return "N/A"
+        }
+        return s
     }
 }

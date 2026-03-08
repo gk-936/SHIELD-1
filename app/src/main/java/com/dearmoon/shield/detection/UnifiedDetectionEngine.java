@@ -471,5 +471,36 @@ public class UnifiedDetectionEngine {
         intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
         context.sendBroadcast(intent);
         Log.e(TAG, "High-risk alert broadcast sent with recovery instructions");
+
+        // Requirement 3: System notification for ransomware found
+        try {
+            android.app.NotificationManager nm = (android.app.NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+            if (nm != null) {
+                // Ensure channel exists
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                    android.app.NotificationChannel channel = new android.app.NotificationChannel(
+                        "shield_alerts", "High Risk Alerts", android.app.NotificationManager.IMPORTANCE_HIGH);
+                    nm.createNotificationChannel(channel);
+                }
+
+                android.content.Intent uiIntent = new android.content.Intent(context, com.dearmoon.shield.MainActivity.class);
+                uiIntent.setFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK | android.content.Intent.FLAG_ACTIVITY_SINGLE_TOP);
+                android.app.PendingIntent pi = android.app.PendingIntent.getActivity(
+                    context, 0, uiIntent, android.app.PendingIntent.FLAG_UPDATE_CURRENT | android.app.PendingIntent.FLAG_IMMUTABLE);
+
+                androidx.core.app.NotificationCompat.Builder builder = new androidx.core.app.NotificationCompat.Builder(context, "shield_alerts")
+                    .setSmallIcon(android.R.drawable.ic_dialog_alert)
+                    .setContentTitle("⚠️ RANSOMWARE BLOCKED")
+                    .setContentText("Malicious process terminated. Recovering data for: " + (filePath != null ? new File(filePath).getName() : "Unknown"))
+                    .setPriority(androidx.core.app.NotificationCompat.PRIORITY_MAX)
+                    .setCategory(androidx.core.app.NotificationCompat.CATEGORY_ALARM)
+                    .setAutoCancel(true)
+                    .setContentIntent(pi);
+
+                nm.notify(2002, builder.build());
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to post high risk system notification", e);
+        }
     }
 }

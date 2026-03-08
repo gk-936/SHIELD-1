@@ -62,11 +62,8 @@ class ModeConfirmActivity : AppCompatActivity() {
         }
 
         val messageText: TextView = findViewById(R.id.messageText)
-        messageText.text = when (mode) {
-            "ROOT" -> "Breathe in,\nroot protocols engaged."
-            else   -> "Breathe in,\nwe have covered you."
-        }
-        messageText.setTextColor(Color.parseColor("#BEE0E0"))
+        messageText.text = "Breathe in,\nwe have got you"
+        messageText.setTextColor(Color.parseColor("#D9F5F5F5"))
 
         // 5. Animation starts automatically via OrbAnimationView.onAttachedToWindow()
 

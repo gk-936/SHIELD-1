@@ -9,6 +9,13 @@ import com.dearmoon.shield.services.ShieldProtectionService;
 public class ServiceRestartReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
+        boolean intentionallyStopped = context.getSharedPreferences("ShieldPrefs", Context.MODE_PRIVATE)
+                .getBoolean("intentionally_stopped", false);
+
+        if (intentionallyStopped) {
+            return; // Do not restart if the user intentionally stopped the service via biometric
+        }
+
         Intent serviceIntent = new Intent(context, ShieldProtectionService.class);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             context.startForegroundService(serviceIntent);

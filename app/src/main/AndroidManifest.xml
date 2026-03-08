@@ -224,6 +224,14 @@
             android:exported="false"
             android:theme="@style/Theme.AppCompat.NoActionBar" />
 
+        <!-- Features Showcase Activity -->
+        <activity
+            android:name=".features.FeaturesActivity"
+            android:exported="false"
+            android:hardwareAccelerated="true"
+            android:parentActivityName=".SettingsActivity"
+            android:label="New Features" />
+
         <!-- FileProvider for sharing PDF and CERT-In text exports -->
         <provider
             android:name="androidx.core.content.FileProvider"

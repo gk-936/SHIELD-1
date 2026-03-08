@@ -55,22 +55,16 @@ public class SettingsActivity extends AppCompatActivity {
     }
 
     private void initializeViews() {
-        // Demo Mode — wired first so it's the easiest thing to find
-        Button btnDemoMode = findViewById(R.id.btnDemoMode);
-        btnDemoMode.setOnClickListener(v -> startActivity(new Intent(this, DemoActivity.class)));
-
-        Button btnClearHoneyfiles = findViewById(R.id.btnClearHoneyfilesSettings);
-        Button btnTestSuite = findViewById(R.id.btnTestSuiteSettings);
-        Button btnUserGuide = findViewById(R.id.btnUserGuide);
-        Button btnManageWhitelist = findViewById(R.id.btnManageWhitelist);
+        android.view.View btnClearHoneyfiles = findViewById(R.id.btnClearHoneyfilesSettings);
+        android.view.View btnUserGuide = findViewById(R.id.btnUserGuide);
+        android.view.View btnManageWhitelist = findViewById(R.id.btnManageWhitelist);
+        android.view.View btnAccessibility = findViewById(R.id.btnAccessibility);
+        
         TextView tvPermissionCount = findViewById(R.id.tvPermissionCount);
         TextView tvPermissionList = findViewById(R.id.tvPermissionList);
 
         // Clear Honeyfiles
         btnClearHoneyfiles.setOnClickListener(v -> clearHoneyfiles());
-
-        // Test Suite
-        btnTestSuite.setOnClickListener(v -> startActivity(new Intent(this, TestActivity.class)));
 
         // User Guide
         btnUserGuide.setOnClickListener(v -> showUserGuide());
@@ -79,26 +73,36 @@ public class SettingsActivity extends AppCompatActivity {
         btnManageWhitelist.setOnClickListener(v -> startActivity(new Intent(this, WhitelistActivity.class)));
 
         // Accessibility Service
-        Button btnAccessibility = findViewById(R.id.btnAccessibility);
         btnAccessibility.setOnClickListener(v ->
             startActivity(new Intent(android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS)));
 
-        // Permission list container
+        // Explore Features Showcase
+        findViewById(R.id.btnFeatures).setOnClickListener(v -> 
+            startActivity(new Intent(this, com.dearmoon.shield.features.FeaturesActivity.class)));
+
+        // Permission list container elements
         android.view.View permissionListContainer = findViewById(R.id.permissionListContainer);
+        android.view.View permissionToggleArea = findViewById(R.id.permissionToggleArea);
 
         // Load permissions
         loadPermissions(tvPermissionCount, tvPermissionList);
 
+        android.widget.ImageView ivExpandIcon = findViewById(R.id.ivExpandIcon);
+
         // Toggle permissions list visibility
-        tvPermissionCount.setOnClickListener(v -> {
+        permissionToggleArea.setOnClickListener(v -> {
             if (permissionListContainer.getVisibility() == android.view.View.GONE) {
+                // Expanding
                 permissionListContainer.setVisibility(android.view.View.VISIBLE);
-                String currentText = tvPermissionCount.getText().toString();
-                tvPermissionCount.setText(currentText.replace("(Tap to expand)", "(Tap to collapse)"));
+                if (ivExpandIcon != null) {
+                    ivExpandIcon.setRotation(180f);
+                }
             } else {
+                // Collapsing
                 permissionListContainer.setVisibility(android.view.View.GONE);
-                String currentText = tvPermissionCount.getText().toString();
-                tvPermissionCount.setText(currentText.replace("(Tap to collapse)", "(Tap to expand)"));
+                if (ivExpandIcon != null) {
+                    ivExpandIcon.setRotation(0f);
+                }
             }
         });
     }

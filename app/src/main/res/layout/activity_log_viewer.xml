@@ -7,9 +7,11 @@
     android:background="@drawable/bg_static_shield">
 
     <com.google.android.material.appbar.AppBarLayout
+        android:id="@+id/appBarLayout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@android:color/transparent">
+        android:background="@android:color/transparent"
+        app:elevation="0dp">
 
         <com.google.android.material.appbar.MaterialToolbar
             android:id="@+id/toolbarLogs"
@@ -17,21 +19,16 @@
             android:layout_height="?attr/actionBarSize"
             app:title="Event Logs"
             app:titleCentered="true"
-            app:titleTextColor="@color/text_primary" />
-
-    </com.google.android.material.appbar.AppBarLayout>
-
-    <androidx.core.widget.NestedScrollView
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        app:layout_behavior="@string/appbar_scrolling_view_behavior">
+            app:titleTextColor="@color/text_primary"
+            app:layout_scrollFlags="scroll|enterAlways" />
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:paddingHorizontal="16dp"
-            android:paddingTop="16dp">
+            android:paddingTop="16dp"
+            app:layout_scrollFlags="scroll|enterAlwaysCollapsed">
 
             <!-- Event Count -->
             <TextView
@@ -43,40 +40,40 @@
                 android:textSize="14sp"
                 android:layout_marginBottom="12dp" />
 
-            <!-- Filter Dropdown -->
+            <!-- Modern Filter Chips Bar -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:background="@drawable/card_bg_premium"
                 android:orientation="horizontal"
-                android:paddingLeft="16dp"
                 android:gravity="center_vertical"
                 android:layout_marginBottom="16dp">
-                
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Filter:"
-                    android:textColor="@color/text_secondary"
-                    android:textStyle="bold" />
 
-                <Spinner
-                    android:id="@+id/spinnerFilter"
+                <HorizontalScrollView
                     android:layout_width="0dp"
-                    android:layout_height="48dp"
                     android:layout_weight="1"
-                    android:paddingHorizontal="8dp"
-                    android:backgroundTint="@color/text_secondary" />
+                    android:layout_height="wrap_content"
+                    android:scrollbars="none"
+                    android:overScrollMode="never">
+
+                    <LinearLayout
+                        android:id="@+id/filterChipGroup"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:paddingVertical="4dp">
+                        <!-- Chips inserted dynamically via Java -->
+                    </LinearLayout>
+                </HorizontalScrollView>
 
                 <ImageButton
                     android:id="@+id/btnRefreshLogs"
                     android:layout_width="48dp"
                     android:layout_height="48dp"
+                    android:layout_marginStart="8dp"
                     android:src="@android:drawable/ic_menu_rotate"
-                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:background="@drawable/card_bg_premium"
                     android:contentDescription="Refresh logs"
                     app:tint="@color/primary" />
-
             </LinearLayout>
 
             <!-- Graph Container -->
@@ -104,12 +101,6 @@
                     android:layout_height="250dp"
                     android:visibility="visible" />
 
-                <com.github.mikephil.charting.charts.BarChart
-                    android:id="@+id/eventBarChart"
-                    android:layout_width="match_parent"
-                    android:layout_height="250dp"
-                    android:visibility="gone" />
-
             </LinearLayout>
 
             <!-- Glassmorphism Button to Show Logs -->
@@ -123,51 +114,54 @@
                 android:layout_marginBottom="16dp"
                 app:backgroundTint="@null"/>
 
-            <!-- Detailed Logs RecyclerView (Initially Hidden) -->
-            <LinearLayout
-                android:id="@+id/detailedLogsContainer"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:visibility="gone">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:layout_marginBottom="12dp">
-
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="Detailed Event List"
-                        android:textColor="@color/text_primary"
-                        android:textSize="16sp"
-                        android:textStyle="bold" />
-
-                    <Button
-                        android:id="@+id/btnClearAllLogs"
-                        style="@style/Widget.Shield.Button.Frosted"
-                        android:layout_width="wrap_content"
-                        android:layout_height="36dp"
-                        android:text="CLEAR ALL"
-                        android:textSize="12sp"
-                        android:textColor="#EF4444"
-                        app:backgroundTint="@null"/>
-                </LinearLayout>
-
-                <androidx.recyclerview.widget.RecyclerView
-                    android:id="@+id/recyclerViewLogs"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:nestedScrollingEnabled="false"
-                    android:clipToPadding="false" />
-
-            </LinearLayout>
-
         </LinearLayout>
-    </androidx.core.widget.NestedScrollView>
+    </com.google.android.material.appbar.AppBarLayout>
+
+    <!-- Detailed Logs Container (Scrolling Content) -->
+    <LinearLayout
+        android:id="@+id/detailedLogsContainer"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:visibility="gone"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior"
+        android:paddingHorizontal="16dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="12dp">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Detailed Event List"
+                android:textColor="@color/text_primary"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <!-- Clear Button changed to X icon -->
+            <ImageButton
+                android:id="@+id/btnClearAllLogs"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:src="@android:drawable/ic_menu_close_clear_cancel"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                app:tint="#EF4444"
+                android:contentDescription="Clear All Logs"/>
+        </LinearLayout>
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recyclerViewLogs"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:nestedScrollingEnabled="true"
+            android:clipToPadding="false"
+            android:paddingBottom="16dp" />
+
+    </LinearLayout>
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

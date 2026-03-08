@@ -1,114 +1,308 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<!--
+  activity_recovery.xml
+  Cyber Command Center Snapshot Recovery 
+-->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/recoveryRoot"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/bg_static_shield">
+    android:background="#040814"> <!-- Dark Navy Cyber Background -->
 
-    <!-- Main Glassmorphism Container -->
-    <androidx.cardview.widget.CardView
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="24dp"
-        android:layout_marginEnd="24dp"
-        app:cardBackgroundColor="@android:color/transparent"
-        app:cardElevation="0dp"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent">
+    <!-- Ambient Grid/Particles/Glow (Static representation) -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@drawable/bg_static_shield"
+        android:alpha="0.4" />
+
+    <!-- 2️⃣ Circular Radar Background (Centered around status panel) -->
+    <ImageView
+        android:id="@+id/radarBackground"
+        android:layout_width="320dp"
+        android:layout_height="320dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="120dp"
+        android:alpha="0.3" />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fillViewport="true"
+        android:scrollbars="none"
+        android:clipToPadding="false">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:background="@drawable/bg_glass_card"
-            android:padding="32dp">
+            android:paddingHorizontal="24dp"
+            android:paddingTop="50dp"
+            android:paddingBottom="40dp"
+            android:clipChildren="false">
 
-            <!-- Header -->
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="SNAPSHOT RECOVERY"
-                android:textSize="24sp"
-                android:textColor="@color/text_primary"
-                android:textStyle="bold"
-                android:gravity="center"
-                android:layout_marginBottom="32dp" />
-
-            <!-- Status with Sonar Dot -->
+            <!-- 1️⃣ HEADER SECTION -->
             <LinearLayout
+                android:id="@+id/headerSection"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
+                android:orientation="vertical"
                 android:gravity="center"
-                android:layout_marginBottom="16dp">
-
-                <com.dearmoon.shield.ui.SonarDotView
-                    android:id="@+id/sonarDot"
-                    android:layout_width="40dp"
-                    android:layout_height="40dp"
-                    android:layout_marginEnd="12dp" />
+                android:layout_marginBottom="32dp"
+                android:alpha="0">
 
                 <TextView
-                    android:id="@+id/tvRecoveryStatus"
-                    android:layout_width="0dp"
+                    android:id="@+id/tvRecoveryTitle"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="No Active Threat"
-                    android:textSize="18sp"
-                    android:textColor="@color/text_primary"
-                    android:textStyle="bold" />
+                    android:text="SNAPSHOT RECOVERY"
+                    android:textSize="24sp"
+                    android:textStyle="bold"
+                    android:textColor="#FFFFFF"
+                    android:letterSpacing="0.1"
+                    android:shadowColor="#00C8FF"
+                    android:shadowDx="0"
+                    android:shadowDy="0"
+                    android:shadowRadius="15" />
+
+                <!-- Glow Scanning Beam under title -->
+                <FrameLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="2dp"
+                    android:layout_marginTop="8dp">
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="0.5dp"
+                        android:layout_gravity="center"
+                        android:background="#1A00C8FF" />
+
+                    <View
+                        android:id="@+id/scanningBeam"
+                        android:layout_width="100dp"
+                        android:layout_height="2dp"
+                        android:layout_gravity="start|center_vertical" />
+                </FrameLayout>
             </LinearLayout>
 
-            <!-- Snapshot Info -->
-            <TextView
-                android:id="@+id/tvSnapshotInfo"
+            <!-- 2️⃣ SYSTEM STATUS PANEL -->
+            <LinearLayout
+                android:id="@+id/statusPanel"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Last snapshot: Unknown"
-                android:textSize="14sp"
-                android:textColor="@color/text_secondary"
+                android:orientation="vertical"
                 android:gravity="center"
-                android:layout_marginBottom="32dp" />
+                android:background="#0A1128"
+                android:padding="24dp"
+                android:layout_marginBottom="32dp"
+                android:translationY="50dp"
+                android:alpha="0">
 
-            <!-- Divider -->
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:background="#22FFFFFF"
-                android:layout_marginBottom="24dp" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="SYSTEM STATUS"
+                    android:textSize="12sp"
+                    android:textColor="#4A90E2"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.15"
+                    android:layout_marginBottom="12dp" />
 
-            <!-- Animated Gradient Buttons -->
-            <com.dearmoon.shield.ui.GradientShiftButton
-                android:id="@+id/btnStartRestore"
-                android:layout_width="match_parent"
-                android:layout_height="64dp"
-                android:text="Restore Files"
-                android:textSize="18sp"
-                android:textStyle="bold"
-                android:textColor="#FFFFFF"
-                android:layout_marginBottom="16dp" />
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="24dp">
 
-            <com.dearmoon.shield.ui.GradientShiftButton
-                android:id="@+id/btnCreateSnapshot"
-                android:layout_width="match_parent"
-                android:layout_height="60dp"
-                android:text="Capture Snapshot"
-                android:textSize="16sp"
-                android:textStyle="bold"
-                android:textColor="#FFFFFF"
-                android:layout_marginBottom="16dp" />
+                    <com.dearmoon.shield.ui.SonarDotView
+                        android:id="@+id/sonarDot"
+                        android:layout_width="28dp"
+                        android:layout_height="28dp"
+                        android:layout_marginEnd="12dp" />
 
-            <Button
-                android:id="@+id/btnCancelRestore"
-                style="@style/Widget.Shield.Button.Frosted"
+                    <TextView
+                        android:id="@+id/tvRecoveryStatus"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="No Active Threat"
+                        android:textSize="18sp"
+                        android:textColor="#00E676"
+                        android:textStyle="bold"
+                        android:letterSpacing="0.05" />
+                </LinearLayout>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="#1A4A90E2"
+                    android:layout_marginBottom="20dp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="LAST SNAPSHOT"
+                    android:textSize="12sp"
+                    android:textColor="#5D6B82"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.2"
+                    android:layout_marginBottom="8dp" />
+
+                <TextView
+                    android:id="@+id/tvSnapshotInfo"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="—"
+                    android:textSize="14sp"
+                    android:textColor="#F8FAFC"
+                    android:textStyle="normal"
+                    android:letterSpacing="0.05" />
+            </LinearLayout>
+
+            <!-- 3️⃣ ACTION PANEL -->
+            <LinearLayout
+                android:id="@+id/actionPanel"
                 android:layout_width="match_parent"
-                android:layout_height="56dp"
-                android:text="Back"
-                android:textSize="16sp"
-                app:backgroundTint="@null"/>
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:clipChildren="false"
+                android:clipToPadding="false"
+                android:gravity="bottom">
+
+                <!-- RESTORE TILE -->
+                <FrameLayout
+                    android:id="@+id/tileRestore"
+                    android:layout_width="match_parent"
+                    android:layout_height="72dp"
+                    android:layout_marginBottom="16dp"
+                    android:scaleX="0.8"
+                    android:scaleY="0.8"
+                    android:alpha="0"
+                    android:clickable="true"
+                    android:focusable="true">
+
+                    <LinearLayout
+                        android:id="@+id/restoreContent"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:orientation="horizontal"
+                        android:gravity="center"
+                        android:background="#1B0C30">
+
+                        <ImageView
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:src="@android:drawable/ic_menu_revert"
+                            app:tint="#D4A1FF"
+                            android:layout_marginEnd="16dp" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="RESTORE FILES"
+                            android:textSize="18sp"
+                            android:textColor="#FFFFFF"
+                            android:textStyle="bold"
+                            android:letterSpacing="0.1"
+                            android:shadowColor="#9D00FF"
+                            android:shadowDx="0"
+                            android:shadowDy="0"
+                            android:shadowRadius="15" />
+                    </LinearLayout>
+                </FrameLayout>
+
+                <!-- CAPTURE TILE -->
+                <FrameLayout
+                    android:id="@+id/tileCapture"
+                    android:layout_width="match_parent"
+                    android:layout_height="72dp"
+                    android:layout_marginBottom="32dp"
+                    android:scaleX="0.8"
+                    android:scaleY="0.8"
+                    android:alpha="0"
+                    android:clickable="true"
+                    android:focusable="true">
+
+                    <FrameLayout
+                        android:id="@+id/captureContent"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:background="#0A183D"
+                        android:clipChildren="true">
+
+                        <!-- Sweeping highlight -->
+                        <View
+                            android:id="@+id/captureHighlight"
+                            android:layout_width="100dp"
+                            android:layout_height="match_parent"
+                            android:layout_gravity="start"
+                            android:translationX="-100dp" />
+
+                        <!-- Centered Content -->
+                        <LinearLayout
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical">
+                            
+                            <ImageView
+                                android:layout_width="24dp"
+                                android:layout_height="24dp"
+                                android:src="@android:drawable/ic_menu_camera"
+                                app:tint="#00E5FF"
+                                android:layout_marginEnd="16dp" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="CAPTURE SNAPSHOT"
+                                android:textSize="17sp"
+                                android:textColor="#FFFFFF"
+                                android:textStyle="bold"
+                                android:letterSpacing="0.1"
+                                android:shadowColor="#00C8FF"
+                                android:shadowDx="0"
+                                android:shadowDy="0"
+                                android:shadowRadius="15" />
+                        </LinearLayout>
+                    </FrameLayout>
+                </FrameLayout>
+
+                <!-- NAVIGATION BACK BUTTON -->
+                <LinearLayout
+                    android:id="@+id/btnCyberBack"
+                    android:layout_width="wrap_content"
+                    android:layout_height="48dp"
+                    android:orientation="horizontal"
+                    android:gravity="center"
+                    android:layout_gravity="center_horizontal"
+                    android:paddingHorizontal="24dp"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:background="#050A15">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="←"
+                        android:textColor="#00C8FF"
+                        android:textSize="18sp"
+                        android:layout_marginEnd="8dp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="BACK"
+                        android:textColor="#8892A4"
+                        android:textSize="14sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="0.14" />
+                </LinearLayout>
+
+            </LinearLayout>
         </LinearLayout>
-    </androidx.cardview.widget.CardView>
-
-</androidx.constraintlayout.widget.ConstraintLayout>
+    </ScrollView>
+</FrameLayout>

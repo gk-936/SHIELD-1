@@ -47,11 +47,17 @@ public class WhitelistActivity extends AppCompatActivity {
             getSupportActionBar().setDisplayHomeAsUpEnabled(true);
             toolbar.setNavigationOnClickListener(v -> onBackPressed());
         }
-        // Push toolbar top padding to clear transparent status bar
-        androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(toolbar, (v, windowInsets) -> {
+        // Push toolbar top padding to clear transparent status bar and list bottom padding 
+        androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(findViewById(android.R.id.content), (v, windowInsets) -> {
             androidx.core.graphics.Insets insets = windowInsets.getInsets(
                     androidx.core.view.WindowInsetsCompat.Type.systemBars());
-            v.setPadding(0, insets.top, 0, 0);
+            toolbar.setPadding(0, insets.top, 0, 0);
+            
+            RecyclerView rv = findViewById(R.id.rvWhitelist);
+            if (rv != null) {
+                rv.setClipToPadding(false);
+                rv.setPadding(rv.getPaddingLeft(), rv.getPaddingTop(), rv.getPaddingRight(), insets.bottom);
+            }
             return windowInsets;
         });
 

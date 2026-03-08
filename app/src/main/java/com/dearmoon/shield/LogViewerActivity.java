@@ -15,13 +15,9 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-import com.github.mikephil.charting.charts.BarChart;
 import com.github.mikephil.charting.charts.LineChart;
 import com.github.mikephil.charting.components.XAxis;
 import com.github.mikephil.charting.components.YAxis;
-import com.github.mikephil.charting.data.BarData;
-import com.github.mikephil.charting.data.BarDataSet;
-import com.github.mikephil.charting.data.BarEntry;
 import com.github.mikephil.charting.data.Entry;
 import com.github.mikephil.charting.data.LineData;
 import com.github.mikephil.charting.data.LineDataSet;
@@ -44,10 +40,9 @@ public class LogViewerActivity extends AppCompatActivity {
     private TextView tvEventCount;
     private TextView tvGraphTitle;
     private LineChart eventLineChart;
-    private BarChart eventBarChart;
     private LinearLayout detailedLogsContainer;
     private Button btnShowDetailedLogs;
-    private Spinner spinnerFilter;
+    private LinearLayout filterChipGroup;
 
     private List<LogEntry> allEvents = new ArrayList<>();
     private List<LogEntry> filteredEvents = new ArrayList<>();
@@ -99,50 +94,32 @@ public class LogViewerActivity extends AppCompatActivity {
         tvEventCount = findViewById(R.id.tvEventCount);
         tvGraphTitle = findViewById(R.id.tvGraphTitle);
         eventLineChart = findViewById(R.id.eventLineChart);
-        eventBarChart = findViewById(R.id.eventBarChart);
         detailedLogsContainer = findViewById(R.id.detailedLogsContainer);
         btnShowDetailedLogs = findViewById(R.id.btnShowDetailedLogs);
-        spinnerFilter = findViewById(R.id.spinnerFilter);
+        filterChipGroup = findViewById(R.id.filterChipGroup);
 
-        // Setup RecyclerView
-        recyclerView.setLayoutManager(new LinearLayoutManager(this));
-        logAdapter = new LogAdapter(filteredEvents);
-        recyclerView.setAdapter(logAdapter);
-
-        // Setup filter spinner
+        // Setup filter chips
         String[] filters = { "ALL", "FILE_SYSTEM", "HONEYFILE_ACCESS", "NETWORK", "DETECTION", "ACCESSIBILITY" };
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(this,
-                android.R.layout.simple_spinner_item, filters);
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        spinnerFilter.setAdapter(adapter);
+        setupChips(filters);
 
-        spinnerFilter.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-            @Override
-            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                currentFilter = filters[position];
-                applyFilter();
-                updateGraph();
-            }
-
-            @Override
-            public void onNothingSelected(AdapterView<?> parent) {
-            }
-        });
+        com.google.android.material.appbar.AppBarLayout appBar = findViewById(R.id.appBarLayout);
 
         // Show/Hide detailed logs button
         btnShowDetailedLogs.setOnClickListener(v -> {
-            if (detailedLogsContainer.getVisibility() == View.GONE) {
+            boolean isVisible = detailedLogsContainer.getVisibility() == View.VISIBLE;
+            if (!isVisible) {
                 detailedLogsContainer.setVisibility(View.VISIBLE);
                 btnShowDetailedLogs.setText("Hide Detailed Logs");
+                appBar.setExpanded(false, true); // smoothly scroll up
             } else {
                 detailedLogsContainer.setVisibility(View.GONE);
                 btnShowDetailedLogs.setText("View Detailed Logs");
+                appBar.setExpanded(true, true); // smoothly scroll down
             }
         });
 
         findViewById(R.id.btnClearAllLogs).setOnClickListener(v -> clearAllLogs());
 
-        // Refresh button
         findViewById(R.id.btnRefreshLogs).setOnClickListener(v -> {
             Toast.makeText(this, "Refreshing logs...", Toast.LENGTH_SHORT).show();
             loadAllLogs();
@@ -150,9 +127,13 @@ public class LogViewerActivity extends AppCompatActivity {
             updateGraph();
         });
 
+        // Setup RecyclerView last so that it does not block the main setup
+        recyclerView.setLayoutManager(new LinearLayoutManager(this));
+        logAdapter = new LogAdapter(filteredEvents);
+        recyclerView.setAdapter(logAdapter);
+
         // Setup charts
         setupLineChart();
-        setupBarChart();
 
         // Setup dynamic updates
         updateReceiver = new android.content.BroadcastReceiver() {
@@ -179,6 +160,58 @@ public class LogViewerActivity extends AppCompatActivity {
             unregisterReceiver(updateReceiver);
         }
         super.onDestroy();
+    }
+
+    private void setupChips(String[] filters) {
+        filterChipGroup.removeAllViews();
+        float density = getResources().getDisplayMetrics().density;
+        
+        for (String filter : filters) {
+            TextView chip = new TextView(this);
+            String displayName = filter.replace("_", " ");
+            chip.setText(displayName);
+            chip.setTextSize(12f);
+            
+            int pdH = (int)(16 * density);
+            int pdV = (int)(8 * density);
+            chip.setPadding(pdH, pdV, pdH, pdV);
+            
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            );
+            lp.setMarginEnd((int)(8 * density));
+            chip.setLayoutParams(lp);
+            
+            updateChipStyle(chip, filter.equals(currentFilter));
+            
+            chip.setOnClickListener(v -> {
+                currentFilter = filter;
+                setupChips(filters);
+                applyFilter();
+                updateGraph();
+            });
+            
+            filterChipGroup.addView(chip);
+        }
+    }
+
+    private void updateChipStyle(TextView chip, boolean isSelected) {
+        float density = getResources().getDisplayMetrics().density;
+        android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
+        bg.setCornerRadius(16 * density);
+        
+        if (isSelected) {
+            bg.setColor(Color.parseColor("#00E5FF")); 
+            chip.setTextColor(Color.parseColor("#0A183D")); 
+            chip.setTypeface(null, android.graphics.Typeface.BOLD);
+        } else {
+            bg.setColor(Color.parseColor("#1AFFFFFF"));
+            bg.setStroke((int)(1 * density), Color.parseColor("#33FFFFFF"));
+            chip.setTextColor(0xFF94A3B8);
+            chip.setTypeface(null, android.graphics.Typeface.NORMAL);
+        }
+        chip.setBackground(bg);
     }
 
     private void setupLineChart() {
@@ -210,34 +243,7 @@ public class LogViewerActivity extends AppCompatActivity {
         eventLineChart.getLegend().setTextColor(0xFF94A3B8);
     }
 
-    private void setupBarChart() {
-        eventBarChart.getDescription().setText("Event Category Samples");
-        eventBarChart.getDescription().setTextColor(0xFF94A3B8);
-        eventBarChart.getDescription().setEnabled(true);
-        eventBarChart.setTouchEnabled(true);
-        eventBarChart.setDragEnabled(true);
-        eventBarChart.setScaleEnabled(true);
-        eventBarChart.setPinchZoom(true);
-        eventBarChart.setDrawGridBackground(false);
-        eventBarChart.setBackgroundColor(Color.TRANSPARENT);
 
-        XAxis xAxis = eventBarChart.getXAxis();
-        xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
-        xAxis.setTextColor(0xFF94A3B8);
-        xAxis.setDrawGridLines(false);
-        xAxis.setGranularity(1f);
-
-        YAxis leftAxis = eventBarChart.getAxisLeft();
-        leftAxis.setTextColor(0xFF94A3B8);
-        leftAxis.setDrawGridLines(true);
-        leftAxis.setGridColor(0x33FFFFFF);
-        leftAxis.setAxisMinimum(0f); // Fix: Start from 0
-
-        YAxis rightAxis = eventBarChart.getAxisRight();
-        rightAxis.setEnabled(false);
-
-        eventBarChart.getLegend().setTextColor(0xFF94A3B8);
-    }
 
     private void loadAllLogs() {
         allEvents.clear();
@@ -450,34 +456,8 @@ public class LogViewerActivity extends AppCompatActivity {
                 : currentFilter.replace("_", " ") + " Activity";
         tvGraphTitle.setText(graphTitle);
 
-        // Determine which chart type to use based on filter
-        boolean useBarChart = shouldUseBarChart(currentFilter);
-
-        if (useBarChart) {
-            eventLineChart.setVisibility(View.GONE);
-            eventBarChart.setVisibility(View.VISIBLE);
-            updateBarChart();
-        } else {
-            eventBarChart.setVisibility(View.GONE);
-            eventLineChart.setVisibility(View.VISIBLE);
-            updateLineChart();
-        }
-    }
-
-    private boolean shouldUseBarChart(String filter) {
-        // Use bar chart for discrete security events
-        // Use line chart for file system, network and detection (continuous monitoring)
-        switch (filter) {
-            case "ACCESSIBILITY":
-            case "HONEYFILE_ACCESS":
-                return true;
-            case "FILE_SYSTEM":
-            case "NETWORK":
-            case "DETECTION":
-            case "ALL":
-            default:
-                return false;
-        }
+        eventLineChart.setVisibility(View.VISIBLE);
+        updateLineChart();
     }
 
     private void updateLineChart() {
@@ -516,16 +496,29 @@ public class LogViewerActivity extends AppCompatActivity {
 
         // Create dataset
         LineDataSet dataSet = new LineDataSet(entries, "Events");
-        dataSet.setColor(0xFF3B82F6);
-        dataSet.setCircleColor(0xFF3B82F6);
+        dataSet.setColor(Color.parseColor("#00E5FF")); // Neon Cyan
         dataSet.setLineWidth(2.5f);
+        
+        dataSet.setCircleColor(Color.parseColor("#00C8FF"));
         dataSet.setCircleRadius(5f);
-        dataSet.setDrawCircleHole(false);
-        dataSet.setDrawCircles(true); // Ensure circles are always drawn
+        dataSet.setDrawCircleHole(true);
+        dataSet.setCircleHoleColor(Color.parseColor("#0A183D"));
+        dataSet.setCircleHoleRadius(2.5f);
+        dataSet.setDrawCircles(true); 
+        
         dataSet.setValueTextSize(9f);
         dataSet.setValueTextColor(0xFF94A3B8);
-        dataSet.setDrawFilled(false); // Remove fill to match temperature graph style
-        dataSet.setMode(LineDataSet.Mode.LINEAR); // Use linear mode for straight lines between points
+        
+        // Beautiful Area Fill (Gradient)
+        dataSet.setDrawFilled(true);
+        android.graphics.drawable.GradientDrawable fillGradient = new android.graphics.drawable.GradientDrawable(
+                android.graphics.drawable.GradientDrawable.Orientation.TOP_BOTTOM,
+                new int[]{Color.parseColor("#7000E5FF"), Color.TRANSPARENT} // Alpha-cyan to transparent
+        );
+        dataSet.setFillDrawable(fillGradient);
+        
+        // Smooth spline curve for a futuristic look
+        dataSet.setMode(LineDataSet.Mode.CUBIC_BEZIER);
 
         LineData lineData = new LineData(dataSet);
         eventLineChart.setData(lineData);
@@ -539,52 +532,7 @@ public class LogViewerActivity extends AppCompatActivity {
         eventLineChart.invalidate();
     }
 
-    private void updateBarChart() {
-        // Prepare data for bar graph
-        Map<Long, Integer> eventCounts = new HashMap<>();
 
-        // Group events by hour
-        for (LogEntry entry : filteredEvents) {
-            long hourTimestamp = (entry.timestamp / 3600000) * 3600000;
-            eventCounts.put(hourTimestamp, eventCounts.getOrDefault(hourTimestamp, 0) + 1);
-        }
-
-        // Convert to chart entries - always start from 0
-        List<BarEntry> entries = new ArrayList<>();
-
-        // Add starting point at 0 if we have data
-        if (!eventCounts.isEmpty()) {
-            entries.add(new BarEntry(0, 0)); // Start from baseline
-        }
-
-        List<Long> timestamps = new ArrayList<>(eventCounts.keySet());
-        Collections.sort(timestamps);
-
-        // Add data points (offset by 1 because we added starting point at 0)
-        for (int i = 0; i < timestamps.size(); i++) {
-            long timestamp = timestamps.get(i);
-            int count = eventCounts.get(timestamp);
-            entries.add(new BarEntry(i + 1, count));
-        }
-
-        // If no data, show baseline
-        if (entries.isEmpty()) {
-            entries.add(new BarEntry(0, 0));
-            entries.add(new BarEntry(1, 0));
-        }
-
-        // Create dataset
-        BarDataSet dataSet = new BarDataSet(entries, "Events");
-        dataSet.setColor(0xFFFF6F00); // Orange for bar charts
-        dataSet.setValueTextSize(9f);
-        dataSet.setValueTextColor(0xFF94A3B8);
-
-        BarData barData = new BarData(dataSet);
-        barData.setBarWidth(0.8f);
-        eventBarChart.setData(barData);
-        eventBarChart.animateY(1000);
-        eventBarChart.invalidate();
-    }
 
     private void clearAllLogs() {
         com.dearmoon.shield.data.EventDatabase database = com.dearmoon.shield.data.EventDatabase.getInstance(this);

@@ -108,21 +108,15 @@ public class MainActivity extends AppCompatActivity {
         btnModeB.setOnClickListener(v -> {
             triggerButtonRipple(btnModeB, false);
 
-            // Use SharedPreferences as source of truth — getRunningServices() is 
-            // unreliable on Android 8+ and causes false positives (turns ON logic triggers
-            // biometric instead of showing the animation)
             boolean isActive = getSharedPreferences("ShieldPrefs", Context.MODE_PRIVATE)
                     .getBoolean("shield_active", false);
 
             if (isActive) {
                 // Turning OFF → biometric required, no animation
-                authenticateBiometric(() -> toggleProtection());
+                authenticateBiometric(() -> stopShieldService());
             } else {
-                // Turning ON → show orb animation; actual start happens in onActivityResult
-                android.content.Intent stdIntent = new android.content.Intent(this, ModeConfirmActivity.class);
-                stdIntent.putExtra("mode", "STANDARD");
-                startActivityForResult(stdIntent, MODE_CONFIRM_REQUEST);
-                overridePendingTransition(R.anim.slide_up_from_bottom, 0);
+                // Turning ON → check permissions FIRST, then show animation
+                checkPermissionsAndStartAnimation();
             }
         });
         // Note: idle heartbeat removed — ModeConfirmActivity now provides the ON animation
@@ -301,18 +295,22 @@ public class MainActivity extends AppCompatActivity {
 
 
 
-    private void toggleProtection() {
-        boolean isActive = getSharedPreferences("ShieldPrefs", Context.MODE_PRIVATE)
-                .getBoolean("shield_active", false);
-        if (isActive) {
-            stopShieldService();
+    private void checkPermissionsAndStartAnimation() {
+        if (!hasRequiredPermissions()) {
+            Toast.makeText(this, "Please grant all permissions first", Toast.LENGTH_SHORT).show();
+            requestNecessaryPermissions();
+            return;
+        }
+
+        Intent vpnIntent = VpnService.prepare(this);
+        if (vpnIntent != null) {
+            startActivityForResult(vpnIntent, VPN_REQUEST_CODE);
         } else {
-            Intent vpnIntent = VpnService.prepare(this);
-            if (vpnIntent != null) {
-                startActivityForResult(vpnIntent, VPN_REQUEST_CODE);
-            } else {
-                startShieldService();
-            }
+            // Permissions and VPN ready! Show animation
+            android.content.Intent stdIntent = new android.content.Intent(this, ModeConfirmActivity.class);
+            stdIntent.putExtra("mode", "STANDARD");
+            startActivityForResult(stdIntent, MODE_CONFIRM_REQUEST);
+            overridePendingTransition(R.anim.slide_up_from_bottom, 0);
         }
     }
 
@@ -321,13 +319,14 @@ public class MainActivity extends AppCompatActivity {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == VPN_REQUEST_CODE) {
             if (resultCode == RESULT_OK) {
-                startShieldService();
+                // VPN was granted! Now check permissions again and show animation
+                checkPermissionsAndStartAnimation();
             } else {
                 Toast.makeText(this, "VPN permission required for network monitoring", Toast.LENGTH_LONG).show();
             }
         } else if (requestCode == MODE_CONFIRM_REQUEST && resultCode == RESULT_OK) {
             // User watched the animation — now actually start protection
-            toggleProtection();
+            startShieldService();
         }
     }
 

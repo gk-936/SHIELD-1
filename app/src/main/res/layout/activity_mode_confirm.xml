@@ -51,14 +51,14 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_gravity="top|center_horizontal"
-            android:layout_marginTop="72dp"
+            android:layout_marginTop="80dp"
             android:layout_marginHorizontal="32dp"
-            android:text="Breathe in,\nwe have covered you."
-            android:textColor="#BEE0E0"
-            android:textSize="30sp"
-            android:fontFamily="sans-serif-light"
-            android:gravity="center"
-            android:lineSpacingMultiplier="1.25" />
+            android:text="Breathe in,\nwe have got you"
+            android:textColor="#D9F5F5F5"
+            android:textSize="22sp"
+            android:lineHeight="28sp"
+            android:fontFamily="sans-serif-medium"
+            android:gravity="center" />
 
         <!-- Bottom: tap anywhere hint — same translucent grey as reference -->
         <TextView

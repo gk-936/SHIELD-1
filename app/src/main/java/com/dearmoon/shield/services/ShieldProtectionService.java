@@ -351,6 +351,13 @@ public class ShieldProtectionService extends Service {
         Intent restartIntent = new Intent("com.dearmoon.shield.RESTART_SERVICE");
         sendBroadcast(restartIntent);
 
+        // Optional: stopForeground ensures the notification clears immediately
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            stopForeground(STOP_FOREGROUND_REMOVE);
+        } else {
+            stopForeground(true);
+        }
+
         super.onDestroy();
     }
 
