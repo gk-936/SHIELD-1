@@ -86,6 +86,17 @@
                 android:value="ransomware_detection" />
         </service>
 
+        <!-- Mode-A eBPF Telemetry Service (API 30+, root required) -->
+        <service
+            android:name=".modea.ModeAService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="ebpf_telemetry" />
+        </service>
+
         <!-- Shield Watchdog Service -->
         <service
             android:name=".services.ShieldWatchdogService"

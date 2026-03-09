@@ -20,6 +20,7 @@ import com.dearmoon.shield.services.NetworkGuardService;
 import com.dearmoon.shield.services.ShieldProtectionService;
 import com.dearmoon.shield.ui.GlitchTextView;
 
+import androidx.biometric.BiometricManager;
 import androidx.biometric.BiometricPrompt;
 import java.util.concurrent.Executor;
 import android.graphics.RectF;
@@ -31,7 +32,8 @@ public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
     private static final int PERMISSION_REQUEST_CODE = 100;
     private static final int VPN_REQUEST_CODE = 200;
-    private static final int MODE_CONFIRM_REQUEST = 300;   // ModeConfirmActivity result
+    private static final int MODE_CONFIRM_REQUEST   = 300;   // ModeConfirmActivity result (Mode B)
+    private static final int MODE_A_CONFIRM_REQUEST = 301;   // ModeConfirmActivity result (Mode A)
 
     private GlitchTextView tvProtectionStatus;
     private android.widget.TextView tvSafeFiles, tvInfectedFiles, tvTotalFiles, tvInfectionTimer;
@@ -100,10 +102,15 @@ public class MainActivity extends AppCompatActivity {
 
         btnModeA.setOnClickListener(v -> {
             triggerButtonRipple(btnModeA, true);
-            android.content.Intent rootIntent = new android.content.Intent(this, ModeConfirmActivity.class);
-            rootIntent.putExtra("mode", "ROOT");
-            startActivity(rootIntent);
-            overridePendingTransition(R.anim.slide_up_from_bottom, 0);
+            boolean modeARunning = isServiceRunning(com.dearmoon.shield.modea.ModeAService.class);
+            if (modeARunning) {
+                authenticateBiometric(() -> stopModeAService());
+            } else {
+                android.content.Intent rootIntent = new android.content.Intent(this, ModeConfirmActivity.class);
+                rootIntent.putExtra("mode", "ROOT");
+                startActivityForResult(rootIntent, MODE_A_CONFIRM_REQUEST);
+                overridePendingTransition(R.anim.slide_up_from_bottom, 0);
+            }
         });
         btnModeB.setOnClickListener(v -> {
             triggerButtonRipple(btnModeB, false);
@@ -287,8 +294,10 @@ public class MainActivity extends AppCompatActivity {
 
         BiometricPrompt.PromptInfo promptInfo = new BiometricPrompt.PromptInfo.Builder()
                 .setTitle("Authentication Required")
-                .setSubtitle("Please authenticate to toggle root setting")
-                .setNegativeButtonText("Cancel")
+                .setSubtitle("Please authenticate to disable protection")
+                .setAllowedAuthenticators(
+                        BiometricManager.Authenticators.BIOMETRIC_STRONG |
+                        BiometricManager.Authenticators.DEVICE_CREDENTIAL)
                 .build();
         biometricPrompt.authenticate(promptInfo);
     }
@@ -327,7 +336,37 @@ public class MainActivity extends AppCompatActivity {
         } else if (requestCode == MODE_CONFIRM_REQUEST && resultCode == RESULT_OK) {
             // User watched the animation — now actually start protection
             startShieldService();
+        } else if (requestCode == MODE_A_CONFIRM_REQUEST && resultCode == RESULT_OK) {
+            // User confirmed Root Mode animation — start ModeAService
+            startModeAService();
         }
+    }
+
+    private void startModeAService() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+            Toast.makeText(this, "Root Mode requires Android 11+", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        // Start shared infrastructure (snapshots, honeyfiles, network guard, watchdog)
+        // exactly the same as Mode B — collection layer is the only difference.
+        startShieldService();
+        // Start eBPF collection layer on top.
+        Intent intent = new Intent(this, com.dearmoon.shield.modea.ModeAService.class);
+        startForegroundService(intent);
+        Toast.makeText(this, "Root Mode starting\u2026", Toast.LENGTH_SHORT).show();
+        updateStatusDisplay();
+    }
+
+    private void stopModeAService() {
+        stopService(new Intent(this, com.dearmoon.shield.modea.ModeAService.class));
+        // Stop shared infrastructure only if Mode B is not independently active.
+        boolean modeBActive = getSharedPreferences("ShieldPrefs", Context.MODE_PRIVATE)
+                .getBoolean("shield_active", false);
+        if (!modeBActive) {
+            stopShieldService();
+        }
+        Toast.makeText(this, "Root Mode stopped", Toast.LENGTH_SHORT).show();
+        updateStatusDisplay();
     }
 
     private void startShieldService() {
@@ -394,6 +433,18 @@ public class MainActivity extends AppCompatActivity {
             btnModeB.setBackgroundResource(R.drawable.bg_glass_button_inactive);
             btnModeB.setText("Non-Root");
             btnModeB.setTextColor(ContextCompat.getColor(this, R.color.text_primary));
+        }
+
+        // Mode A button state
+        boolean isModeARunning = isServiceRunning(com.dearmoon.shield.modea.ModeAService.class);
+        if (isModeARunning) {
+            btnModeA.setBackgroundResource(R.drawable.bg_glass_button_active);
+            btnModeA.setText("Root Active");
+            btnModeA.setTextColor(0xFFFFFFFF);
+        } else {
+            btnModeA.setBackgroundResource(R.drawable.bg_glass_button_inactive);
+            btnModeA.setText("Root");
+            btnModeA.setTextColor(ContextCompat.getColor(this, R.color.text_primary));
         }
     }
 

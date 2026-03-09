@@ -21,6 +21,7 @@ import com.dearmoon.shield.collectors.HoneyfileCollector;
 import com.dearmoon.shield.collectors.RecursiveFileSystemCollector;
 import com.dearmoon.shield.data.TelemetryStorage;
 import com.dearmoon.shield.detection.UnifiedDetectionEngine;
+import com.dearmoon.shield.modea.ModeAService;
 import com.dearmoon.shield.security.ConfigAuditChecker;
 import com.dearmoon.shield.security.DependencyIntegrityChecker;
 import com.dearmoon.shield.security.SecurityUtils;
@@ -80,6 +81,9 @@ public class ShieldProtectionService extends Service {
         // Schedule periodic incremental snapshots
         snapshotHandler = new Handler(android.os.Looper.getMainLooper());
         scheduleIncrementalSnapshot();
+
+        // Mode-A (eBPF collection) is started explicitly by the user via
+        // MainActivity when they choose Root Mode — not auto-launched here.
     }
     
     private void scheduleCleanup() {
@@ -318,6 +322,11 @@ public class ShieldProtectionService extends Service {
 
         // Stop network monitoring
         stopNetworkMonitoring();
+
+        // NOTE: ModeAService is NOT stopped here — Mode A manages its own lifecycle.
+        // It is started and stopped independently by the user via MainActivity.
+        // Stopping it here would race with Mode A's init thread and kill the daemon
+        // before the socket-wait loop has a chance to connect.
 
         // SECURITY FIX: Stop recursive file system collectors
         for (RecursiveFileSystemCollector collector : recursiveCollectors) {

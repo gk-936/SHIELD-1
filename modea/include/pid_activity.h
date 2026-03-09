@@ -24,9 +24,9 @@
 /* -----------------------------------------------------------------------
  * Burst detection thresholds (evaluated in userspace daemon)
  * ----------------------------------------------------------------------- */
-#define BURST_WRITE_THRESHOLD    1   /* TEST: fire on every write */
-#define BURST_READ_THRESHOLD    1   /* TEST: fire on every read  */
-#define BURST_FSYNC_THRESHOLD   1   /* TEST: fire on every fsync */
+#define BURST_WRITE_THRESHOLD    50  /* mass-write burst threshold (encryption loop) */
+#define BURST_READ_THRESHOLD     50  /* mass-read burst threshold (dir enumeration)  */
+#define BURST_FSYNC_THRESHOLD    20  /* mass-fsync threshold (forced disk commits)   */
 #define BURST_WINDOW_SEC         5   /* sliding window length in seconds */
 
 /* -----------------------------------------------------------------------

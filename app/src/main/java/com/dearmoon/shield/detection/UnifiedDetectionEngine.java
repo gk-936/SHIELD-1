@@ -98,26 +98,23 @@ public class UnifiedDetectionEngine {
                 return;
             }
 
+            // Persist the raw file-system event for UI display and audit trail.
+            // Mode-B does this via TelemetryStorage; Mode-A events arrive here
+            // directly, so we must write to the DB ourselves.
+            try {
+                database.insertFileSystemEvent(event);
+            } catch (Exception e) {
+                Log.e(TAG, "Failed to persist FileSystemEvent", e);
+            }
+
             // Only analyze modifications
             if (!operation.equals("MODIFY")) {
                 Log.d(TAG, "Skipping operation: " + operation);
                 return;
             }
 
-            File file = new File(filePath);
-
-            // Skip if file doesn't exist or is too small
-            if (!file.exists()) {
-                Log.d(TAG, "File doesn't exist: " + filePath);
-                return;
-            }
-
-            if (file.length() < 100) {
-                Log.d(TAG, "File too small (" + file.length() + " bytes): " + filePath);
-                return;
-            }
-
-            // Update SPRT with actual Poisson arrival math
+            // Update SPRT with actual Poisson arrival math — always, even without a file path.
+            // For Mode-A events with an unknown filename the write-rate signal is still valid.
             long currentTime = System.currentTimeMillis();
             if (lastEventTimestamp > 0) {
                 double deltaSeconds = (currentTime - lastEventTimestamp) / 1000.0;
@@ -130,17 +127,21 @@ public class UnifiedDetectionEngine {
             // Update modification rate for legacy monitoring
             updateModificationRate(currentTime);
 
-            // Calculate entropy and KL-divergence
-            Log.d(TAG, "Calculating entropy for: " + filePath);
-            double entropy = entropyAnalyzer.calculateEntropy(file);
-            double klDivergence = klCalculator.calculateDivergence(file);
-
-            Log.d(TAG, "Entropy: " + entropy + ", KL: " + klDivergence);
-
-            // Skip if entropy calculation failed
-            if (entropy == 0.0) {
-                Log.w(TAG, "Entropy calculation failed for: " + filePath);
-                return;
+            // Calculate entropy and KL-divergence only when a real file is readable.
+            // When the path is empty or the file no longer exists (process exited before
+            // the daemon's 500ms poll), fall back to SPRT + behavior score only.
+            double entropy = 0.0;
+            double klDivergence = 0.0;
+            File file = new File(filePath);
+            boolean hasFileData = !filePath.isEmpty() && file.exists() && file.length() >= 100;
+            if (hasFileData) {
+                Log.d(TAG, "Calculating entropy for: " + filePath);
+                entropy = entropyAnalyzer.calculateEntropy(file);
+                klDivergence = klCalculator.calculateDivergence(file);
+                Log.d(TAG, "Entropy: " + entropy + ", KL: " + klDivergence);
+            } else {
+                Log.d(TAG, "Skipping entropy (file unavailable): "
+                        + (filePath.isEmpty() ? "<unknown path>" : filePath));
             }
 
             // Get SPRT state

@@ -27,6 +27,7 @@
 
 #include <sys/ioctl.h>
 #include <sys/mman.h>
+#include <sys/mount.h>
 #include <sys/stat.h>
 #include <sys/syscall.h>
 
@@ -230,8 +231,8 @@ static void ensure_bpf_fs()
     struct stat st{};
     if (stat("/sys/fs/bpf", &st) != 0) {
         mkdir("/sys/fs/bpf", 0700);
-        if (system("mount -t bpf none /sys/fs/bpf") != 0)
-            LOGE("Could not mount bpffs â€” map pinning will fail");
+        if (mount("none", "/sys/fs/bpf", "bpf", 0, nullptr) != 0)
+            LOGE("Could not mount bpffs — map pinning will fail");
     }
 
     /* Create tracefs symlink if missing */

@@ -16,6 +16,27 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        ndk {
+            abiFilters += listOf("arm64-v8a")
+        }
+    }
+
+    externalNativeBuild {
+        cmake {
+            path = file("CMakeLists.txt")
+            version = "3.22.1"
+        }
+    }
+
+    sourceSets {
+        getByName("main") {
+            assets {
+                // Pull pre-built Mode-A binaries (shield_modea_daemon, shield_bpf.o)
+                // built by modea/build_real.sh before assembling this APK.
+                srcDirs("src/main/assets", "../modea/app/src/main/assets")
+            }
+        }
     }
 
     testOptions {

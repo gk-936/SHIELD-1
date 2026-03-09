@@ -1,6 +1,5 @@
 ninja: Entering directory `C:\Users\gokul D\SHIELD-1\modea\app\.cxx\Debug\1d484h5p\arm64-v8a'
-[1/4] Building CXX object CMakeFiles/shield_modea_daemon.dir/C_/Users/gokul_D/SHIELD-1/modea/daemon/daemon_main.cpp.o
-[2/4] Building CXX object CMakeFiles/shield_modea_daemon.dir/C_/Users/gokul_D/SHIELD-1/modea/daemon/modea_daemon.cpp.o
-[3/4] Building CXX object CMakeFiles/shield_modea_daemon.dir/C_/Users/gokul_D/SHIELD-1/modea/daemon/bpf_loader.cpp.o
-[4/4] Linking CXX executable "C:\Users\gokul D\SHIELD-1\modea\app\build\intermediates\cxx\Debug\1d484h5p\obj\arm64-v8a\shield_modea_daemon"
+[1/3] Building CXX object CMakeFiles/shield_modea_daemon.dir/C_/Users/gokul_D/SHIELD-1/modea/daemon/modea_daemon.cpp.o
+[2/3] Building CXX object CMakeFiles/shield_modea_daemon.dir/C_/Users/gokul_D/SHIELD-1/modea/daemon/bpf_loader.cpp.o
+[3/3] Linking CXX executable "C:\Users\gokul D\SHIELD-1\modea\app\build\intermediates\cxx\Debug\1d484h5p\obj\arm64-v8a\shield_modea_daemon"
 Daemon built: C:/Users/gokul D/SHIELD-1/modea/app/build/intermediates/cxx/Debug/1d484h5p/obj/arm64-v8a/shield_modea_daemon

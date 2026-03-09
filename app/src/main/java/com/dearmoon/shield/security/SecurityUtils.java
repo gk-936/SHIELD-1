@@ -196,10 +196,20 @@ public class SecurityUtils {
             Log.i(TAG, "Cert SHA-256: " + actualHash);
 
             if (EXPECTED_SIGNATURE_HASH == null) {
-                // Development mode — log the hash so it can be copied into the constant.
-                Log.w(TAG, "EXPECTED_SIGNATURE_HASH not set — signature check skipped (dev mode). "
-                        + "Set SecurityUtils.EXPECTED_SIGNATURE_HASH to: " + actualHash);
-                return true;
+                boolean isDebug = (context.getApplicationInfo().flags
+                        & android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0;
+                if (isDebug) {
+                    // Dev mode — log the hash so it can be copied into the constant before release.
+                    Log.w(TAG, "EXPECTED_SIGNATURE_HASH not set — signature check skipped (dev mode). "
+                            + "Set SecurityUtils.EXPECTED_SIGNATURE_HASH to: " + actualHash);
+                    return true;
+                } else {
+                    // Release build with no expected hash set — fail closed to prevent
+                    // tampered APKs from bypassing this check in production.
+                    Log.e(TAG, "EXPECTED_SIGNATURE_HASH is null in a release build — "
+                            + "set it before shipping. Actual hash: " + actualHash);
+                    return false;
+                }
             }
 
             boolean valid = EXPECTED_SIGNATURE_HASH.equalsIgnoreCase(actualHash);

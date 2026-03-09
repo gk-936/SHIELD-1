@@ -20,12 +20,12 @@ public class ShieldStats {
     private static final String KEY_THREATS_FOUND   = "threats_found";
     private static final String KEY_SEEDED          = "seeded_v1";
 
-    // Pre-seed values derived from validated test run against CICMalDroid-2020
-    // 11,598 real malware samples + 2,500 synthetic benign = 14,098 total tested
-    // Ransomware family (Class 5): 85.7% detection rate, 0.0% false positive rate
-    private static final int SEED_FILES_SCANNED   = 14098;  // total samples tested in validation run
-    private static final int SEED_ATTACKS_BLOCKED = 0;      // starts at 0, increments on live detection
-    private static final int SEED_THREATS_FOUND   = 0;      // starts at 0, increments on live detection
+    // All counters start at 0 — they reflect real device scan activity only.
+    // The 14,098 figure was from the CICMalDroid-2020 validation run and is
+    // not representative of any individual device's scan history.
+    private static final int SEED_FILES_SCANNED   = 0;
+    private static final int SEED_ATTACKS_BLOCKED = 0;
+    private static final int SEED_THREATS_FOUND   = 0;
 
     private final SharedPreferences prefs;
 
@@ -48,7 +48,7 @@ public class ShieldStats {
     // ── Getters ──────────────────────────────────────────────────────────────
 
     public int getFilesScanned() {
-        return prefs.getInt(KEY_FILES_SCANNED, SEED_FILES_SCANNED);
+        return prefs.getInt(KEY_FILES_SCANNED, 0);
     }
 
     public int getAttacksBlocked() {

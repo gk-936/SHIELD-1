@@ -235,7 +235,10 @@ int tp_fs_write(struct android_fs_rw_args *ctx)
     __u32 uid = (__u32)(uid_gid & 0xffffffff);
     __u64 ts  = bpf_ktime_get_ns();
 
-    /* TEST: no filters — record every write regardless of path/uid */
+    /* Filter: only track app-range UIDs (>= 10000) */
+    if (!uid_is_app(uid)) return 0;
+    /* Filter: ignore tiny writes — ransomware encrypts in large chunks */
+    if (ctx->bytes < 4096) return 0;
     update_pid_activity(pid, uid, ts, 0, 1, 0, 0);
     return 0;
 }
@@ -252,7 +255,8 @@ int tp_fs_read(struct android_fs_rw_args *ctx)
     __u32 uid = (__u32)(uid_gid & 0xffffffff);
     __u64 ts  = bpf_ktime_get_ns();
 
-    /* TEST: no filters — record every read regardless of path/uid */
+    /* Filter: only track app-range UIDs (>= 10000) */
+    if (!uid_is_app(uid)) return 0;
     update_pid_activity(pid, uid, ts, 1, 0, 0, 0);
     return 0;
 }
@@ -269,7 +273,8 @@ int tp_fs_fsync(struct android_fs_fsync_args *ctx)
     __u32 uid = (__u32)(uid_gid & 0xffffffff);
     __u64 ts  = bpf_ktime_get_ns();
 
-    /* TEST: no filters — record every fsync regardless of path/uid */
+    /* Filter: only track app-range UIDs (>= 10000) */
+    if (!uid_is_app(uid)) return 0;
     update_pid_activity(pid, uid, ts, 0, 0, 1, 0);
     return 0;
 }

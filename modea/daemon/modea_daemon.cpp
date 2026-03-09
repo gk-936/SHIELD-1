@@ -345,6 +345,21 @@ bool ModeADaemon::start()
             LOGE("accept(): %s", strerror(errno));
             break;
         }
+
+        /* SO_PEERCRED: reject connections from non-app UIDs (system / root) */
+        {
+            struct ucred peer{};
+            socklen_t plen = sizeof(peer);
+            if (getsockopt(client, SOL_SOCKET, SO_PEERCRED, &peer, &plen) == 0) {
+                if (peer.uid < 10000) {
+                    LOGW("Rejected connection: uid=%u pid=%u (not an app UID)",
+                         peer.uid, peer.pid);
+                    close(client);
+                    continue;
+                }
+                LOGI("Client accepted: uid=%u pid=%u", peer.uid, peer.pid);
+            }
+        }
         g_client_fd = client;
         connected   = true;
         LOGI("Android service connected (fd=%d)", client);

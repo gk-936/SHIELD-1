@@ -88,7 +88,8 @@ class ModeConfirmActivity : AppCompatActivity() {
 
         when (mode) {
             "ROOT" -> {
-                startActivity(Intent(this, RootModeInfoActivity::class.java))
+                // Signal MainActivity to start ModeAService via onActivityResult
+                setResult(RESULT_OK, Intent().putExtra("mode", "ROOT"))
                 finish()
                 overridePendingTransition(0, R.anim.slide_down_to_bottom)
             }
