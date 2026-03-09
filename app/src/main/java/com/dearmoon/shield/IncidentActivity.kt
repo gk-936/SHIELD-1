@@ -400,6 +400,8 @@ class TimelineFragment : Fragment() {
     private lateinit var spinner: ProgressBar
     private lateinit var terminalFrame: LinearLayout
     private lateinit var terminalBody: FrameLayout
+    private lateinit var topContainer: FrameLayout
+    private lateinit var bottomContainer: FrameLayout
     private val handler = Handler(Looper.getMainLooper())
     private val timeFmt = SimpleDateFormat("HH:mm:ss.SSS", Locale.ENGLISH)
 
@@ -409,10 +411,36 @@ class TimelineFragment : Fragment() {
         val ctx = requireContext()
         val density = ctx.resources.displayMetrics.density
 
-        // Root: transparent background so activity gradient shines through
-        val root = FrameLayout(ctx).apply {
+        val root = LinearLayout(ctx).apply {
+            orientation = LinearLayout.VERTICAL
+            weightSum = 1f
             setBackgroundColor(Color.TRANSPARENT)
         }
+
+        topContainer = FrameLayout(ctx).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                0,
+                0.40f
+            )
+        }
+
+        bottomContainer = FrameLayout(ctx).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                0,
+                0.60f
+            )
+            setBackgroundColor(Color.TRANSPARENT)
+        }
+
+        val particleSystem = com.dearmoon.shield.ui.ParticleSystemView(ctx).apply {
+            layoutParams = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT
+            )
+        }
+        bottomContainer.addView(particleSystem)
 
         val screenWidthPx = ctx.resources.displayMetrics.widthPixels
 
@@ -573,8 +601,11 @@ class TimelineFragment : Fragment() {
             visibility = View.VISIBLE
         }
 
-        root.addView(terminalFrame)
-        root.addView(spinner)
+        topContainer.addView(terminalFrame)
+        topContainer.addView(spinner)
+
+        root.addView(topContainer)
+        root.addView(bottomContainer)
 
         return root
     }
@@ -646,7 +677,15 @@ class TimelineFragment : Fragment() {
         val screenWidthPx = ctx.resources.displayMetrics.widthPixels
         val fixedBodyHeight = (160 * density).toInt()
 
-        // Fixed width 85% of screen, WRAP_CONTENT height, centered
+        // 40% top split layout ensures it stays up
+        topContainer.visibility = View.VISIBLE
+        topContainer.layoutParams = LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            0,
+            0.40f
+        )
+        bottomContainer.visibility = View.VISIBLE
+
         terminalFrame.layoutParams = FrameLayout.LayoutParams(
             (screenWidthPx * 0.85f).toInt(),
             FrameLayout.LayoutParams.WRAP_CONTENT,
@@ -810,6 +849,13 @@ class TimelineFragment : Fragment() {
 
     private fun showAttackTimeline(profile: RansomwareDnaProfile) {
         // Expand terminal to full-screen fill for attack data
+        bottomContainer.visibility = View.GONE
+        topContainer.layoutParams = LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            1f
+        )
+
         val density = requireContext().resources.displayMetrics.density
         terminalFrame.layoutParams = FrameLayout.LayoutParams(
             FrameLayout.LayoutParams.MATCH_PARENT,

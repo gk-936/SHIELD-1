@@ -82,143 +82,16 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
-    <!-- Security Stats Card — 2-column premium design -->
-    <com.google.android.material.card.MaterialCardView
-        android:id="@+id/statsCard"
+    <!-- Security Semicircular Gauge -->
+    <com.dearmoon.shield.ui.SecurityGaugeView
+        android:id="@+id/gaugeView"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginHorizontal="20dp"
+        android:layout_height="200dp"
+        android:layout_marginHorizontal="16dp"
         android:layout_marginTop="20dp"
-        app:cardBackgroundColor="#00000000"
-        app:cardCornerRadius="20dp"
-        app:cardElevation="0dp"
-        app:strokeWidth="1dp"
-        app:strokeColor="#1A4488AA"
-        app:layout_constraintTop_toBottomOf="@id/tvProtectionStatus">
-
-        <!-- Frosted glass inner background -->
-        <FrameLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:background="@drawable/bg_stats_card_frosted">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:paddingVertical="20dp"
-                android:paddingHorizontal="8dp">
-
-                <!-- ═══ COLUMN 1: Attacks Found ════════════════════════════ -->
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:orientation="vertical"
-                    android:gravity="center"
-                    android:paddingHorizontal="12dp">
-
-                    <!-- Big number -->
-                    <TextView
-                        android:id="@+id/tvSafeFiles"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="0"
-                        android:textColor="#00C8FF"
-                        android:textSize="36sp"
-                        android:textStyle="bold"
-                        android:fontFamily="sans-serif-condensed"
-                        android:letterSpacing="-0.02"
-                        android:layout_gravity="center" />
-
-                    <!-- Glowing underline accent -->
-                    <View
-                        android:layout_width="40dp"
-                        android:layout_height="2dp"
-                        android:background="@drawable/bg_stat_accent_cyan"
-                        android:layout_gravity="center"
-                        android:layout_marginTop="4dp"
-                        android:layout_marginBottom="8dp" />
-
-                    <!-- Label -->
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Attacks Found"
-                        android:textColor="#66A0C0"
-                        android:textSize="11sp"
-                        android:letterSpacing="0.08"
-                        android:textAllCaps="true"
-                        android:fontFamily="sans-serif-medium"
-                        android:layout_gravity="center" />
-
-                </LinearLayout>
-
-                <!-- Vertical divider -->
-                <View
-                    android:layout_width="1dp"
-                    android:layout_height="72dp"
-                    android:layout_gravity="center_vertical"
-                    android:background="@drawable/bg_stat_divider" />
-
-                <!-- ═══ COLUMN 2: Files Scanned ═════════════════════════════ -->
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:orientation="vertical"
-                    android:gravity="center"
-                    android:paddingHorizontal="12dp">
-
-                    <!-- Big number -->
-                    <TextView
-                        android:id="@+id/tvTotalFiles"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="0"
-                        android:textColor="#52B788"
-                        android:textSize="36sp"
-                        android:textStyle="bold"
-                        android:fontFamily="sans-serif-condensed"
-                        android:letterSpacing="-0.02"
-                        android:layout_gravity="center" />
-
-                    <!-- Glowing underline accent -->
-                    <View
-                        android:layout_width="40dp"
-                        android:layout_height="2dp"
-                        android:background="@drawable/bg_stat_accent_green"
-                        android:layout_gravity="center"
-                        android:layout_marginTop="4dp"
-                        android:layout_marginBottom="8dp" />
-
-                    <!-- Label -->
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Files Scanned"
-                        android:textColor="#4A9060"
-                        android:textSize="11sp"
-                        android:letterSpacing="0.08"
-                        android:textAllCaps="true"
-                        android:fontFamily="sans-serif-medium"
-                        android:layout_gravity="center" />
-
-                </LinearLayout>
-
-            </LinearLayout>
-
-        </FrameLayout>
-
-        <!-- tvInfectedFiles kept invisible for Java backward compatibility -->
-        <TextView
-            android:id="@+id/tvInfectedFiles"
-            android:layout_width="0dp"
-            android:layout_height="0dp"
-            android:visibility="gone"
-            android:text="0" />
-
-    </com.google.android.material.card.MaterialCardView>
+        app:layout_constraintTop_toBottomOf="@id/tvProtectionStatus"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
 
 
     <!-- Main Mode Buttons -->
@@ -228,7 +101,7 @@
         android:orientation="vertical"
         android:gravity="center"
         app:layout_constraintBottom_toTopOf="@id/fluidMenu"
-        app:layout_constraintTop_toBottomOf="@id/statsCard"
+        app:layout_constraintTop_toBottomOf="@id/gaugeView"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         android:padding="32dp">

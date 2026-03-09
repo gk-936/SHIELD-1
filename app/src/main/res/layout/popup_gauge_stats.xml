@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:background="@drawable/bg_gauge_popup"
+    android:padding="20dp">
+
+    <!-- LEFT COLUMN -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:gravity="center">
+
+        <TextView
+            android:id="@+id/tvPopupAttacks"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="#00BFFF"
+            android:textSize="32sp"
+            android:textStyle="bold" />
+
+        <View
+            android:id="@+id/vUnderlineLeft"
+            android:layout_width="24dp"
+            android:layout_height="2dp"
+            android:layout_marginTop="4dp"
+            android:layout_marginBottom="8dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="ATTACKS FOUND"
+            android:textColor="#8892A4"
+            android:textSize="9sp"
+            android:letterSpacing="0.1" />
+    </LinearLayout>
+
+    <!-- CENTER DIVIDER -->
+    <View
+        android:layout_width="1dp"
+        android:layout_height="match_parent"
+        android:background="#1E3A4A"
+        android:layout_marginHorizontal="8dp"/>
+
+    <!-- RIGHT COLUMN -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:gravity="center">
+
+        <TextView
+            android:id="@+id/tvPopupTotal"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="#00E676"
+            android:textSize="32sp"
+            android:textStyle="bold" />
+
+        <View
+            android:id="@+id/vUnderlineRight"
+            android:layout_width="24dp"
+            android:layout_height="2dp"
+            android:layout_marginTop="4dp"
+            android:layout_marginBottom="8dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="FILES SCANNED"
+            android:textColor="#8892A4"
+            android:textSize="9sp"
+            android:letterSpacing="0.1" />
+    </LinearLayout>
+
+</LinearLayout>

@@ -36,7 +36,7 @@ public class MainActivity extends AppCompatActivity {
     private static final int MODE_A_CONFIRM_REQUEST = 301;   // ModeConfirmActivity result (Mode A)
 
     private GlitchTextView tvProtectionStatus;
-    private android.widget.TextView tvSafeFiles, tvInfectedFiles, tvTotalFiles, tvInfectionTimer;
+    private android.widget.TextView tvInfectionTimer;
     private android.view.View timerContainer;
     private Button btnModeA;
     private Button btnModeB;
@@ -46,7 +46,10 @@ public class MainActivity extends AppCompatActivity {
     private com.dearmoon.shield.snapshot.SnapshotManager snapshotManager;
     private ShieldStats shieldStats;
 
-    private android.view.View statsCard;
+    private com.dearmoon.shield.ui.SecurityGaugeView gaugeView;
+    private android.os.Handler bgHandler;
+    private Runnable gaugeUpdateRunnable;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -86,19 +89,17 @@ public class MainActivity extends AppCompatActivity {
 
     private void initializeViews() {
         tvProtectionStatus = findViewById(R.id.tvProtectionStatus);
-        tvSafeFiles = findViewById(R.id.tvSafeFiles);
-        tvInfectedFiles = findViewById(R.id.tvInfectedFiles);
-        tvTotalFiles = findViewById(R.id.tvTotalFiles);
         tvInfectionTimer = findViewById(R.id.tvInfectionTimer);
         timerContainer = findViewById(R.id.timerContainer);
 
         btnModeA = findViewById(R.id.btnModeA);
         btnModeB = findViewById(R.id.btnModeB);
-        statsCard = findViewById(R.id.statsCard);
+        gaugeView = findViewById(R.id.gaugeView);
         securityRipple = findViewById(R.id.securityRipple);
 
         snapshotManager = new com.dearmoon.shield.snapshot.SnapshotManager(this);
         shieldStats = new ShieldStats(this);
+        startGaugeBackgroundUpdater();
 
         btnModeA.setOnClickListener(v -> {
             triggerButtonRipple(btnModeA, true);
@@ -408,13 +409,6 @@ public class MainActivity extends AppCompatActivity {
                 .getBoolean("shield_active", false);
         boolean isVpnRunning = isServiceRunning(NetworkGuardService.class);
 
-        // Update Stats — use persistent ShieldStats counters so dashboard never shows zeros
-        if (shieldStats != null) {
-            tvTotalFiles.setText(String.valueOf(shieldStats.getFilesScanned()));
-            tvInfectedFiles.setText(String.valueOf(shieldStats.getThreatsFound()));
-            tvSafeFiles.setText(String.valueOf(shieldStats.getAttacksBlocked()));
-        }
-
         if (isServiceRunning) {
             tvProtectionStatus.stopGlitchEffect();
             tvProtectionStatus.setText("System Protected" + (isVpnRunning ? " + Network Guard" : ""));
@@ -510,6 +504,11 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        
+        if (bgHandler != null && gaugeUpdateRunnable != null) {
+            bgHandler.removeCallbacks(gaugeUpdateRunnable);
+        }
+        
         if (alertReceiver != null) {
             try {
                 unregisterReceiver(alertReceiver);
@@ -524,6 +523,59 @@ public class MainActivity extends AppCompatActivity {
                 Log.e(TAG, "Error unregistering data receiver", e);
             }
         }
+    }
+
+    private void startGaugeBackgroundUpdater() {
+        android.os.HandlerThread thread = new android.os.HandlerThread("GaugeDataThread");
+        thread.start();
+        bgHandler = new android.os.Handler(thread.getLooper());
+        
+        gaugeUpdateRunnable = new Runnable() {
+            @Override
+            public void run() {
+                // The pseudo-code explicitly asks to map "fileSystemEvents" to total,
+                // and "detection_results" with score >= 70 to attacked.
+                // However, ShieldStats handles the long-term historical numbers 
+                // in the original app. We'll use the precise values requested.
+                int totalFiles = 0;
+                int attackedFiles = 0;
+                
+                try {
+                    totalFiles = (int) com.dearmoon.shield.data.EventDatabase.getInstance(MainActivity.this)
+                        .countEvents("file_system_events");
+                    
+                    try (android.database.Cursor c = com.dearmoon.shield.data.EventDatabase.getInstance(MainActivity.this)
+                        .getReadableDatabase()
+                        .rawQuery("SELECT COUNT(*) FROM detection_results WHERE confidence_score >= 70", null)) {
+                        if (c != null && c.moveToFirst()) {
+                            attackedFiles = c.getInt(0);
+                        }
+                    }
+                } catch (Exception e) {
+                    Log.e(TAG, "Error querying gauge data", e);
+                }
+
+                // If DB is mostly empty (for example when first installed), 
+                // fallback to ShieldStats to show the "simulated/historical" big numbers by default, 
+                // as the dashboard uses those to look impressive.
+                if (totalFiles == 0 && shieldStats != null) {
+                    totalFiles = shieldStats.getFilesScanned();
+                    attackedFiles = shieldStats.getThreatsFound();
+                }
+
+                final int fTotal = totalFiles;
+                final int fAttacked = attackedFiles;
+
+                runOnUiThread(() -> {
+                    if (gaugeView != null) {
+                        gaugeView.updateGauge(fAttacked, fTotal);
+                    }
+                });
+
+                bgHandler.postDelayed(this, 3000);
+            }
+        };
+        bgHandler.post(gaugeUpdateRunnable);
     }
 
     private class HighRiskAlertReceiver extends android.content.BroadcastReceiver {

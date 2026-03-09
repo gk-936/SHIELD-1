@@ -65,6 +65,7 @@ class DynamicIslandView @JvmOverloads constructor(
 
     private val shimmerPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.FILL
+        // Shimmer removed — was causing white overlay
     }
 
     private val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -74,7 +75,7 @@ class DynamicIslandView @JvmOverloads constructor(
     }
 
     private val percentPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.parseColor("#00BCD4")
+        color = Color.parseColor("#BF00FF")
         textSize = 13f.spToPx()
         isFakeBoldText = true
         textAlign = Paint.Align.RIGHT
@@ -86,7 +87,7 @@ class DynamicIslandView @JvmOverloads constructor(
     }
 
     private val tealFillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.parseColor("#00897B")
+        color = Color.parseColor("#7B0082")
         style = Paint.Style.FILL
     }
 
@@ -94,8 +95,7 @@ class DynamicIslandView @JvmOverloads constructor(
         style = Paint.Style.FILL
     }
 
-    // ── Shimmer animator ─────────────────────────────────────────────────────
-
+    // Shimmer removed — was creating unwanted white shade
     private var shimmerOffset = 0f
     private var shimmerAnimator: ValueAnimator? = null
 
@@ -108,7 +108,7 @@ class DynamicIslandView @JvmOverloads constructor(
 
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
-        startShimmer()
+        // shimmer removed
     }
 
     override fun onDetachedFromWindow() {
@@ -116,19 +116,8 @@ class DynamicIslandView @JvmOverloads constructor(
         shimmerAnimator?.cancel()
     }
 
-    private fun startShimmer() {
-        shimmerAnimator = ValueAnimator.ofFloat(-1f, 2f).apply {
-            duration = 2000
-            repeatCount = ValueAnimator.INFINITE
-            repeatMode = ValueAnimator.RESTART
-            interpolator = android.view.animation.LinearInterpolator()
-            addUpdateListener {
-                shimmerOffset = it.animatedValue as Float
-                invalidate()
-            }
-            start()
-        }
-    }
+    // Shimmer removed
+    private fun startShimmer() { /* no-op */ }
 
     // ── onMeasure / onSizeChanged ────────────────────────────────────────────
 
@@ -147,8 +136,9 @@ class DynamicIslandView @JvmOverloads constructor(
         progressPaint.shader = LinearGradient(
             0f, 0f, width, 0f,
             intArrayOf(
-                Color.parseColor("#00897B"),
-                Color.parseColor("#00BCD4")
+                Color.parseColor("#DC143C"),  // Crimson
+                Color.parseColor("#BF00FF"),  // Neon purple
+                Color.parseColor("#007FFF")   // Electric blue
             ),
             null,
             Shader.TileMode.CLAMP
@@ -174,21 +164,6 @@ class DynamicIslandView @JvmOverloads constructor(
 
         val fillW = w * (stepProgress / 100f)
         canvas.drawRect(0f, 0f, fillW, h, progressPaint)
-
-        // Shimmer
-        val shimmerW = w * 0.4f
-        val shimmerX = shimmerOffset * (w + shimmerW) - shimmerW
-        shimmerPaint.shader = LinearGradient(
-            shimmerX, 0f, shimmerX + shimmerW, 0f,
-            intArrayOf(
-                Color.argb(0,   255, 255, 255),
-                Color.argb(25,  255, 255, 255),
-                Color.argb(0,   255, 255, 255)
-            ),
-            null,
-            Shader.TileMode.CLAMP
-        )
-        canvas.drawRect(shimmerX, 0f, shimmerX + shimmerW, h, shimmerPaint)
 
         canvas.restore()
 
@@ -253,9 +228,9 @@ class DynamicIslandView @JvmOverloads constructor(
         for (i in 0 until segCount) {
             val segX = padding + i * (segW + gap)
             segmentPaint.color = when {
-                i < currentStep  -> Color.parseColor("#00897B")
-                i == currentStep -> Color.parseColor("#00BCD4")
-                else             -> Color.parseColor("#37474F")
+                i < currentStep  -> Color.parseColor("#DC143C")   // Crimson done
+                i == currentStep -> Color.parseColor("#BF00FF")   // Purple active
+                else             -> Color.parseColor("#37474F")   // Dark inactive
             }
             canvas.drawRoundRect(segX, segTop, segX + segW, segBot, 3f, 3f, segmentPaint)
         }
@@ -286,8 +261,8 @@ class DynamicIslandView @JvmOverloads constructor(
         val targetH = if (isExpanded) expandedH else collapsedH
 
         ValueAnimator.ofFloat(0f, 1f).apply {
-            duration = 350
-            interpolator = OvershootInterpolator(1.5f)
+            duration = 280
+            interpolator = android.view.animation.DecelerateInterpolator(1.8f)
             addUpdateListener {
                 val t = it.animatedValue as Float
                 currentWidth  = startW + (targetW - startW) * t
