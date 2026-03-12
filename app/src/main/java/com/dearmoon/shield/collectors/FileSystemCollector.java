@@ -30,7 +30,11 @@ public class FileSystemCollector extends FileObserver {
     };
     private static final long DEBOUNCE_DELAY_MS = 500;
     // App's private data directory (for self-exclusion)
-    private final String appDataDir = android.os.Environment.getDataDirectory().getAbsolutePath() + "/data/com.dearmoon.shield";
+    private static String buildAppDataPath() {
+        File d = android.os.Environment.getDataDirectory();
+        return (d != null ? d.getAbsolutePath() : "") + "/data/com.dearmoon.shield";
+    }
+    private final String appDataDir = buildAppDataPath();
     private final String[] selfExcludeDirs = new String[] { appDataDir, appDataDir + "/databases", appDataDir + "/files", appDataDir + "/logs" };
 
     public FileSystemCollector(String path, TelemetryStorage storage) {

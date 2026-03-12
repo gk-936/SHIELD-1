@@ -97,25 +97,28 @@ data class RansomwareDnaProfile(
     // Helpers
     // ─────────────────────────────────────────────────────────────────────────
 
-    /** "HIGH" when normalizedScore >= 55, "MEDIUM" 30..54, else "LOW". */
+    /** "HIGH" when compositeScore >= 70, "MEDIUM" 40..69, else "LOW". */
     @JvmName("computeConfidenceLevel")
-    fun getConfidenceLevel(): String = when (normalizedScore) {
-        in 0..29  -> "LOW"
-        in 30..54 -> "MEDIUM"  
-        in 55..74 -> "HIGH"
-        in 75..100 -> "CRITICAL"
-        else -> "LOW"
+    fun getConfidenceLevel(): String = when {
+        compositeScore >= 70 -> "HIGH"
+        compositeScore >= 40 -> "MEDIUM"
+        else                 -> "LOW"
     }
 
-    /** CERT-In-aligned severity label. */
-    fun getRiskSeverityLabel(): String = getConfidenceLevel()
+    /** CERT-In-aligned severity label (4-tier). */
+    fun getRiskSeverityLabel(): String = when {
+        compositeScore >= 90 -> "CRITICAL"
+        compositeScore >= 70 -> "HIGH"
+        compositeScore >= 40 -> "MEDIUM"
+        else                 -> "LOW"
+    }
 
     // ─────────────────────────────────────────────────────────────────────────
     // Short shareable summary (5 lines)
     // ─────────────────────────────────────────────────────────────────────────
     fun toShareableText(): String = buildString {
         appendLine("🛡️ SHIELD Incident Summary")
-        appendLine("Family  : ${attackFamily.displayName}  |  Score: $normalizedScore/100  |  ${getRiskSeverityLabel()}")
+        appendLine("Family  : ${attackFamily.displayName}  |  Score: $compositeScore/130  |  ${getRiskSeverityLabel()}")
         appendLine("Files   : ${totalFilesAtRisk} at risk, ${filesRestoredCount} restored")
         appendLine("Network : C2 ${if (c2AttemptDetected) "BLOCKED ($c2BlockedCount)" else "None"}  |  Tor: ${if (torAttemptDetected) "DETECTED" else "None"}")
         append("Suspect : ${suspectAppName ?: suspectPackage ?: "UNKNOWN"}  |  Profile: $profileId")

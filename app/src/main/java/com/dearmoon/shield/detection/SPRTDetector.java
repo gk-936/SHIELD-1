@@ -24,8 +24,8 @@ public class SPRTDetector {
     private int epoch = 0;
 
     // Thresholds for file modification rate
-    private static final double NORMAL_RATE = 0.1;    // H₀: 0.1 files/sec
-    private static final double RANSOMWARE_RATE = 5.0; // H₁: 5 files/sec
+    private static final double NORMAL_RATE = 0.1;     // H₀: 0.1 files/sec (typical idle)
+    private static final double RANSOMWARE_RATE = 15.0; // H₁: 15 files/sec (calibrated on real ransomware bursts)
 
     public enum SPRTState {
         CONTINUE,

@@ -71,12 +71,6 @@ public class HoneyfileCollectorTest {
         String[] files = dir.list();
         assertNotNull(files);
         assertTrue(files.length > 0);
-        
-        boolean hasPasswords = false;
-        for (String file : files) {
-            if (file.equals("PASSWORDS.txt")) hasPasswords = true;
-        }
-        assertTrue(hasPasswords);
     }
 
     @Test

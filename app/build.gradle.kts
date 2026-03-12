@@ -6,12 +6,12 @@ plugins {
 
 android {
     namespace = "com.dearmoon.shield"
-    compileSdk = 36
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.dearmoon.shield"
         minSdk = 24
-        targetSdk = 36
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0"
 
@@ -32,8 +32,6 @@ android {
     sourceSets {
         getByName("main") {
             assets {
-                // Pull pre-built Mode-A binaries (shield_modea_daemon, shield_bpf.o)
-                // built by modea/build_real.sh before assembling this APK.
                 srcDirs("src/main/assets", "../modea/app/src/main/assets")
             }
         }
@@ -43,6 +41,8 @@ android {
         unitTests.isReturnDefaultValues = true
         unitTests.isIncludeAndroidResources = true
         unitTests.all {
+            // Give each test JVM a modest heap — keeps total RAM usage down
+            it.maxHeapSize = "256m"
             it.testLogging {
                 events("passed", "skipped", "failed")
                 showStandardStreams = true
@@ -82,14 +82,15 @@ dependencies {
     implementation(libs.fragment.ktx)
     implementation("com.github.PhilJay:MPAndroidChart:v3.1.0")
     implementation("androidx.biometric:biometric:1.1.0")
-    
-    // Unit testing dependencies
+
+    // Unit testing
     testImplementation(libs.junit)
     testImplementation("org.mockito:mockito-core:5.3.1")
     testImplementation("org.mockito:mockito-inline:5.2.0")
-    testImplementation("org.robolectric:robolectric:4.14.1")
-    
-    // Android testing dependencies
+    testImplementation("org.robolectric:robolectric:4.13")
+    testImplementation("org.json:json:20231013")
+
+    // Android instrumented testing
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)
 }

@@ -19,7 +19,7 @@ public class MediaStoreCollector extends ContentObserver {
     private final TelemetryStorage storage;
     private final UnifiedDetectionEngine detectionEngine;
     private final java.util.Map<String, Long> lastEventMap = new java.util.concurrent.ConcurrentHashMap<>();
-    private static final long DEBOUNCE_DELAY_MS = 2000;
+    private static final long DEBOUNCE_DELAY_MS = 500;
 
     public MediaStoreCollector(Context context, TelemetryStorage storage, UnifiedDetectionEngine detectionEngine) {
         super(new Handler(Looper.getMainLooper()));

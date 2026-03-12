@@ -30,6 +30,21 @@ public class NetworkGuardService extends VpnService {
     private volatile boolean blockAllTraffic = false;
     private volatile boolean blockingEnabled = false;
     private final java.util.Set<String> flowCache = java.util.Collections.synchronizedSet(new java.util.HashSet<>());
+
+    /**
+     * Known ransomware C2 exfiltration services.
+     * DNS queries to these domains are blocked when blockingEnabled or blockAllTraffic is true,
+     * preventing ransomware from reaching its command-and-control infrastructure.
+     */
+    private static final String[] C2_DOMAINS = {
+        "pastebin.com",
+        "api.telegram.org",
+        "discord.com",
+        "paste.ee",
+        "hastebin.com",
+        "transfer.sh",
+        "webhook.site"
+    };
     private long lastCacheClear = System.currentTimeMillis();
     private EmergencyModeReceiver emergencyReceiver;
     private BlockingToggleReceiver blockingToggleReceiver;
@@ -229,6 +244,8 @@ public class NetworkGuardService extends VpnService {
         }
         
         // Check if should block
+        // DNS interception: block queries for known C2 exfiltration domains (port 80/443)
+        if (isDnsQueryForC2Domain(packet)) return true;
         return shouldBlockConnection(destIp, destPort, protoName);
     }
 
@@ -321,6 +338,61 @@ public class NetworkGuardService extends VpnService {
         }
         
         // Allow all other IPv6 traffic (can be enhanced with IPv6 threat intelligence)
+        return false;
+    }
+
+    /**
+     * Returns true if {@code packet} is a DNS query (IPv4 UDP port 53) targeting
+     * one of the known C2 exfiltration domains.  Blocks name resolution before
+     * the ransomware can open a connection to its C2 server on port 80/443.
+     *
+     * Parsing approach: IPv4 + UDP headers are stripped, then the DNS QNAME label
+     * sequence is reconstructed and checked against C2_DOMAINS.  The check is
+     * intentionally conservative — false negatives are acceptable; false positives
+     * would block legitimate apps unnecessarily.
+     */
+    private boolean isDnsQueryForC2Domain(ByteBuffer packet) {
+        if (!blockingEnabled && !blockAllTraffic) return false;
+        // Minimum: 20 (IPv4) + 8 (UDP) + 12 (DNS header) = 40 bytes
+        if (packet.remaining() < 40) return false;
+        // Must be UDP (protocol byte 9 of IPv4 header)
+        if ((packet.get(9) & 0xFF) != 17) return false;
+        // IPv4 IHL in lower nibble of byte 0 (in 4-byte units)
+        int ihl = (packet.get(0) & 0x0F) * 4;
+        if (ihl < 20 || packet.remaining() < ihl + 20) return false;
+        // UDP destination port at ihl + 2
+        int dstPort = packet.getShort(ihl + 2) & 0xFFFF;
+        if (dstPort != 53) return false;
+        // DNS payload begins after 8-byte UDP header
+        int dnsOffset = ihl + 8;
+        if (packet.remaining() < dnsOffset + 12) return false;
+        // QR bit (byte dnsOffset+2, bit 7): 0 = query, 1 = response — only intercept queries
+        if ((packet.get(dnsOffset + 2) & 0x80) != 0) return false;
+
+        // Reconstruct QNAME from label sequence starting at byte 12 of DNS payload
+        int offset = dnsOffset + 12;
+        StringBuilder domain = new StringBuilder(64);
+        try {
+            while (offset < packet.limit()) {
+                int labelLen = packet.get(offset++) & 0xFF;
+                if (labelLen == 0) break;
+                if (labelLen > 63 || offset + labelLen > packet.limit()) return false;
+                if (domain.length() > 0) domain.append('.');
+                for (int i = 0; i < labelLen; i++) {
+                    domain.append((char) (packet.get(offset++) & 0xFF));
+                }
+            }
+        } catch (Exception e) {
+            return false;
+        }
+
+        String queried = domain.toString().toLowerCase(java.util.Locale.ROOT);
+        for (String c2 : C2_DOMAINS) {
+            if (queried.equals(c2) || queried.endsWith("." + c2)) {
+                Log.w(TAG, "BLOCKED: DNS query for C2 domain " + queried);
+                return true;
+            }
+        }
         return false;
     }
 

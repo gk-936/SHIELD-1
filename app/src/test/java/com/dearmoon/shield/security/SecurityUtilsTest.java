@@ -1,6 +1,7 @@
 package com.dearmoon.shield.security;
 
 import android.content.Context;
+import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.Signature;
@@ -40,6 +41,9 @@ public class SecurityUtilsTest {
         MockitoAnnotations.openMocks(this);
         when(mockContext.getPackageManager()).thenReturn(mockPackageManager);
         when(mockContext.getPackageName()).thenReturn("com.dearmoon.shield");
+        ApplicationInfo appInfo = new ApplicationInfo();
+        appInfo.flags = ApplicationInfo.FLAG_DEBUGGABLE;
+        when(mockContext.getApplicationInfo()).thenReturn(appInfo);
     }
 
     /**

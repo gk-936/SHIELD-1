@@ -93,21 +93,26 @@ public class HoneyfileCollector {
     private String generateHoneyfileName(String dir, int index) {
         String key = "honeyfile_" + dir.hashCode() + "_" + index;
         SharedPreferences prefs = context.getSharedPreferences("ShieldHoneyfiles", Context.MODE_PRIVATE);
-        String stored = prefs.getString(key, null);
-        if (stored != null) return stored;
+        if (prefs != null) {
+            String stored = prefs.getString(key, null);
+            if (stored != null) return stored;
+        }
 
         String[] extensions = {".txt", ".dat", ".bin", ".bak", ".key", ".db"};
         try {
-            PackageInfo pi = context.getPackageManager()
-                    .getPackageInfo(context.getPackageName(), 0);
-            String seed = Build.FINGERPRINT + dir + index + pi.firstInstallTime;
+            PackageManager pm = context.getPackageManager();
+            PackageInfo pi = (pm != null) ? pm.getPackageInfo(context.getPackageName(), 0) : null;
+            long installTime = (pi != null) ? pi.firstInstallTime : 0L;
+            String seed = Build.FINGERPRINT + dir + index + installTime;
             byte[] hash = MessageDigest.getInstance("SHA-256")
                     .digest(seed.getBytes(StandardCharsets.UTF_8));
             String hex = String.format("%02x%02x%02x%02x", hash[0], hash[1], hash[2], hash[3]);
             String name = hex + extensions[index % extensions.length];
-            prefs.edit().putString(key, name).apply();
+            if (prefs != null) {
+                prefs.edit().putString(key, name).apply();
+            }
             return name;
-        } catch (NoSuchAlgorithmException | PackageManager.NameNotFoundException e) {
+        } catch (Exception e) {
             return "shield_" + Math.abs(dir.hashCode()) + "_" + index + ".dat";
         }
     }
