@@ -53,17 +53,19 @@ public class EventDatabase extends SQLiteOpenHelper {
 
         // File System Events Table
         db.execSQL("CREATE TABLE " + TABLE_FILE_SYSTEM + " (" +
-                COL_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
-                COL_TIMESTAMP + " INTEGER NOT NULL, " +
-                COL_EVENT_TYPE + " TEXT NOT NULL, " +
-                "operation TEXT, " +
-                "file_path TEXT, " +
-                "file_extension TEXT, " +
-                "file_size_before INTEGER, " +
-                "file_size_after INTEGER, " +
-                "uid INTEGER, " +
-                "package_name TEXT, " +
-                "app_label TEXT)");
+            COL_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
+            COL_TIMESTAMP + " INTEGER NOT NULL, " +
+            COL_EVENT_TYPE + " TEXT NOT NULL, " +
+            "operation TEXT, " +
+            "file_path TEXT, " +
+            "file_extension TEXT, " +
+            "file_size_before INTEGER, " +
+            "file_size_after INTEGER, " +
+            "uid INTEGER, " +
+            "package_name TEXT, " +
+            "app_label TEXT, " +
+            "source TEXT, " +
+            "merge_flag INTEGER DEFAULT 0)");
 
         // Honeyfile Events Table
         db.execSQL("CREATE TABLE " + TABLE_HONEYFILE + " (" +
@@ -259,6 +261,7 @@ public class EventDatabase extends SQLiteOpenHelper {
         values.put(COL_TIMESTAMP, event.getTimestamp());
         values.put(COL_EVENT_TYPE, "FILE_SYSTEM");
         
+
         try {
             JSONObject json = event.toJSON();
             values.put("operation", json.optString("operation"));
@@ -269,6 +272,16 @@ public class EventDatabase extends SQLiteOpenHelper {
             values.put("uid", json.optInt("uid"));
             values.put("package_name", json.optString("packageName"));
             values.put("app_label", json.optString("appLabel"));
+            // New fields for hybrid event system
+            if (event instanceof com.dearmoon.shield.data.HybridFileSystemEvent) {
+                com.dearmoon.shield.data.HybridFileSystemEvent h = (com.dearmoon.shield.data.HybridFileSystemEvent) event;
+                values.put("source", h.getSource());
+                values.put("merge_flag", h.isMerged() ? 1 : 0);
+            } else {
+                // Fallback for legacy events
+                values.put("source", "LEGACY");
+                values.put("merge_flag", 0);
+            }
         } catch (Exception e) {
             Log.e(TAG, "Failed to convert FileSystemEvent to JSON", e);
             return -1;
@@ -371,7 +384,9 @@ public class EventDatabase extends SQLiteOpenHelper {
             Cursor cursor = null;
             try {
                 cursor = db.rawQuery(query, null);
-                events = parseUnifiedCursor(cursor);
+                if (cursor != null) {
+                    events = parseUnifiedCursor(cursor);
+                }
             } finally {
                 if (cursor != null) cursor.close();
             }

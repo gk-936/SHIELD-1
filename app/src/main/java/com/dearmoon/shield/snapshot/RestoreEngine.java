@@ -37,7 +37,7 @@ public class RestoreEngine {
     /** Preferred constructor – shares the enc manager from SnapshotManager. */
     public RestoreEngine(Context context, BackupEncryptionManager encManager) {
         this.context    = context;
-        this.database   = new SnapshotDatabase(context);
+        this.database   = SnapshotDatabase.getInstance(context);
         this.encManager = encManager;
     }
 
@@ -46,47 +46,53 @@ public class RestoreEngine {
     // =========================================================================
 
     public RestoreResult restoreFromAttack(long attackId) {
-        Log.i(TAG, "Starting selective restore for attack: " + attackId);
+        Log.i(TAG, "Starting expanded restore for attack: " + attackId);
 
         RestoreResult result = new RestoreResult();
-
         if (attackId <= 0) {
             Log.w(TAG, "Invalid attack ID: " + attackId);
             result.noChanges = true;
             return result;
         }
 
-        List<FileMetadata> affectedFiles = database.getFilesModifiedDuringAttack(attackId);
-        Log.i(TAG, "Found " + affectedFiles.size()
-                + " files modified during attack " + attackId);
-
-        if (affectedFiles.isEmpty()) {
-            Log.w(TAG, "No files to restore");
-            result.noChanges = true;
-            return result;
-        }
-
-        for (FileMetadata metadata : affectedFiles) {
-            try {
-                RestoreAction action = restoreFile(metadata);
-                if (action == RestoreAction.RESTORED) {
-                    result.restoredCount++;
-                    Log.i(TAG, "Restored: " + metadata.filePath);
-                } else if (action == RestoreAction.FAILED) {
+        // 1. Restore all files that were backed up before the attack window started
+        long attackStartTime = database.getAttackWindowStartTime(attackId);
+        List<FileMetadata> allBackedUp = database.getAllBackedUpFiles();
+        int restoreCandidates = 0;
+        for (FileMetadata metadata : allBackedUp) {
+            // Only restore files that existed before the attack
+            if (metadata.lastModified <= attackStartTime) {
+                restoreCandidates++;
+                try {
+                    RestoreAction action = restoreFile(metadata);
+                    if (action == RestoreAction.RESTORED) {
+                        result.restoredCount++;
+                        Log.i(TAG, "Restored: " + metadata.filePath);
+                    } else if (action == RestoreAction.FAILED) {
+                        result.failedCount++;
+                    }
+                } catch (Exception e) {
+                    Log.e(TAG, "Restore failed: " + metadata.filePath, e);
                     result.failedCount++;
                 }
-            } catch (Exception e) {
-                Log.e(TAG, "Restore failed: " + metadata.filePath, e);
-                result.failedCount++;
             }
         }
 
-        if (result.restoredCount == 0 && result.failedCount == 0) {
-            result.noChanges = true;
+        // 2. Validation: check for missing files that should have been restored
+        int missingCount = 0;
+        for (FileMetadata metadata : allBackedUp) {
+            if (metadata.lastModified <= attackStartTime) {
+                File f = new File(metadata.filePath);
+                if (!f.exists()) {
+                    missingCount++;
+                    Log.w(TAG, "File missing after restore: " + metadata.filePath);
+                }
+            }
         }
-
+        result.noChanges = (result.restoredCount == 0 && result.failedCount == 0);
         Log.i(TAG, "Restore complete: "
-                + result.restoredCount + " restored, " + result.failedCount + " failed");
+                + result.restoredCount + " restored, " + result.failedCount + " failed, "
+                + missingCount + " missing after restore");
         return result;
     }
 

@@ -28,6 +28,10 @@ import javax.crypto.SecretKey;
  *  7. Retention policy           â€“ keeps â‰¤RETENTION_MAX_FILES files and â‰¤RETENTION_MAX_BYTES.
  */
 public class SnapshotManager {
+    // Broadcast action constants for user notification
+    public static final String ACTION_ATTACK_STARTED = "com.dearmoon.shield.ATTACK_STARTED";
+    public static final String ACTION_ATTACK_STOPPED = "com.dearmoon.shield.ATTACK_STOPPED";
+    public static final String ACTION_SNAPSHOT_COMPLETE = "com.dearmoon.shield.SNAPSHOT_COMPLETE";
 
     private static final String TAG = "SnapshotManager";
     private static final String BACKUP_DIR = "secure_backups";
@@ -49,7 +53,7 @@ public class SnapshotManager {
 
     public SnapshotManager(Context context) {
         this.context          = context;
-        this.database         = new SnapshotDatabase(context);
+        this.database         = SnapshotDatabase.getInstance(context);
         this.executor         = Executors.newSingleThreadExecutor();
         this.backupRoot       = new File(context.getFilesDir(), BACKUP_DIR);
         this.backupRoot.mkdirs();
@@ -64,6 +68,23 @@ public class SnapshotManager {
 
         // Feature 4: Run integrity self-check asynchronously so startup is not blocked
         executor.execute(() -> performIntegrityCheck());
+
+        // Harden: Check and close any stale attack window on startup
+        checkAndCloseStaleAttackWindow();
+    }
+
+    private void checkAndCloseStaleAttackWindow() {
+        long latestAttackId = database.getLatestAttackId();
+        if (latestAttackId > 0) {
+            if (database.isAttackWindowActive(latestAttackId)) {
+                database.endAttackWindow(latestAttackId);
+                Log.w(TAG, "Stale attack window found and closed on startup: " + latestAttackId);
+                android.content.Intent intent = new android.content.Intent(ACTION_ATTACK_STOPPED);
+                intent.putExtra("attack_id", latestAttackId);
+                intent.putExtra("stale", true);
+                context.sendBroadcast(intent);
+            }
+        }
     }
 
     // =========================================================================
@@ -82,6 +103,11 @@ public class SnapshotManager {
                     .putLong("last_snapshot_time", System.currentTimeMillis())
                     .apply();
             Log.i(TAG, "Baseline snapshot complete: " + fileCount + " files");
+            // Notify UI: Baseline snapshot complete
+            android.content.Intent intent = new android.content.Intent(ACTION_SNAPSHOT_COMPLETE);
+            intent.putExtra("type", "baseline");
+            intent.putExtra("file_count", fileCount);
+            context.sendBroadcast(intent);
         });
     }
 
@@ -93,6 +119,11 @@ public class SnapshotManager {
                 updatedCount += scanDirectory(new File(dir), false);
             }
             Log.i(TAG, "Incremental snapshot complete: " + updatedCount + " files processed");
+            // Notify UI: Incremental snapshot complete
+            android.content.Intent intent = new android.content.Intent(ACTION_SNAPSHOT_COMPLETE);
+            intent.putExtra("type", "incremental");
+            intent.putExtra("file_count", updatedCount);
+            context.sendBroadcast(intent);
         });
     }
 
@@ -106,6 +137,21 @@ public class SnapshotManager {
             }
 
             FileMetadata existing = database.getFileMetadata(filePath);
+
+            // During an active attack, protect clean backups from being overwritten
+            // by ransomware-encrypted versions.  If the file was already safely backed
+            // up before the attack started, skip re-backup and just record the touch.
+            // Files that have never been backed up are allowed through — they may still
+            // be in their original, unencrypted state and must be captured now.
+            if (activeAttackId > 0 && existing != null && existing.isBackedUp) {
+                Log.w(TAG, "Skipping re-backup for already-protected file during attack: " + filePath);
+                if (existing.modifiedDuringAttack == 0) {
+                    existing.modifiedDuringAttack = activeAttackId;
+                    database.insertOrUpdateFile(existing);
+                }
+                return;
+            }
+
             long currentSize     = file.length();
             long currentModified = file.lastModified();
 
@@ -118,14 +164,43 @@ public class SnapshotManager {
     }
 
     public void startAttackTracking() {
+        // Harden: Prevent overlapping attack windows
+        if (activeAttackId > 0 && database.isAttackWindowActive(activeAttackId)) {
+            Log.w(TAG, "Attempted to start attack tracking while another attack is active: " + activeAttackId);
+            return;
+        }
         activeAttackId = database.startAttackWindow();
         Log.e(TAG, "Attack tracking started: " + activeAttackId);
+        // Notify UI: Attack started
+        android.content.Intent intent = new android.content.Intent(ACTION_ATTACK_STARTED);
+        intent.putExtra("attack_id", activeAttackId);
+        context.sendBroadcast(intent);
+        // Mitigation: Immediately snapshot all files changed in the last 10 seconds
+        executor.execute(() -> {
+            long now = System.currentTimeMillis();
+            long windowMs = 10_000; // 10 seconds
+            List<FileMetadata> allFiles = database.getAllBackedUpFiles();
+            for (FileMetadata meta : allFiles) {
+                if (now - meta.lastModified <= windowMs) {
+                    File file = new File(meta.filePath);
+                    if (file.exists()) {
+                        Log.i(TAG, "Pre-attack snapshot: " + meta.filePath);
+                        createNewFileSnapshot(file);
+                    }
+                }
+            }
+        });
     }
 
     public void stopAttackTracking() {
-        if (activeAttackId > 0) {
+        // Harden: Idempotent and only close if active
+        if (activeAttackId > 0 && database.isAttackWindowActive(activeAttackId)) {
             database.endAttackWindow(activeAttackId);
             Log.i(TAG, "Attack tracking stopped: " + activeAttackId);
+            // Notify UI: Attack stopped
+            android.content.Intent intent = new android.content.Intent(ACTION_ATTACK_STOPPED);
+            intent.putExtra("attack_id", activeAttackId);
+            context.sendBroadcast(intent);
             activeAttackId = 0;
         }
     }
@@ -207,11 +282,13 @@ public class SnapshotManager {
             FileMetadata metadata = new FileMetadata(
                     file.getAbsolutePath(), size, modified, hash, currentSnapshotId);
 
-            // Feature 1 & 6 are applied in backupOriginalFile, but we still need
-            // to persist the metadata entry first (without backup/chain fields yet).
+            // Persist the metadata entry first
             database.insertOrUpdateFile(metadata);
 
-            Log.d(TAG, "Snapshot created: " + file.getName());
+            // Actually back up the file and update metadata (sets isBackedUp, backupPath, etc.)
+            backupOriginalFile(file, metadata);
+
+            Log.d(TAG, "Snapshot created and backed up: " + file.getName());
         } catch (Exception e) {
             Log.e(TAG, "Failed to snapshot file: " + file.getAbsolutePath(), e);
         }
@@ -248,6 +325,8 @@ public class SnapshotManager {
      * Feature 1 â€“ chain_hash computed after encryption and stored.
      */
     private void backupOriginalFile(File file, FileMetadata metadata) {
+        // Declared outside try so the catch block can delete a partially-written .enc file
+        File encBackupFile = null;
         try {
             // â”€â”€ Feature 6: Generate and wrap a fresh per-file AES-256 key â”€â”€â”€â”€
             byte[] wrappedKey = encManager.generateAndWrapSnapshotKey();
@@ -255,7 +334,7 @@ public class SnapshotManager {
 
             // â”€â”€ Feature 2: Encrypt backup file with per-file key â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             String encFileName = metadata.snapshotId + "_" + file.getName() + ".enc";
-            File encBackupFile = new File(backupRoot, encFileName);
+            encBackupFile = new File(backupRoot, encFileName);
             encManager.encryptFile(file, encBackupFile, fileKey);
 
             // â”€â”€ Feature 3: Encrypt backup_path column before storing â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -287,6 +366,10 @@ public class SnapshotManager {
 
         } catch (Exception e) {
             Log.e(TAG, "Backup failed: " + file.getAbsolutePath(), e);
+            // Remove any partially-written .enc file to avoid orphaning storage
+            if (encBackupFile != null && encBackupFile.exists()) {
+                encBackupFile.delete();
+            }
         }
     }
 
@@ -366,12 +449,27 @@ public class SnapshotManager {
     // =========================================================================
 
     private String calculateHash(File file) throws Exception {
-        if (file.length() > 50 * 1024 * 1024) return "LARGE_FILE";
         MessageDigest digest = MessageDigest.getInstance("SHA-256");
+        long size = file.length();
         try (FileInputStream fis = new FileInputStream(file)) {
-            byte[] buffer = new byte[8192];
-            int read;
-            while ((read = fis.read(buffer)) != -1) digest.update(buffer, 0, read);
+            if (size <= 500L * 1024 * 1024) {
+                // Full streaming hash for files up to 500 MB
+                byte[] buffer = new byte[65536];
+                int n;
+                while ((n = fis.read(buffer)) != -1) digest.update(buffer, 0, n);
+            } else {
+                // M-03 partial hash for very large files: first 1 MB + last 1 MB + size
+                byte[] buf = new byte[1024 * 1024];
+                int n = fis.read(buf);
+                if (n > 0) digest.update(buf, 0, n);
+                long skipTo = size - buf.length;
+                fis.skip(Math.max(0, skipTo - n));
+                n = fis.read(buf);
+                if (n > 0) digest.update(buf, 0, n);
+                // Include file size to distinguish files of different lengths
+                java.nio.ByteBuffer sizeBytes = java.nio.ByteBuffer.allocate(8).putLong(size);
+                digest.update(sizeBytes.array());
+            }
         }
         byte[] hash = digest.digest();
         StringBuilder sb = new StringBuilder();

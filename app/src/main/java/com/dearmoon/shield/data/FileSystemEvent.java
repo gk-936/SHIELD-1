@@ -46,4 +46,17 @@ public class FileSystemEvent extends TelemetryEvent {
     public String getOperation() {
         return operation;
     }
+
+    public long getFileSizeBefore() {
+        return fileSizeBefore;
+    }
+
+    public long getFileSizeAfter() {
+        return fileSizeAfter;
+    }
+
+    // For compatibility with EventMerger, return -1 (not tracked in this class)
+    public int getPid() {
+        return -1;
+    }
 }

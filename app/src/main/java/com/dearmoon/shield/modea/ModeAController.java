@@ -34,7 +34,8 @@ public class ModeAController {
 
     public static final String DAEMON_PATH        = "/data/local/tmp/shield_modea_daemon";
     public static final String BPF_OBJ_PATH       = "/data/local/tmp/shield_bpf.o";
-    public static final String SOCKET_PATH        = "/data/local/tmp/shield_modea.sock";
+    // C-04: Moved from world-accessible /data/local/tmp/ to app-private directory
+    public static final String SOCKET_PATH        = "/data/data/com.dearmoon.shield/shield_modea.sock";
     public static final String DAEMON_STDERR_PATH = "/data/local/tmp/shield_modea_daemon.log";
 
     private static final String[] REQUIRED_CONFIGS = {
@@ -189,6 +190,7 @@ public class ModeAController {
             }
 
             String cmd = DAEMON_PATH + " " + SOCKET_PATH + " " + BPF_OBJ_PATH
+                       + " " + android.os.Process.myUid()
                        + " 2>" + DAEMON_STDERR_PATH;
             daemonProcess = Runtime.getRuntime()
                     .exec(new String[]{"su", "-c", cmd});

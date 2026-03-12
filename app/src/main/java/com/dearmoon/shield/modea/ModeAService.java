@@ -100,9 +100,14 @@ public class ModeAService extends Service {
 
         controller      = new ModeAController(this);
         jni             = new ModeAJni();
-        SnapshotManager sm = new SnapshotManager(this);
-        detectionEngine = new UnifiedDetectionEngine(this, sm);
-        collector       = new ModeAFileCollector(detectionEngine);
+        // Obtain the application-scoped shared engine — do NOT create a new one.
+        // Mode A is a kernel-event data source; detection state must be unified
+        // with Mode B (ShieldProtectionService).  Creating a separate engine here
+        // would split the SPRT accumulator, snapshot attack-window, and EventMerger.
+        detectionEngine = com.dearmoon.shield.ShieldApplication.get().getDetectionEngine();
+        collector       = new ModeAFileCollector(
+                detectionEngine,
+                com.dearmoon.shield.ShieldApplication.get().getEventMerger());
 
         IntentFilter filter = new IntentFilter(ACTION_KILL_PID);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -133,9 +138,12 @@ public class ModeAService extends Service {
         // Signal initModeA() thread to abort before we tear down the daemon.
         destroyed.set(true);
         stopEventLoop();
-        if (jni != null)             jni.nativeDisconnect();
-        if (controller != null)      controller.stopDaemon();
-        if (detectionEngine != null) detectionEngine.shutdown();
+        if (jni != null)         jni.nativeDisconnect();
+        if (controller != null)  controller.stopDaemon();
+        // Do NOT shutdown the detection engine here — it is owned by ShieldApplication
+        // and shared with ShieldProtectionService (Mode B).  Shutting it down here
+        // would kill Mode B detection while Mode B is still running.
+        detectionEngine = null;
         try { unregisterReceiver(killReceiver); } catch (Exception ignored) {}
         super.onDestroy();
     }
@@ -164,6 +172,7 @@ public class ModeAService extends Service {
             return;
         }
 
+        if (destroyed.get()) return;
         Log.i(TAG, "Deploying binaries from APK assets…");
         if (!controller.deployBinaries()) {
             Log.e(TAG, "Binary deployment failed");
@@ -172,6 +181,7 @@ public class ModeAService extends Service {
             return;
         }
 
+        if (destroyed.get()) return;
         Log.i(TAG, "Starting root daemon…");
         if (!controller.startDaemon()) {
             broadcast(ACTION_UNAVAILABLE, "Root daemon failed to start");

@@ -23,7 +23,6 @@ import java.util.List;
  * BackupEncryptionManager; this class treats the value as an opaque string.
  */
 public class SnapshotDatabase extends SQLiteOpenHelper {
-
     private static final String TAG = "SnapshotDatabase";
 
     private static final String DB_NAME    = "shield_snapshots.db";
@@ -33,6 +32,15 @@ public class SnapshotDatabase extends SQLiteOpenHelper {
     private static final String TABLE_ATTACKS = "attack_windows";
 
     // -------------------------------------------------------------------------
+
+    private static volatile SnapshotDatabase instance;
+
+    public static synchronized SnapshotDatabase getInstance(Context context) {
+        if (instance == null) {
+            instance = new SnapshotDatabase(context.getApplicationContext());
+        }
+        return instance;
+    }
 
     public SnapshotDatabase(Context context) {
         super(context, DB_NAME, null, DB_VERSION);
@@ -197,6 +205,24 @@ public class SnapshotDatabase extends SQLiteOpenHelper {
     // =========================================================================
     //  Attack window management
     // =========================================================================
+
+    public synchronized long getAttackWindowStartTime(long attackId) {
+        SQLiteDatabase db = getReadableDatabase();
+        Cursor c = db.query(TABLE_ATTACKS, new String[]{"start_time"}, "id = ?", new String[]{String.valueOf(attackId)}, null, null, null);
+        long start = 0;
+        if (c.moveToFirst()) start = c.getLong(0);
+        c.close();
+        return start;
+    }
+
+    public synchronized boolean isAttackWindowActive(long attackId) {
+        SQLiteDatabase db = getReadableDatabase();
+        Cursor c = db.query(TABLE_ATTACKS, new String[]{"is_active"}, "id = ?", new String[]{String.valueOf(attackId)}, null, null, null);
+        boolean active = false;
+        if (c.moveToFirst()) active = c.getInt(0) == 1;
+        c.close();
+        return active;
+    }
 
     public synchronized long startAttackWindow() {
         SQLiteDatabase db = getWritableDatabase();

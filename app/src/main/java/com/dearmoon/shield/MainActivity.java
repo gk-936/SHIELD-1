@@ -27,6 +27,8 @@ import android.graphics.RectF;
 import android.view.MotionEvent;
 import com.dearmoon.shield.ui.FluidMenuView;
 import java.util.Arrays;
+import java.util.Locale;
+import androidx.appcompat.app.AlertDialog;
 
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
@@ -45,6 +47,10 @@ public class MainActivity extends AppCompatActivity {
     private android.content.BroadcastReceiver dataUpdateReceiver;
     private com.dearmoon.shield.snapshot.SnapshotManager snapshotManager;
     private ShieldStats shieldStats;
+
+    // Permission gate state
+    private boolean viewsInitialized = false;
+    private AlertDialog permissionDialog;
 
     private com.dearmoon.shield.ui.SecurityGaugeView gaugeView;
     private android.os.Handler bgHandler;
@@ -82,9 +88,168 @@ public class MainActivity extends AppCompatActivity {
             });
         }
 
-        initializeViews();
+        if (hasRequiredPermissions()) {
+            initializeViews();
+            viewsInitialized = true;
+        } else {
+            showPermissionBlockingDialog();
+        }
+    }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (!viewsInitialized) {
+            if (hasRequiredPermissions()) {
+                if (permissionDialog != null && permissionDialog.isShowing()) {
+                    permissionDialog.dismiss();
+                }
+                initializeViews();
+                viewsInitialized = true;
+            } else {
+                showPermissionBlockingDialog();
+            }
+        }
+    }
 
+    // =========================================================================
+    //  Permission Gate
+    // =========================================================================
+
+    private void showPermissionBlockingDialog() {
+        if (permissionDialog != null && permissionDialog.isShowing()) {
+            // Refresh the message so checkmarks update on each return from Settings
+            permissionDialog.setMessage(buildPermissionMessage());
+            return;
+        }
+        permissionDialog = new AlertDialog.Builder(this)
+                .setTitle("\uD83D\uDEE1 Permissions Required")
+                .setMessage(buildPermissionMessage())
+                .setCancelable(false)
+                .setPositiveButton("Grant Permissions", (d, w) -> requestNextMissingPermission())
+                .create();
+        permissionDialog.setCanceledOnTouchOutside(false);
+        // Back button closes the app — SHIELD cannot run without permissions
+        permissionDialog.setOnKeyListener((d, keyCode, event) -> {
+            if (keyCode == android.view.KeyEvent.KEYCODE_BACK
+                    && event.getAction() == android.view.KeyEvent.ACTION_UP) {
+                d.dismiss();
+                finishAffinity();
+                return true;
+            }
+            return false;
+        });
+        permissionDialog.show();
+    }
+
+    private String buildPermissionMessage() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("SHIELD needs the following permissions to protect your device.\n");
+        sb.append("All must be granted before the app will start.\n\n");
+
+        // 1. File access
+        boolean hasFiles;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            hasFiles = Environment.isExternalStorageManager();
+        } else {
+            hasFiles = ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE)
+                               == PackageManager.PERMISSION_GRANTED
+                    && ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                               == PackageManager.PERMISSION_GRANTED;
+        }
+        sb.append(hasFiles ? "\u2705" : "\u274C");
+        sb.append("  All Files Access\n");
+        sb.append("    Needed to scan, back up, and restore your files.\n\n");
+
+        // 2. Notifications (Android 13+)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            boolean hasNotif = ContextCompat.checkSelfPermission(this,
+                    Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED;
+            sb.append(hasNotif ? "\u2705" : "\u274C");
+            sb.append("  Notifications\n");
+            sb.append("    Needed for ransomware alerts and service status.\n\n");
+        }
+
+        // 3. Accessibility service
+        boolean hasA11y = isAccessibilityServiceEnabled();
+        sb.append(hasA11y ? "\u2705" : "\u274C");
+        sb.append("  Accessibility Service (LockerGuard)\n");
+        sb.append("    Needed to detect and block locker-style ransomware.\n\n");
+
+        sb.append("Tap \"Grant Permissions\" to address each item one at a time.");
+        return sb.toString();
+    }
+
+    private boolean isAccessibilityServiceEnabled() {
+        String component = getPackageName() + "/"
+                + com.dearmoon.shield.lockerguard.LockerShieldService.class.getName();
+        String enabled = android.provider.Settings.Secure.getString(
+                getContentResolver(),
+                android.provider.Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES);
+        return enabled != null
+                && enabled.toLowerCase(Locale.ROOT).contains(component.toLowerCase(Locale.ROOT));
+    }
+
+    /** Requests the first permission that is still missing, in priority order. */
+    private void requestNextMissingPermission() {
+        // 1. All-files access
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            if (!Environment.isExternalStorageManager()) {
+                startActivity(new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
+                        Uri.parse("package:" + getPackageName())));
+                return;
+            }
+        } else {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE)
+                        != PackageManager.PERMISSION_GRANTED
+                    || ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                        != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(this,
+                        new String[]{
+                            Manifest.permission.READ_EXTERNAL_STORAGE,
+                            Manifest.permission.WRITE_EXTERNAL_STORAGE
+                        }, PERMISSION_REQUEST_CODE);
+                return;
+            }
+        }
+
+        // 2. Notifications (Android 13+)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+                    != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(this,
+                        new String[]{Manifest.permission.POST_NOTIFICATIONS},
+                        PERMISSION_REQUEST_CODE);
+                return;
+            }
+        }
+
+        // 3. Accessibility service (cannot request programmatically — send user to Settings)
+        if (!isAccessibilityServiceEnabled()) {
+            Toast.makeText(this,
+                    "Enable \"SHIELD LockerGuard\" in Accessibility Settings, then come back.",
+                    Toast.LENGTH_LONG).show();
+            startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS));
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == PERMISSION_REQUEST_CODE) {
+            if (hasRequiredPermissions()) {
+                if (permissionDialog != null && permissionDialog.isShowing()) {
+                    permissionDialog.dismiss();
+                }
+                if (!viewsInitialized) {
+                    initializeViews();
+                    viewsInitialized = true;
+                }
+            } else {
+                // Some permissions still missing — show the gate again
+                showPermissionBlockingDialog();
+            }
+        }
     }
 
     private void initializeViews() {
@@ -97,7 +262,7 @@ public class MainActivity extends AppCompatActivity {
         gaugeView = findViewById(R.id.gaugeView);
         securityRipple = findViewById(R.id.securityRipple);
 
-        snapshotManager = new com.dearmoon.shield.snapshot.SnapshotManager(this);
+        snapshotManager = com.dearmoon.shield.ShieldApplication.get().getSnapshotManager();
         shieldStats = new ShieldStats(this);
         startGaugeBackgroundUpdater();
 
@@ -209,6 +374,14 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
+        // H-04: Handle VPN permission request forwarded from ShieldProtectionService
+        // (service cannot show the system dialog directly — it routes through here)
+        if ("com.dearmoon.shield.REQUEST_VPN_PERMISSION".equals(intent.getAction())) {
+            Intent vpnIntent = android.net.VpnService.prepare(this);
+            if (vpnIntent != null) {
+                startActivityForResult(vpnIntent, VPN_REQUEST_CODE);
+            }
+        }
     }
 
     /**
@@ -467,9 +640,12 @@ public class MainActivity extends AppCompatActivity {
                 return false;
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            return ContextCompat.checkSelfPermission(this,
-                    Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED;
+            if (ContextCompat.checkSelfPermission(this,
+                    Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED)
+                return false;
         }
+        if (!isAccessibilityServiceEnabled())
+            return false;
         return true;
     }
 
@@ -495,11 +671,6 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    @Override
-    protected void onResume() {
-        super.onResume();
-        updateStatusDisplay();
-    }
 
     @Override
     protected void onDestroy() {

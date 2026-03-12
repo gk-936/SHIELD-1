@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SHIELD-1 Complete Bug & Fix Report</title>
+<style>
+  :root {
+    --blue:   #1A5276;
+    --red:    #C0392B;
+    --orange: #E67E22;
+    --yellow: #B7950B;
+    --green:  #1E8449;
+    --dark:   #1C2833;
+    --lgray:  #F2F3F4;
+    --mgray:  #BDC3C7;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Arial, sans-serif; font-size: 14px; color: var(--dark); background: #fff; line-height: 1.6; }
+  .page { max-width: 1100px; margin: 0 auto; padding: 40px 48px; }
+
+  /* ── Cover ─────────────────────────────────────────────────────── */
+  .cover { text-align: center; padding: 60px 0 40px; border-bottom: 3px solid var(--blue); margin-bottom: 40px; }
+  .cover .product { font-size: 52px; font-weight: 900; color: var(--blue); letter-spacing: -1px; }
+  .cover .subtitle { font-size: 22px; color: #5D6D7E; margin: 4px 0 16px; }
+  .cover .report-title { font-size: 30px; font-weight: 700; color: var(--dark); }
+  .cover .meta { font-size: 14px; color: #7F8C8D; font-style: italic; margin-top: 10px; }
+
+  /* ── Stat boxes ─────────────────────────────────────────────────── */
+  .stat-row { display: flex; gap: 16px; margin: 28px 0; }
+  .stat-box { flex: 1; border-radius: 8px; padding: 20px; text-align: center; }
+  .stat-box .count { font-size: 42px; font-weight: 900; }
+  .stat-box .label { font-size: 13px; font-weight: 700; letter-spacing: 1px; margin-top: 4px; }
+  .stat-crit  { background: #FADBD8; color: var(--red); }
+  .stat-high  { background: #FDEBD0; color: var(--orange); }
+  .stat-med   { background: #FEF9E7; color: var(--yellow); }
+  .stat-low   { background: #EAFAF1; color: var(--green); }
+
+  /* ── Headings ───────────────────────────────────────────────────── */
+  h1 { font-size: 22px; font-weight: 700; color: var(--blue); border-bottom: 3px solid var(--blue);
+       padding-bottom: 8px; margin: 48px 0 20px; }
+  h2 { font-size: 17px; font-weight: 700; color: var(--dark); margin: 32px 0 12px; }
+  h3 { font-size: 14px; font-weight: 700; color: #34495E; margin: 18px 0 6px; }
+  p  { margin: 8px 0; }
+
+  /* ── Index table ────────────────────────────────────────────────── */
+  table { width: 100%; border-collapse: collapse; margin: 16px 0 28px; font-size: 13px; }
+  th { background: var(--blue); color: #fff; padding: 10px 12px; text-align: left; font-weight: 700; }
+  td { padding: 9px 12px; border-bottom: 1px solid #E8E8E8; vertical-align: top; }
+  tr:hover td { background: #F8FBFF; }
+
+  /* ── Issue cards ────────────────────────────────────────────────── */
+  .issue { border: 1px solid #E0E0E0; border-radius: 8px; margin: 32px 0; overflow: hidden; }
+  .issue-header { padding: 16px 20px; }
+  .issue-header.CRITICAL { background: #FADBD8; border-left: 6px solid var(--red); }
+  .issue-header.HIGH     { background: #FDEBD0; border-left: 6px solid var(--orange); }
+  .issue-header.MEDIUM   { background: #FEF9E7; border-left: 6px solid var(--yellow); }
+  .issue-header.LOW      { background: #EAFAF1; border-left: 6px solid var(--green); }
+
+  .issue-id    { font-size: 13px; font-weight: 700; letter-spacing: 1px; display: inline-block; padding: 2px 8px; border-radius: 4px; margin-right: 8px; }
+  .sev-CRITICAL { background: var(--red);    color: #fff; }
+  .sev-HIGH     { background: var(--orange); color: #fff; }
+  .sev-MEDIUM   { background: var(--yellow); color: #fff; }
+  .sev-LOW      { background: var(--green);  color: #fff; }
+
+  .issue-title { font-size: 16px; font-weight: 700; color: var(--dark); margin-top: 6px; }
+  .issue-file  { font-size: 12px; font-family: 'Courier New', monospace; color: #5D6D7E;
+                 background: #F2F3F4; padding: 4px 10px; border-radius: 4px; margin-top: 8px; display: inline-block; }
+
+  .issue-body  { padding: 16px 20px; }
+  .section-label { font-size: 11px; font-weight: 700; letter-spacing: 1.5px; color: #7F8C8D;
+                   text-transform: uppercase; margin: 16px 0 4px; }
+  .section-label:first-child { margin-top: 0; }
+
+  pre { background: #1C2833; color: #ECF0F1; padding: 14px 16px; border-radius: 6px;
+        font-family: 'Courier New', monospace; font-size: 12px; overflow-x: auto;
+        white-space: pre-wrap; word-wrap: break-word; margin: 8px 0; line-height: 1.5; }
+  code { font-family: 'Courier New', monospace; background: #F2F3F4; padding: 1px 5px; border-radius: 3px; font-size: 12px; }
+
+  /* ── Badges in index ────────────────────────────────────────────── */
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 700; }
+  .badge-CRITICAL { background: #FADBD8; color: var(--red); }
+  .badge-HIGH     { background: #FDEBD0; color: var(--orange); }
+  .badge-MEDIUM   { background: #FEF9E7; color: var(--yellow); }
+  .badge-LOW      { background: #EAFAF1; color: var(--green); }
+
+  /* ── Roadmap ────────────────────────────────────────────────────── */
+  .phase { background: #F8FBFF; border: 1px solid #D6EAF8; border-radius: 8px; padding: 20px 24px; margin: 20px 0; }
+  .phase-title { font-size: 15px; font-weight: 700; color: var(--blue); margin-bottom: 12px; }
+  ul { padding-left: 20px; }
+  li { margin: 6px 0; }
+
+  /* ── Effect table ───────────────────────────────────────────────── */
+  .eff-yes    { color: var(--green); font-weight: 700; }
+  .eff-no     { color: var(--red);   font-weight: 700; }
+  .eff-partial{ color: var(--orange);font-weight: 700; }
+
+  @media print {
+    .issue { page-break-inside: avoid; }
+    h1 { page-break-before: always; }
+    h1:first-of-type { page-break-before: avoid; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+<!-- COVER -->
+<div class="cover">
+  <div class="product">SHIELD-1</div>
+  <div class="subtitle">Android Ransomware Detection System</div>
+  <div class="report-title">Complete Bug &amp; Fix Report</div>
+  <div class="meta">Deep-Research Source Audit &nbsp;·&nbsp; March 2026</div>
+</div>
+
+<!-- SUMMARY -->
+<h1>Executive Summary</h1>
+<p>This report documents every defect found after a full source-level audit of all Java/Kotlin files, native Mode-A components (eBPF daemon, JNI bridge), and test infrastructure. Each issue identifies the exact file and code location, explains the root cause, and provides a concrete solution with production-ready code.</p>
+
+<div class="stat-row">
+  <div class="stat-box stat-crit"><div class="count">6</div><div class="label">CRITICAL</div></div>
+  <div class="stat-box stat-high"><div class="count">5</div><div class="label">HIGH</div></div>
+  <div class="stat-box stat-med"> <div class="count">3</div><div class="label">MEDIUM</div></div>
+  <div class="stat-box stat-low"> <div class="count">3</div><div class="label">LOW</div></div>
+</div>
+
+<p><strong>Bottom line:</strong> The most dangerous defects are in the mitigation pipeline. The process-kill mechanism is entirely non-functional (C-01), restoration races a live ransomware process (C-02), and Mode A's kernel socket is a local privilege escalation vector (C-04). SHIELD's core guarantee — detect, kill, restore — only works for screen-locker ransomware caught by LockerGuard. For all other families the detection may fire correctly but the response fails.</p>
+<p style="margin-top:8px">The cryptographic foundation (AES-256-GCM, Keystore, hash chain, TEE integrity gate) is production-quality and should be preserved. Mode A's architecture is the correct long-term design; its three blocking issues are fixable without redesign.</p>
+
+<!-- INDEX TABLE -->
+<h1>Issue Index</h1>
+<table>
+  <tr><th>ID</th><th>Severity</th><th>Title</th><th>File</th></tr>
+  <tr><td><strong>C-01</strong></td><td><span class="badge badge-CRITICAL">CRITICAL</span></td><td>Process Kill Does Nothing — Ransomware Survives and Re-Encrypts Restored Files</td><td><code>UnifiedDetectionEngine.java</code></td></tr>
+  <tr><td><strong>C-02</strong></td><td><span class="badge badge-CRITICAL">CRITICAL</span></td><td>Restore Race Condition — 1-Second Delay Is Insufficient</td><td><code>UnifiedDetectionEngine.java</code></td></tr>
+  <tr><td><strong>C-03</strong></td><td><span class="badge badge-CRITICAL">CRITICAL</span></td><td>EXPECTED_SIGNATURE_HASH = null — APK Signature Check Always Skips or Breaks</td><td><code>SecurityUtils.java</code></td></tr>
+  <tr><td><strong>C-04</strong></td><td><span class="badge badge-CRITICAL">CRITICAL</span></td><td>Mode A KILL Socket World-Writable — Any App Can Kill Arbitrary PIDs as Root</td><td><code>modea/ daemon (native)</code></td></tr>
+  <tr><td><strong>C-05</strong></td><td><span class="badge badge-CRITICAL">CRITICAL</span></td><td>Mode A BURST_WRITE_THRESHOLD=1 and uid_is_app() Removed — Permanent Flood Mode</td><td><code>modea/shield_bpf.c</code></td></tr>
+  <tr><td><strong>C-06</strong></td><td><span class="badge badge-CRITICAL">CRITICAL</span></td><td>Mode A Uses system() with UID 0 — Command Injection as Root</td><td><code>modea/ daemon (native)</code></td></tr>
+  <tr><td><strong>H-01</strong></td><td><span class="badge badge-HIGH">HIGH</span></td><td>intentionally_stopped Flag Race — Service Restarts Even After User Stops It</td><td><code>ShieldProtectionService.java</code></td></tr>
+  <tr><td><strong>H-02</strong></td><td><span class="badge badge-HIGH">HIGH</span></td><td>MediaStoreCollector Disabled — Blind to ContentResolver-Based Ransomware</td><td><code>ShieldProtectionService.java</code></td></tr>
+  <tr><td><strong>H-03</strong></td><td><span class="badge badge-HIGH">HIGH</span></td><td>SPRT H1 Rate (5.0 files/sec) Never Validated — False Positive Rate Unknown</td><td><code>SPRTDetector.java</code></td></tr>
+  <tr><td><strong>H-04</strong></td><td><span class="badge badge-HIGH">HIGH</span></td><td>VPN Started Without Checking Permission — Silent Failure</td><td><code>ShieldProtectionService.java</code></td></tr>
+  <tr><td><strong>H-05</strong></td><td><span class="badge badge-HIGH">HIGH</span></td><td>VPN Blocklist Uses 2016-Era RAT Ports — Ineffective Against Modern HTTPS/443 C2</td><td><code>NetworkGuardService.java</code></td></tr>
+  <tr><td><strong>M-01</strong></td><td><span class="badge badge-MEDIUM">MEDIUM</span></td><td>Entropy Allowlist Includes .docx/.xlsx/.pdf — High-Value Targets Invisible to Entropy Scoring</td><td><code>EntropyAnalyzer.java</code></td></tr>
+  <tr><td><strong>M-02</strong></td><td><span class="badge badge-MEDIUM">MEDIUM</span></td><td>SPRT ACCEPT_H0 Reset Leaks Phantom Behavior Scores Into Next Window</td><td><code>UnifiedDetectionEngine.java</code></td></tr>
+  <tr><td><strong>M-03</strong></td><td><span class="badge badge-MEDIUM">MEDIUM</span></td><td>Large File Hash Returns "LARGE_FILE" — Hash Chain Broken for Files &gt; 50 MB</td><td><code>SnapshotManager.java</code></td></tr>
+  <tr><td><strong>L-01</strong></td><td><span class="badge badge-LOW">LOW</span></td><td>ShieldWatchdogService Uses Deprecated getRunningServices() — Unreliable on API 26+</td><td><code>ShieldWatchdogService.java</code></td></tr>
+  <tr><td><strong>L-02</strong></td><td><span class="badge badge-LOW">LOW</span></td><td>HoneyfileCollector Grace-Period Uses Global Timestamp — Misses Per-File Restart Events</td><td><code>HoneyfileCollector.java</code></td></tr>
+  <tr><td><strong>L-03</strong></td><td><span class="badge badge-LOW">LOW</span></td><td>Honeyfile Names Are Predictable — Sophisticated Ransomware Can Skip Them</td><td><code>HoneyfileCollector.java</code></td></tr>
+</table>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<h1>Critical Issues</h1>
+
+<!-- C-01 -->
+<div class="issue">
+  <div class="issue-header CRITICAL">
+    <span class="issue-id sev-CRITICAL">C-01</span> <span class="badge badge-CRITICAL">CRITICAL</span>
+    <div class="issue-title">Process Kill Does Nothing — Ransomware Survives and Re-Encrypts Restored Files</div>
+    <div class="issue-file">UnifiedDetectionEngine.java · killMaliciousProcess()</div>
+  </div>
+  <div class="issue-body">
+    <div class="section-label">Problem</div>
+    <p><code>killMaliciousProcess()</code> calls <code>ActivityManager.killBackgroundProcesses()</code> inside a comment-only <code>for</code>-loop. <code>killBackgroundProcesses()</code> is explicitly documented to do nothing to foreground services. Every real-world Android ransomware runs as a foreground service to survive exactly this call. As a result the process is still running when <code>finalizeMitigationAndRestore()</code> fires 1 second later, and all just-restored files are immediately re-encrypted. The README's "automated data recovery" guarantee is therefore false for any foreground-service ransomware.</p>
+
+    <div class="section-label">Root Cause</div>
+    <p>The loop body contains only a <code>Log.w()</code> call; the actual kill is attempted with the wrong API. <code>killBackgroundProcesses()</code> only terminates background processes that the OS considers safe to kill — foreground services are explicitly protected.</p>
+
+    <div class="section-label">Solution</div>
+    <p>Replace with a four-layer termination sequence: <strong>(1)</strong> Use <code>AccessibilityService.performGlobalAction(GLOBAL_ACTION_HOME + GLOBAL_ACTION_BACK)</code> to navigate away from the locker UI immediately. <strong>(2)</strong> Force-stop via the App Info deep-link Intent (<code>ACTION_APPLICATION_DETAILS_SETTINGS</code>) prompting the user for one tap. <strong>(3)</strong> Broadcast <code>ACTION_KILL_PID</code> to ModeAService/JNI which calls <code>nativeSendKill(pid)</code> — this uses <code>bpf_send_signal(SIGKILL)</code> from kernel context and cannot be bypassed by a foreground service. <strong>(4)</strong> Do <em>not</em> call <code>finalizeMitigationAndRestore()</code> until the kill is confirmed via process-death polling or the user has manually force-stopped the app.</p>
+
+    <div class="section-label">Code Fix</div>
+<pre>// Step 1 – navigate away (LockerShieldService already does this)
+
+// Step 2 – open App Info so user can tap Force Stop
+Intent appInfo = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+appInfo.setData(Uri.parse("package:" + packageName));
+appInfo.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+context.startActivity(appInfo);
+
+// Step 3 – kernel kill via Mode A JNI (if Mode A is running)
+Intent killIntent = new Intent(ModeAService.ACTION_KILL_PID);
+killIntent.putExtra("pid", resolvedPid);
+context.sendBroadcast(killIntent);
+
+// Step 4 – only restore AFTER confirming process is gone
+executor.submit(() -> {
+    if (waitForProcessDeath(packageName, 10_000)) {
+        snapshotManager.stopAttackTracking();
+        snapshotManager.performAutomatedRestore();
+    } else {
+        // Notify user: manual Force Stop required before restore
+        showManualStopRequiredAlert(packageName);
+    }
+});</pre>
+  </div>
+</div>
+
+<!-- C-02 -->
+<div class="issue">
+  <div class="issue-header CRITICAL">
+    <span class="issue-id sev-CRITICAL">C-02</span> <span class="badge badge-CRITICAL">CRITICAL</span>
+    <div class="issue-title">Restore Race Condition — 1-Second Delay Is Insufficient</div>
+    <div class="issue-file">UnifiedDetectionEngine.java · finalizeMitigationAndRestore()</div>
+  </div>
+  <div class="issue-body">
+    <div class="section-label">Problem</div>
+    <p><code>finalizeMitigationAndRestore()</code> uses <code>detectionHandler.postDelayed(..., 1000)</code> — a hard-coded 1-second wait — before calling <code>performAutomatedRestore()</code>. Because the process kill fails (C-01), this is simply a 1-second pause before the ransomware overwrites all restored files. Even if the kill succeeded, 1 second is not guaranteed to be sufficient for the OS to reclaim file handles.</p>
+
+    <div class="section-label">Root Cause</div>
+    <p>The restore sequence is time-based rather than state-based. A fixed delay cannot reliably reflect whether the malicious process has actually terminated.</p>
+
+    <div class="section-label">Solution</div>
+    <p>Replace the time-based delay with a process-death poll. After issuing the kill sequence, poll <code>/proc/&lt;pid&gt;/status</code> every 200 ms for up to 10 seconds. Only invoke <code>performAutomatedRestore()</code> once the PID directory disappears (process confirmed dead), or fall back to prompting the user for manual Force Stop before restoring.</p>
+
+    <div class="section-label">Code Fix</div>
+<pre>private boolean waitForProcessDeath(String pkg, long timeoutMs) {
+    long deadline = System.currentTimeMillis() + timeoutMs;
+    while (System.currentTimeMillis() &lt; deadline) {
+        if (!isProcessRunning(pkg)) return true;
+        try { Thread.sleep(200); } catch (InterruptedException e) { break; }
+    }
+    return false;  // timed out — process still alive
+}
+
+private boolean isProcessRunning(String pkg) {
+    ActivityManager am = (ActivityManager)
+        context.getSystemService(Context.ACTIVITY_SERVICE);
+    if (am == null) return false;
+    for (ActivityManager.RunningAppProcessInfo p : am.getRunningAppProcesses()) {
+        if (Arrays.asList(p.pkgList).contains(pkg)) return true;
+    }
+    return false;
+}
+
+// Replace postDelayed(1000) with:
+executor.submit(() -> {
+    boolean dead = waitForProcessDeath(suspectPackage, 10_000);
+    if (dead) snapshotManager.performAutomatedRestore();
+    else showManualStopRequiredAlert(suspectPackage);
+});</pre>
+  </div>
+</div>
+
+<!-- C-03 -->
+<div class="issue">
+  <div class="issue-header CRITICAL">
+    <span class="issue-id sev-CRITICAL">C-03</span> <span class="badge badge-CRITICAL">CRITICAL</span>
+    <div class="issue-title">EXPECTED_SIGNATURE_HASH = null — APK Signature Check Always Skips (Debug) or Breaks Service (Release)</div>
+    <div class="issue-file">SecurityUtils.java · EXPECTED_SIGNATURE_HASH constant</div>
+  </div>
+  <div class="issue-body">
+    <div class="section-label">Problem</div>
+    <p>The constant is set to <code>null</code>. In debug builds, <code>verifySignature()</code> logs the actual hash and returns <code>true</code> (check skipped). In release builds, the improved code returns <code>false</code> (fails closed), which means <code>checkSecurity()</code> reports <code>isSafe = false</code> and the integrity gate in <code>onStartCommand()</code> halts the service — breaking the genuine APK. In both cases the tamper-detection guarantee is absent.</p>
+
+    <div class="section-label">Root Cause</div>
+    <p>The developer set a null placeholder with the comment "Set in production" but never set it. The build pipeline has no enforcement step to catch this before release.</p>
+
+    <div class="section-label">Solution</div>
+    <p>After signing the release APK, run <code>keytool -printcert -jarfile release.apk | grep SHA256</code> and paste the lowercase hex string into <code>EXPECTED_SIGNATURE_HASH</code>. Add a Gradle task that asserts the constant is non-null before any <code>assembleRelease</code> build.</p>
+
+    <div class="section-label">Code Fix</div>
+<pre>// In SecurityUtils.java — set your actual cert hash:
+private static final String EXPECTED_SIGNATURE_HASH =
+    "a3f8c2d1e4b7...";  // paste SHA-256 output from keytool here
+
+// In build.gradle — block release builds if hash is still null:
+task checkSignatureHash {
+    doLast {
+        def src = file('src/main/java/.../SecurityUtils.java').text
+        if (src.contains('EXPECTED_SIGNATURE_HASH = null')) {
+            throw new GradleException(
+                'EXPECTED_SIGNATURE_HASH must be set before release build')
+        }
+    }
+}
+assembleRelease.dependsOn checkSignatureHash</pre>
+  </div>
+</div>
+
+<!-- C-04 -->
+<div class="issue">
+  <div class="issue-header CRITICAL">
+    <span class="issue-id sev-CRITICAL">C-04</span> <span class="badge badge-CRITICAL">CRITICAL</span>
+    <div class="issue-title">Mode A KILL Socket World-Writable — Any App Can Kill Arbitrary PIDs as Root</div>
+    <div class="issue-file">modea/ daemon (native) · socket setup</div>
+  </div>
+  <div class="issue-body">
+    <div class="section-label">Problem</div>
+    <p>The root daemon creates the UNIX domain socket at <code>/data/local/tmp/shield_modea.sock</code> with <code>chmod 0666</code> and performs no <code>SO_PEERCRED</code> peer-credential validation before honouring KILL commands. Any installed app on the device can connect to this socket and send a kill command for any PID, including <code>system_server</code> — effectively giving every app unrestricted root-level process termination. This is a local privilege escalation (LPE) vulnerability.</p>
+
+    <div class="section-label">Root Cause</div>
+    <p>Socket was created in a development/test configuration where open permissions were convenient. Peer authentication was never added when the socket protocol was designed.</p>
+
+    <div class="section-label">Solution</div>
+    <p>Change socket permissions to <code>0600</code> (owner-only). In the daemon's <code>accept()</code> loop, call <code>getsockopt(fd, SOL_SOCKET, SO_PEERCRED, &amp;cred, &amp;len)</code> and verify <code>cred.uid</code> matches SHIELD's expected UID. Reject all other connections. Move the socket from the world-accessible <code>/data/local/tmp/</code> to SHIELD's private <code>/data/data/com.dearmoon.shield/</code> directory.</p>
+
+    <div class="section-label">Code Fix</div>
+<pre>// In daemon C++ — after bind():
+chmod(SOCKET_PATH, 0600);  // owner-only, NOT 0666
+
+// In accept() loop — verify peer UID before honouring any command:
+struct ucred cred;
+socklen_t len = sizeof(cred);
+if (getsockopt(client_fd, SOL_SOCKET, SO_PEERCRED, &amp;cred, &amp;len) &lt; 0 ||
+    cred.uid != SHIELD_EXPECTED_UID) {
+    close(client_fd);
+    continue;  // reject unauthorised peer silently
+}
+
+// Move socket path to app-private directory:
+#define SOCKET_PATH "/data/data/com.dearmoon.shield/shield_modea.sock"</pre>
+  </div>
+</div>
+
+<!-- C-05 -->
+<div class="issue">
+  <div class="issue-header CRITICAL">
+    <span class="issue-id sev-CRITICAL">C-05</span> <span class="badge badge-CRITICAL">CRITICAL</span>
+    <div class="issue-title">Mode A BURST_WRITE_THRESHOLD=1 and uid_is_app() Removed — Permanent Kernel Flood Mode</div>
+    <div class="issue-file">modea/shield_bpf.c · eBPF filter logic</div>
+  </div>
+  <div class="issue-body">
+    <div class="section-label">Problem</div>
+    <p>The eBPF probe has <code>BURST_WRITE_THRESHOLD</code> set to 1 (fires on every single file write) and the <code>uid_is_app()</code> filter that restricts events to UIDs 10000–19999 (app range) has been commented out. Every kernel file-write by every process — including <code>system_server</code>, <code>mediaserver</code>, <code>zygote</code> — is forwarded to the Java detection engine at full kernel speed. The result is tens of thousands of events per second: the app becomes unresponsive, the battery drains in minutes, and detection results are meaningless noise.</p>
+
+    <div class="section-label">Root Cause</div>
+    <p>These filters were disabled during debugging and never restored before commit. A development configuration was accidentally treated as production.</p>
+
+    <div class="section-label">Solution</div>
+    <p>Restore <code>uid_is_app()</code>: only forward events where <code>uid &gt;= 10000 &amp;&amp; uid &lt;= 19999</code>. Raise <code>BURST_WRITE_THRESHOLD</code> back to 20 (fires only when 20+ writes occur within a 500 ms window). Add a per-UID rate-limiter BPF hash map to enforce the threshold at kernel level before any userspace overhead.</p>
+
+    <div class="section-label">Code Fix</div>
+<pre>// In shield_bpf.c — restore both filters:
+#define BURST_WRITE_THRESHOLD 20    // restore from 1
+#define UID_APP_MIN           10000
+#define UID_APP_MAX           19999
+
+// In write_probe handler:
+u32 uid = bpf_get_current_uid_gid() &amp; 0xFFFFFFFF;
+if (uid &lt; UID_APP_MIN || uid &gt; UID_APP_MAX) return 0;  // skip non-app UIDs
+
+// Per-UID burst rate-limiter via BPF hash map:
+u64 *count = bpf_map_lookup_elem(&amp;write_count_map, &amp;uid);
+if (!count) {
+    u64 zero = 0;
+    bpf_map_update_elem(&amp;write_count_map, &amp;uid, &amp;zero, BPF_NOEXIST);
+    return 0;
+}
+if (*count &lt; BURST_WRITE_THRESHOLD) {
+    __sync_fetch_and_add(count, 1);
+    return 0;  // below threshold — do not forward
+}
+// threshold exceeded — forward event to userspace</pre>
+  </div>
+</div>
+
+<!-- C-06 -->
+<div class="issue">
+  <div class="issue-header CRITICAL">
+    <span class="issue-id sev-CRITICAL">C-06</span> <span class="badge badge-CRITICAL">CRITICAL</span>
+    <div class="issue-title">Mode A Uses system() with UID 0 — Command Injection as Root</div>
+    <div class="issue-file">modea/ daemon (native) · BPF filesystem mount</div>
+  </div>
+  <div class="issue-body">
+    <div class="section-label">Problem</div>
+    <p>The daemon calls <code>system("mount -t bpf none /sys/fs/bpf")</code> to mount the BPF filesystem. The <code>system()</code> C function invokes <code>/bin/sh -c</code> with the provided string. Running <code>system()</code> as UID 0 with any environment-influenced argument is a command injection vulnerability. An attacker who controls environment variables (<code>PATH</code>, <code>IFS</code>) or <code>/bin/sh</code> can escalate to arbitrary root code execution.</p>
+
+    <div class="section-label">Root Cause</div>
+    <p>Convenience: <code>system()</code> is easier to call than <code>execve()</code>. The developer did not consider that UID 0 + <code>system()</code> is always a command injection risk regardless of the argument string.</p>
+
+    <div class="section-label">Solution</div>
+    <p>Replace <code>system()</code> with <code>execve()</code> using a NULL-terminated argv array — no shell involved. First check if <code>/sys/fs/bpf</code> is already mounted (it usually is on Android 10+), making the call unnecessary in most cases.</p>
+
+    <div class="section-label">Code Fix</div>
+<pre>// WRONG — shell injection risk at UID 0:
+system("mount -t bpf none /sys/fs/bpf");
+
+// CORRECT — check if already mounted first:
+struct statfs sfs;
+if (statfs("/sys/fs/bpf", &amp;sfs) == 0 &amp;&amp; sfs.f_type == BPF_FS_MAGIC) {
+    // Already mounted — skip
+} else {
+    // Use execve with explicit args — no shell:
+    char *argv[] = {"/system/bin/mount", "-t", "bpf",
+                    "none", "/sys/fs/bpf", NULL};
+    pid_t pid = fork();
+    if (pid == 0) {
+        execve(argv[0], argv, environ);
+        _exit(1);  // execve failed
+    }
+    int status;
+    waitpid(pid, &amp;status, 0);
+}</pre>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<h1>High Severity Issues</h1>
+
+<!-- H-01 -->
+<div class="issue">
+  <div class="issue-header HIGH">
+    <span class="issue-id sev-HIGH">H-01</span> <span class="badge badge-HIGH">HIGH</span>
+    <div class="issue-title">intentionally_stopped Flag Race — Service Restarts Even After User Stops It</div>
+    <div class="issue-file">ShieldProtectionService.java · onDestroy() / ShieldWatchdogService.java</div>
+  </div>
+  <div class="issue-body">
+    <div class="section-label">Problem</div>
+    <p><code>onDestroy()</code> sets <code>intentionally_stopped = true</code> in SharedPreferences via <code>apply()</code> (asynchronous), then immediately broadcasts <code>RESTART_SERVICE</code>. SharedPreferences <code>apply()</code> writes are not guaranteed to be flushed before the watchdog's next <code>checkMainService()</code> fires within the 5-second window. The result: the watchdog reads a stale <code>false</code> value and restarts the service the user just stopped.</p>
+
+    <div class="section-label">Root Cause</div>
+    <p>Two restart mechanisms (broadcast + watchdog) without a consistent synchronisation point, combined with the asynchronous nature of <code>apply()</code>.</p>
+
+    <div class="section-label">Solution</div>
+    <p>Use <code>.commit()</code> (synchronous) instead of <code>.apply()</code> when setting <code>intentionally_stopped</code>. Remove the <code>RESTART_SERVICE</code> broadcast from <code>onDestroy()</code> entirely — the watchdog already handles restarts. When the watchdog reads the flag as <code>true</code>, it should call <code>stopSelf()</code> to stop itself too.</p>
+
+    <div class="section-label">Code Fix</div>
+<pre>// In ShieldProtectionService.onDestroy() — synchronous write:
+getSharedPreferences("ShieldPrefs", Context.MODE_PRIVATE)
+    .edit().putBoolean("intentionally_stopped", true).commit(); // commit() not apply()
+
+// Remove the restart broadcast entirely — watchdog handles it:
+// sendBroadcast(new Intent("com.dearmoon.shield.RESTART_SERVICE")); // DELETE THIS
+
+// In ShieldWatchdogService.checkMainService():
+if (intentionallyStopped) {
+    Log.d(TAG, "Intentionally stopped — shutting down watchdog too");
+    stopSelf();  // watchdog stops itself
+    return;
+}</pre>
+  </div>
+</div>
+
+<!-- H-02 -->
+<div class="issue">
+  <div class="issue-header HIGH">
+    <span class="issue-id sev-HIGH">H-02</span> <span class="badge badge-HIGH">HIGH</span>
+    <div class="issue-title">MediaStoreCollector Disabled — Blind to ContentResolver-Based Ransomware</div>
+    <div class="issue-file">ShieldProtectionService.java · initializeCollectors()</div>
+  </div>
+  <div class="issue-body">
+    <div class="section-label">Problem</div>
+    <p><code>MediaStoreCollector</code> is fully implemented but never instantiated or started in <code>initializeCollectors()</code>. Ransomware families that use <code>ContentResolver</code> to write encrypted files (common for media targeting .jpg, .mp4, .docx etc.) bypass <code>FileObserver</code> entirely and are completely invisible to SHIELD. The MediaStore <code>onChange()</code> callback is the only way to catch ContentResolver-based writes without root.</p>
+
+    <div class="section-label">Root Cause</div>
+    <p>Collector was disabled at some point, likely due to ContentResolver spam, and never re-enabled. The existing 2-second debounce in the implementation already solves the spam problem.</p>
+
+    <div class="section-label">Solution</div>
+    <p>Instantiate <code>MediaStoreCollector</code> in <code>initializeCollectors()</code> and call <code>startWatching()</code>. Wire it to both <code>detectionEngine</code> and <code>snapshotManager</code> identically to how <code>RecursiveFileSystemCollector</code> is wired. Store the reference and call <code>stopWatching()</code> in <code>onDestroy()</code>.</p>
+
+    <div class="section-label">Code Fix</div>
+<pre>// In initializeCollectors() — add after recursive collectors:
+mediaStoreCollector = new MediaStoreCollector(this, storage, detectionEngine);
+mediaStoreCollector.startWatching();
+Log.i(TAG, "MediaStore monitoring enabled");
+
+// In onDestroy():
+if (mediaStoreCollector != null) {
+    mediaStoreCollector.stopWatching();
+}
+
+// Add field to ShieldProtectionService:
+private MediaStoreCollector mediaStoreCollector;</pre>
+  </div>
+</div>
+
+<!-- H-03 -->
+<div class="issue">
+  <div class="issue-header HIGH">
+    <span class="issue-id sev-HIGH">H-03</span> <span class="badge badge-HIGH">HIGH</span>
+    <div class="issue-title">SPRT H1 Rate (5.0 files/sec) Never Validated — False Positive Rate Unknown</div>
+    <div class="issue-file">SPRTDetector.java · RANSOMWARE_RATE / NORMAL_RATE constants</div>
+  </div>
+  <div class="issue-body">
+    <div class="section-label">Problem</div>
+    <p><code>RANSOMWARE_RATE = 5.0</code> and <code>NORMAL_RATE = 0.1</code> were set heuristically and never validated against real Android device baseline activity. Normal Android background activity (Sync adapters, Play Store, camera scans) can generate 2–10 file writes per second during normal use. If the benign baseline H0 = 0.1 files/sec is too low (which it almost certainly is), SPRT fires <code>ACCEPT_H1</code> during legitimate background activity, contributing 30 points to every detection score and causing false alerts every time the device syncs.</p>
+
+    <div class="section-label">Root Cause</div>
+    <p>No empirical baseline measurement was performed. Values were chosen as round numbers that "seemed reasonable" without measuring real device telemetry.</p>
+
+    <div class="section-label">Solution</div>
+    <p>Instrument a test build to log inter-event deltas and events-per-second across 10+ real devices over 24 hours of normal use. Fit a Poisson distribution to derive empirical H0. Use the 99th-percentile benign burst rate as H0. Until measured, raise <code>MIN_SAMPLES_FOR_H1</code> from 3 to 10 as a conservative guard and add telemetry logging to measure the baseline.</p>
+
+    <div class="section-label">Code Fix</div>
+<pre>// Temporary conservative guard until baseline is empirically measured:
+private static final int MIN_SAMPLES_FOR_H1 = 10;  // up from 3
+
+// Target empirical values after measurement (illustrative — measure first):
+// private static final double NORMAL_RATE     = 2.0;  // measured P99 benign
+// private static final double RANSOMWARE_RATE = 25.0; // observed ransomware burst
+
+// Add telemetry to measure baseline in instrumented builds:
+if (BuildConfig.DEBUG) {
+    Log.d(TAG, "SPRT_METRIC delta_ms=" + deltaMs
+        + " events_per_sec=" + String.format("%.2f", 1000.0 / deltaMs)
+        + " llr=" + String.format("%.4f", logLikelihoodRatio)
+        + " state=" + currentState);
+}</pre>
+  </div>
+</div>
+
+<!-- H-04 -->
+<div class="issue">
+  <div class="issue-header HIGH">
+    <span class="issue-id sev-HIGH">H-04</span> <span class="badge badge-HIGH">HIGH</span>
+    <div class="issue-title">VPN Started Without Checking Permission — Silent Failure</div>
+    <div class="issue-file">ShieldProtectionService.java · startNetworkMonitoring()</div>
+  </div>
+  <div class="issue-body">
+    <div class="section-label">Problem</div>
+    <p><code>startNetworkMonitoring()</code> calls <code>startForegroundService(vpnIntent)</code> unconditionally. <code>VpnService.prepare(context)</code> must be called first and, if it returns a non-null Intent, the user must complete a system permission dialog. If permission has not been granted, <code>establish()</code> in <code>NetworkGuardService</code> returns null and the service silently calls <code>stopSelf()</code>. SHIELD runs with no network layer and the user has no idea.</p>
+
+    <div class="section-label">Root Cause</div>
+    <p>VPN permission is unusual — it requires an Activity-level dialog and cannot be granted silently. This requirement was overlooked when the service start flow was designed.</p>
+
+    <div class="section-label">Solution</div>
+    <p>Before calling <code>startNetworkMonitoring()</code>, call <code>VpnService.prepare(context)</code> from an Activity context. If the result Intent is non-null, launch it with <code>startActivityForResult()</code>. Start the VPN service only after the user grants permission in <code>onActivityResult()</code>. Show a persistent UI indicator when the VPN layer is not active.</p>
+
+    <div class="section-label">Code Fix</div>
+<pre>// In MainActivity.java — check VPN permission before starting SHIELD:
+private static final int REQUEST_VPN_PERMISSION = 1001;
+
+void startShieldWithVpnCheck() {
+    Intent vpnPermIntent = VpnService.prepare(this);
+    if (vpnPermIntent != null) {
+        // System dialog required — user must grant
+        startActivityForResult(vpnPermIntent, REQUEST_VPN_PERMISSION);
+    } else {
+        // Already granted
+        startShieldProtectionService();
+    }
+}
+
+@Override
+protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+    if (requestCode == REQUEST_VPN_PERMISSION) {
+        if (resultCode == RESULT_OK) {
+            startShieldProtectionService();
+        } else {
+            showVpnPermissionDeniedWarning();  // inform user — network layer inactive
+        }
+    }
+}</pre>
+  </div>
+</div>
+
+<!-- H-05 -->
+<div class="issue">
+  <div class="issue-header HIGH">
+    <span class="issue-id sev-HIGH">H-05</span> <span class="badge badge-HIGH">HIGH</span>
+    <div class="issue-title">VPN Blocklist Uses 2016-Era RAT Ports — Ineffective Against Modern HTTPS/443 C2</div>
+    <div class="issue-file">NetworkGuardService.java · shouldBlockConnection() · isTorExitNode()</div>
+  </div>
+  <div class="issue-body">
+    <div class="section-label">Problem</div>
+    <p>The blocklist checks only ports 4444/5555/6666/7777 (Metasploit/RAT defaults from 2015–2016) and a hard-coded list of 10 IP prefixes. Modern Android ransomware (Sova, SharkBot, Xenomorph variants) exclusively uses HTTPS on port 443 with Telegram bot API, Pastebin, or GitHub Gist as C2 channels. The blocklist misses 100% of these. The only effective defence is the all-traffic emergency block — but that only fires after detection, not before.</p>
+
+    <div class="section-label">Root Cause</div>
+    <p>The blocklist was written using knowledge of old Android RAT toolkits. Modern mobile malware deliberately uses legitimate cloud infrastructure to evade static IP/port blocklists.</p>
+
+    <div class="section-label">Solution</div>
+    <p>Replace the static port/IP blocklist as the primary defence. Instead: (1) Set Quad9 (<code>9.9.9.9</code>) or CleanBrowsing security DNS as the VPN's upstream resolver — blocks known malicious domains at resolution time. (2) Document clearly that the all-traffic emergency block post-detection is the only fully reliable isolation mechanism. (3) Optionally add TLS SNI inspection for known C2 domain patterns.</p>
+
+    <div class="section-label">Code Fix</div>
+<pre>// In establishVpnInterface() — replace Google DNS with threat-blocking DNS:
+builder.addDnsServer("9.9.9.9");          // Quad9 — blocks malicious domains
+builder.addDnsServer("149.112.112.112");  // Quad9 secondary
+
+// Or CleanBrowsing security filter:
+// builder.addDnsServer("185.228.168.9");
+// builder.addDnsServer("185.228.169.9");
+
+// Document in code comment what the port blocklist does and does NOT cover:
+// NOTE: Port 4444/5555 blocklist only catches legacy RAT traffic.
+// Modern HTTPS/443 C2 is NOT blocked by this list.
+// Post-detection blockAllTraffic = true is the effective isolation mechanism.</pre>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<h1>Medium Severity Issues</h1>
+
+<!-- M-01 -->
+<div class="issue">
+  <div class="issue-header MEDIUM">
+    <span class="issue-id sev-MEDIUM">M-01</span> <span class="badge badge-MEDIUM">MEDIUM</span>
+    <div class="issue-title">Entropy Allowlist Includes .docx/.xlsx/.pdf — High-Value Ransomware Targets Invisible to Entropy Scoring</div>
+    <div class="issue-file">EntropyAnalyzer.java · NATURALLY_HIGH_ENTROPY_EXTENSIONS</div>
+  </div>
+  <div class="issue-body">
+    <div class="section-label">Problem</div>
+    <p>The allowlist skips entropy and KL-divergence analysis for <code>.docx</code>, <code>.xlsx</code>, <code>.pptx</code>, <code>.pdf</code>, <code>.jpg</code>, <code>.mp4</code>, and many more. While these formats do have naturally high entropy, they are also the primary targets of document-encryption ransomware (Dharma, LockBit, Cl0p). When ransomware encrypts these files, <code>calculateEntropy()</code> returns 0.0, contributing 0 points to the confidence score. Detection relies entirely on SPRT file rate alone for these types — which is often insufficient.</p>
+
+    <div class="section-label">Root Cause</div>
+    <p>The allowlist was designed to eliminate false positives from compressed/media formats but was applied too broadly, covering high-value document formats that ransomware explicitly targets.</p>
+
+    <div class="section-label">Solution</div>
+    <p>Remove <code>.docx</code>, <code>.xlsx</code>, <code>.pptx</code>, <code>.odt</code>, <code>.ods</code>, <code>.odp</code>, and <code>.pdf</code> from the allowlist. Implement a magic-byte pre-check: DOCX/XLSX/PPTX start with <code>PK\x03\x04</code> (ZIP); if this header is missing, the file has been replaced with encrypted data and should be scored normally. PDFs start with <code>%PDF</code> — if missing, score normally.</p>
+
+    <div class="section-label">Code Fix</div>
+<pre>// Remove from NATURALLY_HIGH_ENTROPY_EXTENSIONS:
+// ".docx", ".xlsx", ".pptx", ".odt", ".ods", ".odp", ".pdf"
+
+// Add magic-byte structural validation:
+private boolean hasExpectedMagicBytes(File file) {
+    try (FileInputStream fis = new FileInputStream(file)) {
+        byte[] magic = new byte[4];
+        if (fis.read(magic) &lt; 4) return false;
+        // DOCX/XLSX/PPTX are ZIP: PK\x03\x04
+        if (magic[0]==0x50 &amp;&amp; magic[1]==0x4B &amp;&amp;
+            magic[2]==0x03 &amp;&amp; magic[3]==0x04) return true;
+        // PDF: %PDF
+        if (magic[0]==0x25 &amp;&amp; magic[1]==0x50 &amp;&amp;
+            magic[2]==0x44 &amp;&amp; magic[3]==0x46) return true;
+        return false;  // structure destroyed — score entropy normally
+    } catch (Exception e) { return false; }
+}
+
+// In calculateEntropy(): if !hasExpectedMagicBytes(file) → proceed with scoring
+// If magic bytes intact → return 0.0 (natural entropy, skip scoring)</pre>
+  </div>
+</div>
+
+<!-- M-02 -->
+<div class="issue">
+  <div class="issue-header MEDIUM">
+    <span class="issue-id sev-MEDIUM">M-02</span> <span class="badge badge-MEDIUM">MEDIUM</span>
+    <div class="issue-title">SPRT ACCEPT_H0 Reset Leaks Phantom Behavior Scores Into Next Window</div>
+    <div class="issue-file">UnifiedDetectionEngine.java · analyzeFileEvent() / SPRTDetector.java · reset()</div>
+  </div>
+  <div class="issue-body">
+    <div class="section-label">Problem</div>
+    <p>When SPRT reaches <code>ACCEPT_H0</code> and <code>reset()</code> is called, the LLR counter is cleared. However, file events logged to the EventDatabase during this window remain and are queried by <code>BehaviorCorrelationEngine.queryRecentFileEvents()</code> with a 5-second look-back. This means an ACCEPT_H0 followed by a new burst of events produces a high <code>behaviorScore</code> (from lingering database entries), potentially pushing the total score across the 40-point attack-tracking threshold with no real ransomware signal.</p>
+
+    <div class="section-label">Root Cause</div>
+    <p>The SPRT state machine and the behavior correlation window are not synchronised. SPRT resets its internal counter but the database is not informed of the reset boundary.</p>
+
+    <div class="section-label">Solution</div>
+    <p>Track a SPRT epoch counter that increments on every <code>reset()</code>. Store the reset timestamp. In <code>BehaviorCorrelationEngine</code>, filter file events to only those that occurred after the last SPRT reset, so old pre-reset events do not pollute the next window's behavior score.</p>
+
+    <div class="section-label">Code Fix</div>
+<pre>// In SPRTDetector — track reset timestamp:
+private long lastResetTimestamp = System.currentTimeMillis();
+private int epoch = 0;
+
+public synchronized void reset() {
+    logLikelihoodRatio = 0.0;
+    sampleCount = 0;
+    currentState = SPRTState.CONTINUE;
+    lastResetTimestamp = System.currentTimeMillis();
+    epoch++;
+}
+
+public long getLastResetTimestamp() { return lastResetTimestamp; }
+
+// In BehaviorCorrelationEngine — respect reset boundary:
+long queryStart = Math.max(windowStart, sprtDetector.getLastResetTimestamp());
+List&lt;JSONObject&gt; fileEvents =
+    database.queryEventsSince("FILE_SYSTEM", queryStart, 100);</pre>
+  </div>
+</div>
+
+<!-- M-03 -->
+<div class="issue">
+  <div class="issue-header MEDIUM">
+    <span class="issue-id sev-MEDIUM">M-03</span> <span class="badge badge-MEDIUM">MEDIUM</span>
+    <div class="issue-title">Large File Hash Returns "LARGE_FILE" String — Hash Chain Integrity Broken for Files &gt; 50 MB</div>
+    <div class="issue-file">SnapshotManager.java · calculateHash() / RestoreEngine.java · calculateQuickHash()</div>
+  </div>
+  <div class="issue-body">
+    <div class="section-label">Problem</div>
+    <p>For files larger than 50 MB, <code>calculateHash()</code> returns the literal string <code>"LARGE_FILE"</code> instead of a real hash. This string is stored as <code>sha256Hash</code> in the hash chain. Any ransomware targeting large files (video files, databases) has its pre-attack hash recorded as <code>"LARGE_FILE"</code>, making the chain comparison trivially defeatable. Two entirely different files have the same "hash", corrupting chain integrity for the entire chain.</p>
+
+    <div class="section-label">Root Cause</div>
+    <p>Hashing large files was considered too slow and a placeholder was left in. The impact on chain integrity was not considered.</p>
+
+    <div class="section-label">Solution</div>
+    <p>Remove the 50 MB ceiling entirely — use streaming <code>MessageDigest</code> for all files up to 500 MB. For files over 500 MB, use a partial hash: hash the first 1 MB + last 1 MB + file size encoded as 8 bytes. This is sufficient to detect ransomware replacement (which always changes the entire file content) while keeping computation bounded.</p>
+
+    <div class="section-label">Code Fix</div>
+<pre>private String calculateHash(File file) throws Exception {
+    MessageDigest digest = MessageDigest.getInstance("SHA-256");
+    long size = file.length();
+    try (FileInputStream fis = new FileInputStream(file)) {
+        if (size &lt;= 500L * 1024 * 1024) {
+            // Full streaming hash for files up to 500 MB
+            byte[] buffer = new byte[65536];
+            int n;
+            while ((n = fis.read(buffer)) != -1) digest.update(buffer, 0, n);
+        } else {
+            // Partial hash for very large files: first 1MB + last 1MB + size
+            byte[] buf = new byte[1024 * 1024];
+            int n = fis.read(buf);
+            if (n &gt; 0) digest.update(buf, 0, n);
+            long skipTo = size - buf.length;
+            fis.skip(skipTo - n);
+            n = fis.read(buf);
+            if (n &gt; 0) digest.update(buf, 0, n);
+            // Include file size to distinguish files of different lengths
+            digest.update(ByteBuffer.allocate(8).putLong(size).array());
+        }
+    }
+    byte[] hash = digest.digest();
+    StringBuilder sb = new StringBuilder();
+    for (byte b : hash) sb.append(String.format("%02x", b));
+    return sb.toString();
+}</pre>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<h1>Low Severity Issues</h1>
+
+<!-- L-01 -->
+<div class="issue">
+  <div class="issue-header LOW">
+    <span class="issue-id sev-LOW">L-01</span> <span class="badge badge-LOW">LOW</span>
+    <div class="issue-title">ShieldWatchdogService Uses Deprecated getRunningServices() — Unreliable on API 26+</div>
+    <div class="issue-file">ShieldWatchdogService.java · isServiceRunning()</div>
+  </div>
+  <div class="issue-body">
+    <div class="section-label">Problem</div>
+    <p><code>ActivityManager.getRunningServices()</code> was deprecated in API 26 and explicitly documented to return only the calling app's own services on API 26+. On modern devices <code>isServiceRunning(ShieldProtectionService.class)</code> always returns <code>true</code> because ShieldProtectionService IS in the calling package, so the watchdog never detects a genuine service death and never triggers a restart.</p>
+
+    <div class="section-label">Solution</div>
+    <p>Replace the service-running check with a SharedPreferences heartbeat: ShieldProtectionService writes a timestamp every 30 seconds; ShieldWatchdogService considers the service dead if the heartbeat is older than 60 seconds. Reliable across all API levels.</p>
+
+    <div class="section-label">Code Fix</div>
+<pre>// In ShieldProtectionService — write heartbeat every 30s:
+private void scheduleHeartbeat() {
+    heartbeatHandler.postDelayed(() -> {
+        getSharedPreferences("ShieldPrefs", MODE_PRIVATE).edit()
+            .putLong("last_heartbeat", System.currentTimeMillis()).apply();
+        scheduleHeartbeat();
+    }, 30_000);
+}
+
+// In ShieldWatchdogService — check heartbeat age instead of getRunningServices():
+private boolean isServiceAlive() {
+    long last = getSharedPreferences("ShieldPrefs", MODE_PRIVATE)
+        .getLong("last_heartbeat", 0);
+    return System.currentTimeMillis() - last &lt; 60_000;
+}
+
+// Replace isServiceRunning(ShieldProtectionService.class) with isServiceAlive()</pre>
+  </div>
+</div>
+
+<!-- L-02 -->
+<div class="issue">
+  <div class="issue-header LOW">
+    <span class="issue-id sev-LOW">L-02</span> <span class="badge badge-LOW">LOW</span>
+    <div class="issue-title">HoneyfileCollector Grace-Period Uses Global Timestamp — Misses Per-File Restart Events</div>
+    <div class="issue-file">HoneyfileCollector.java · HoneyfileObserver.onEvent()</div>
+  </div>
+  <div class="issue-body">
+    <div class="section-label">Problem</div>
+    <p>The grace period is measured from a single class-level <code>lastHoneyfileCreationTime</code> set once for the whole batch. On service restart with pre-existing honeyfiles, <code>lastHoneyfileCreationTime</code> is 0, making the grace period 0 ms and causing SHIELD to log its own startup file-access as a ransomware event. If honeyfile creation spans > 5 seconds (slow storage), files created last may not benefit from the grace period at all.</p>
+
+    <div class="section-label">Solution</div>
+    <p>Track <code>lastModified</code> per-file within each <code>HoneyfileObserver</code>. If the event timestamp is within 5 seconds of the file's own <code>lastModified</code> time, treat it as self-creation and skip.</p>
+
+    <div class="section-label">Code Fix</div>
+<pre>// Per-file grace period — store each file's own creation time:
+private class HoneyfileObserver extends FileObserver {
+    private final String filePath;
+    private final long fileCreationTime;  // per-file, not class-level
+
+    HoneyfileObserver(String path) {
+        super(path, OPEN | MODIFY | DELETE | CLOSE_WRITE);
+        this.filePath = path;
+        this.fileCreationTime = new File(path).lastModified();  // reads actual file mtime
+    }
+
+    @Override
+    public void onEvent(int event, String path) {
+        long age = System.currentTimeMillis() - fileCreationTime;
+        if (age &lt; CREATION_GRACE_PERIOD_MS) {
+            Log.d(TAG, "Grace period active for: " + filePath); return;
+        }
+        // ... rest of event handling
+    }
+}</pre>
+  </div>
+</div>
+
+<!-- L-03 -->
+<div class="issue">
+  <div class="issue-header LOW">
+    <span class="issue-id sev-LOW">L-03</span> <span class="badge badge-LOW">LOW</span>
+    <div class="issue-title">Honeyfile Names Are Predictable — Sophisticated Ransomware Can Skip Them</div>
+    <div class="issue-file">HoneyfileCollector.java · createHoneyfiles() · honeyfileNames array</div>
+  </div>
+  <div class="issue-body">
+    <div class="section-label">Problem</div>
+    <p>The six honeyfile names (<code>IMPORTANT_BACKUP.txt</code>, <code>PRIVATE_KEYS.dat</code>, etc.) are static constants compiled into the APK. A ransomware author can decompile SHIELD, extract the list, and add them to a skip list — silently disabling SHIELD's most reliable early-warning signal. Once public, threat intelligence would distribute this skip list to all new ransomware variants within days.</p>
+
+    <div class="section-label">Solution</div>
+    <p>Generate honeyfile names at install time using a hash of the device ID + install timestamp. Store the generated names in Keystore-protected SharedPreferences. This makes names unique per device and unpredictable without physical device access.</p>
+
+    <div class="section-label">Code Fix</div>
+<pre>private String generateHoneyfileName(String dir, int index) throws Exception {
+    PackageInfo pi = context.getPackageManager()
+        .getPackageInfo(context.getPackageName(), 0);
+    String seed = Build.FINGERPRINT + dir + index + pi.firstInstallTime;
+    byte[] hash = MessageDigest.getInstance("SHA-256").digest(
+        seed.getBytes(StandardCharsets.UTF_8));
+    // Take first 8 hex chars as filename prefix — unique per device
+    StringBuilder sb = new StringBuilder();
+    for (int i = 0; i &lt; 4; i++) sb.append(String.format("%02X", hash[i]));
+    String[] exts = {".txt", ".dat", ".bin", ".bak", ".key", ".db"};
+    return sb.toString() + exts[index % exts.length];
+}
+
+// Store generated names at first run, reload on subsequent runs:
+SharedPreferences prefs = getEncryptedPrefs();  // Keystore-backed
+String key = "honeyfile_" + dirHash + "_" + index;
+String name = prefs.getString(key, null);
+if (name == null) {
+    name = generateHoneyfileName(dir, index);
+    prefs.edit().putString(key, name).apply();
+}</pre>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<h1>Recommended Fix Priority Roadmap</h1>
+
+<div class="phase">
+  <div class="phase-title">Phase 1 — Immediate (This Sprint): Make Kill + Restore Actually Work</div>
+  <ul>
+    <li><strong>C-01</strong> — Replace <code>killBackgroundProcesses()</code> with 4-layer kill sequence + App Info deeplink</li>
+    <li><strong>C-02</strong> — Replace 1-second timer with process-death poll loop before restore</li>
+    <li><strong>C-03</strong> — Set <code>EXPECTED_SIGNATURE_HASH</code> and add Gradle enforcement task</li>
+    <li><strong>H-01</strong> — Fix <code>intentionally_stopped</code> race: use <code>commit()</code>, remove duplicate restart broadcast</li>
+    <li><strong>H-04</strong> — Add <code>VpnService.prepare()</code> permission check before starting VPN</li>
+  </ul>
+</div>
+
+<div class="phase">
+  <div class="phase-title">Phase 2 — Short Term (Next Sprint): Fix Detection Coverage Gaps</div>
+  <ul>
+    <li><strong>H-02</strong> — Re-enable <code>MediaStoreCollector</code> — eliminates blind spot for media-targeting ransomware</li>
+    <li><strong>M-01</strong> — Remove <code>.docx/.xlsx/.pdf</code> from entropy allowlist + add magic-byte structural check</li>
+    <li><strong>L-01</strong> — Replace deprecated <code>getRunningServices()</code> with SharedPreferences heartbeat</li>
+    <li><strong>M-03</strong> — Fix large file hash — replace <code>"LARGE_FILE"</code> placeholder with streaming hash</li>
+  </ul>
+</div>
+
+<div class="phase">
+  <div class="phase-title">Phase 3 — Medium Term: Mode A Security Hardening</div>
+  <ul>
+    <li><strong>C-04</strong> — Restrict daemon socket to <code>0600</code> + add <code>SO_PEERCRED</code> peer authentication</li>
+    <li><strong>C-05</strong> — Restore <code>uid_is_app()</code> filter + raise <code>BURST_WRITE_THRESHOLD</code> to 20</li>
+    <li><strong>C-06</strong> — Replace <code>system()</code> with <code>execve()</code> for BPF mount operation</li>
+    <li><strong>H-03</strong> — Instrument baseline measurement + validate/tune SPRT rates</li>
+    <li><strong>H-05</strong> — Replace static port blocklist with DNS-based threat feed (Quad9)</li>
+    <li><strong>M-02</strong> — Synchronise SPRT epoch with BehaviorCorrelationEngine query window</li>
+  </ul>
+</div>
+
+<div class="phase">
+  <div class="phase-title">Phase 4 — Hardening: Calibration + Long-Term Reliability</div>
+  <ul>
+    <li><strong>L-02</strong> — Fix HoneyfileCollector per-file grace period (use file <code>lastModified</code> not class timestamp)</li>
+    <li><strong>L-03</strong> — Generate randomised per-device honeyfile names at install time</li>
+  </ul>
+</div>
+
+<!-- ═══ EFFECT TABLE ═══════════════════════════════════════════════ -->
+<h1>Realistic Effectiveness After All Fixes Applied</h1>
+<table>
+  <tr><th>Attack Scenario</th><th>Before Fixes</th><th>After Fixes</th></tr>
+  <tr>
+    <td>Bulk crypto-ransomware hitting non-media files</td>
+    <td><span class="eff-no">Detect: YES / Kill: NO / Restore: NO</span></td>
+    <td><span class="eff-yes">Detect: YES / Kill: YES / Restore: YES</span></td>
+  </tr>
+  <tr>
+    <td>Media-targeting ransomware (.jpg, .mp4, .docx)</td>
+    <td><span class="eff-no">Detect: NO (allowlist + MediaStore disabled)</span></td>
+    <td><span class="eff-partial">Detect: IMPROVED / Kill: YES / Restore: YES</span></td>
+  </tr>
+  <tr>
+    <td>ContentResolver-based ransomware</td>
+    <td><span class="eff-no">Detect: NO (MediaStore disabled)</span></td>
+    <td><span class="eff-yes">Detect: YES (after H-02 fix)</span></td>
+  </tr>
+  <tr>
+    <td>Screen-locker ransomware</td>
+    <td><span class="eff-partial">Detect: YES / Block: YES / Kill: PARTIAL</span></td>
+    <td><span class="eff-yes">Detect: YES / Block: YES / Kill: IMPROVED</span></td>
+  </tr>
+  <tr>
+    <td>Modern HTTPS/443 C2 (Telegram bot, Pastebin)</td>
+    <td><span class="eff-partial">Pre-detect block: NO / Post-detect: YES</span></td>
+    <td><span class="eff-partial">DNS-level block + Post-detect: YES</span></td>
+  </tr>
+  <tr>
+    <td>Mode A (eBPF) kernel-level detection</td>
+    <td><span class="eff-no">Broken: flood mode + LPE socket + injection risk</span></td>
+    <td><span class="eff-yes">Operational: filtered + authenticated + safe mount</span></td>
+  </tr>
+</table>
+
+<p style="text-align:center; color:#7F8C8D; font-style:italic; font-size:13px; margin-top:48px; padding-top:20px; border-top:1px solid #E0E0E0;">
+  SHIELD-1 Deep-Research Audit Report &nbsp;·&nbsp; Confidential &nbsp;·&nbsp; March 2026
+</p>
+
+</div><!-- .page -->
+</body>
+</html>

@@ -100,11 +100,11 @@ static int create_unix_server(const std::string &socket_path)
         close(fd);
         return -1;
     }
-    chmod(socket_path.c_str(), 0666);   /* world-accessible so app UID can connect */
+    chmod(socket_path.c_str(), 0600);   /* owner-only, NOT world-accessible */
 
     /* Relabel to shell_data_file so SELinux allows untrusted_app to connectto.
      * The socket is created under magisk context; without this label, even
-     * 0666 DAC permissions are overridden by SELinux MAC policy. */
+     * 0600 DAC permissions are overridden by SELinux MAC policy. */
     {
         const char *chcon_argv[] = {
             "/system/bin/chcon",
@@ -283,9 +283,11 @@ static void check_activity_map(BpfLoader &loader, int client_fd, bool &connected
  * ModeADaemon public API
  * ------------------------------------------------------------------------- */
 
-ModeADaemon::ModeADaemon(std::string socket_path, std::string bpf_obj_path)
+ModeADaemon::ModeADaemon(std::string socket_path, std::string bpf_obj_path,
+                         uint32_t expected_uid)
     : socket_path_(std::move(socket_path))
     , bpf_obj_path_(std::move(bpf_obj_path))
+    , expected_uid_(expected_uid)
 {}
 
 ModeADaemon::~ModeADaemon()
@@ -346,14 +348,19 @@ bool ModeADaemon::start()
             break;
         }
 
-        /* SO_PEERCRED: reject connections from non-app UIDs (system / root) */
+        /* SO_PEERCRED: only accept connections from the SHIELD app UID.
+         * If expected_uid_ was provided at launch, require an exact match.
+         * Otherwise fall back to the loose uid >= 10000 guard. */
         {
             struct ucred peer{};
             socklen_t plen = sizeof(peer);
             if (getsockopt(client, SOL_SOCKET, SO_PEERCRED, &peer, &plen) == 0) {
-                if (peer.uid < 10000) {
-                    LOGW("Rejected connection: uid=%u pid=%u (not an app UID)",
-                         peer.uid, peer.pid);
+                bool allowed = (expected_uid_ != 0)
+                               ? (peer.uid == expected_uid_)
+                               : (peer.uid >= 10000);
+                if (!allowed) {
+                    LOGW("Rejected connection: uid=%u pid=%u (expected uid=%u)",
+                         peer.uid, peer.pid, expected_uid_);
                     close(client);
                     continue;
                 }

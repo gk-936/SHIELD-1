@@ -3,16 +3,24 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <!-- Permissions for Mode B functionality -->
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" 
+    <!-- READ/WRITE_EXTERNAL_STORAGE are only declared for Android ≤ 10 (API 29).
+         From Android 11 (API 30) onward, MANAGE_EXTERNAL_STORAGE replaces them
+         entirely via the "All Files Access" special-permission page.
+         Capping both at maxSdkVersion="29" keeps them out of the permissions list
+         on Android 11+ where they can never be granted normally and would show ❌. -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="29" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="29" />
+    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE"
         tools:ignore="ScopedStorage" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <uses-permission android:name="android.permission.BIND_VPN_SERVICE" />
+    <!-- BIND_VPN_SERVICE is NOT a uses-permission — it is a guard declared on the
+         NetworkGuardService element below so only the OS can bind it. -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.KILL_BACKGROUND_PROCESSES" />
     <uses-permission android:name="android.permission.USE_BIOMETRIC" />
@@ -23,7 +31,8 @@
         android:required="false" />
 
     <application
-        android:allowBackup="true"
+        android:name=".ShieldApplication"
+        android:allowBackup="false"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"
@@ -190,7 +199,7 @@
         <!-- Test Activity -->
         <activity
             android:name=".testing.TestActivity"
-            android:exported="false"
+            android:exported="true"
             android:parentActivityName=".MainActivity"
             android:label="Ransomware Test Suite" />
 

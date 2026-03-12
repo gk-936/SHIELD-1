@@ -1,6 +1,5 @@
 package com.dearmoon.shield.services;
 
-import android.app.ActivityManager;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
@@ -33,15 +32,17 @@ public class ShieldWatchdogService extends Service {
     }
 
     private void checkMainService() {
-        boolean intentionallyStopped = getSharedPreferences("ShieldPrefs", Context.MODE_PRIVATE)
+        boolean intentionallyStopped = getSharedPreferences("ShieldPrefs", Context.MODE_MULTI_PROCESS)
                 .getBoolean("intentionally_stopped", false);
 
         if (intentionallyStopped) {
             Log.d(TAG, "Main service intentionally stopped, not restarting");
+            stopSelf();  // L-01: Watchdog also stops itself when service is intentionally stopped
             return;
         }
 
-        if (!isServiceRunning(ShieldProtectionService.class)) {
+        // L-01: Use heartbeat check instead of deprecated getRunningServices() (unreliable API 26+)
+        if (!isServiceAlive()) {
             Log.e(TAG, "ShieldProtectionService KILLED! Restarting...");
             Intent serviceIntent = new Intent(this, ShieldProtectionService.class);
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -52,15 +53,12 @@ public class ShieldWatchdogService extends Service {
         }
     }
 
-    private boolean isServiceRunning(Class<?> serviceClass) {
-        ActivityManager manager = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
-        if (manager == null) return false;
-        for (ActivityManager.RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)) {
-            if (serviceClass.getName().equals(service.service.getClassName())) {
-                return true;
-            }
-        }
-        return false;
+    // L-01: Heartbeat-based liveness check. ShieldProtectionService writes last_heartbeat
+    // every 30 seconds; if stale > 60 s it has died.
+    private boolean isServiceAlive() {
+        long last = getSharedPreferences("ShieldPrefs", Context.MODE_MULTI_PROCESS)
+                .getLong("last_heartbeat", 0);
+        return System.currentTimeMillis() - last < 60_000;
     }
 
     @Override

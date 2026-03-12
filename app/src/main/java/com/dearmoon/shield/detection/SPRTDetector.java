@@ -11,21 +11,17 @@ public class SPRTDetector {
      * Minimum number of file events that must be recorded before the SPRT is
      * allowed to accept H1 (ransomware rate).
      *
-     * Rationale: with λ₁/λ₀ = 50 and α = β = 0.05 the Wald boundary is
-     * log(B) = log(19) ≈ 2.94, while a single event contributes log(50) ≈ 3.91
-     * which already exceeds the boundary. Without this guard, SPRT fires ACCEPT_H1
-     * on the very first file event of every session, permanently contributing
-     * 30 points to every subsequent detection score.
-     *
-     * Requiring at least 3 events means the detector needs a minimum burst consistent
-     * with ransomware behavior (≥ 3 file modifications within the session) before
-     * committing to H1.
+     * Raised to 10 (from 3) as a conservative guard until empirical baseline
+     * measurement has been performed across real devices. See H-03 in fix report.
      */
-    private static final int MIN_SAMPLES_FOR_H1 = 3;
+    private static final int MIN_SAMPLES_FOR_H1 = 10;
     
     private double logLikelihoodRatio = 0.0;
     private int sampleCount = 0;
     private SPRTState currentState = SPRTState.CONTINUE;
+    // M-02: Track reset boundary so BehaviorCorrelationEngine can exclude pre-reset events
+    private long lastResetTimestamp = System.currentTimeMillis();
+    private int epoch = 0;
 
     // Thresholds for file modification rate
     private static final double NORMAL_RATE = 0.1;    // H₀: 0.1 files/sec
@@ -45,6 +41,13 @@ public class SPRTDetector {
         logLikelihoodRatio += Math.log(RANSOMWARE_RATE / NORMAL_RATE);
         sampleCount++;
         updateState();
+        // H-03: Debug telemetry to help measure baseline on real devices
+        if (android.os.Build.VERSION.SDK_INT > 0 /* always */ && sampleCount % 5 == 0) {
+            android.util.Log.d("SPRTDetector",
+                "SPRT_METRIC samples=" + sampleCount
+                + " llr=" + String.format(java.util.Locale.US, "%.4f", logLikelihoodRatio)
+                + " state=" + currentState);
+        }
     }
 
     /**
@@ -81,7 +84,16 @@ public class SPRTDetector {
         logLikelihoodRatio = 0.0;
         sampleCount = 0;
         currentState = SPRTState.CONTINUE;
+        // M-02: Record reset boundary so BehaviorCorrelationEngine filters old events
+        lastResetTimestamp = System.currentTimeMillis();
+        epoch++;
     }
+
+    /** Returns the timestamp of the last SPRT reset (for M-02 behavior correlation filtering). */
+    public synchronized long getLastResetTimestamp() { return lastResetTimestamp; }
+
+    /** Returns the current epoch (increments each reset). */
+    public synchronized int getEpoch() { return epoch; }
 
     public SPRTState getCurrentState() {
         return currentState;

@@ -71,6 +71,10 @@ public class LockerShieldService extends AccessibilityService {
 
     private void handleWindowStateChange(String packageName, AccessibilityEvent event, long now) {
         boolean isFullscreen = event.isFullScreen();
+        if (keyguardManager == null) {
+            Log.w(TAG, "KeyguardManager unavailable — skipping lock-screen check");
+            return;
+        }
         boolean isLocked = keyguardManager.isKeyguardLocked();
         
         if (isLocked && !packageName.contains("systemui")) {

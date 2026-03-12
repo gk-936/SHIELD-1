@@ -15,6 +15,7 @@ import java.util.Map;
 public class FileSystemCollector extends FileObserver {
     private static final String TAG = "FileSystemCollector";
     private final TelemetryStorage storage;
+    private com.dearmoon.shield.data.EventMerger eventMerger = new com.dearmoon.shield.data.EventMerger();
     private final String monitoredPath;
     private UnifiedDetectionEngine detectionEngine;
     private SnapshotManager snapshotManager;
@@ -28,6 +29,9 @@ public class FileSystemCollector extends FileObserver {
         }
     };
     private static final long DEBOUNCE_DELAY_MS = 500;
+    // App's private data directory (for self-exclusion)
+    private final String appDataDir = android.os.Environment.getDataDirectory().getAbsolutePath() + "/data/com.dearmoon.shield";
+    private final String[] selfExcludeDirs = new String[] { appDataDir, appDataDir + "/databases", appDataDir + "/files", appDataDir + "/logs" };
 
     public FileSystemCollector(String path, TelemetryStorage storage) {
         super(path, CREATE | MODIFY | CLOSE_WRITE | DELETE | ALL_EVENTS);
@@ -42,6 +46,11 @@ public class FileSystemCollector extends FileObserver {
 
     public void setSnapshotManager(SnapshotManager manager) {
         this.snapshotManager = manager;
+    }
+
+    /** Replace the default per-instance EventMerger with the application-scoped shared one. */
+    public void setEventMerger(com.dearmoon.shield.data.EventMerger merger) {
+        this.eventMerger = merger;
     }
 
     public void setShieldStats(ShieldStats stats) {
@@ -59,6 +68,14 @@ public class FileSystemCollector extends FileObserver {
         }
 
         String fullPath = monitoredPath + File.separator + path;
+
+        // Exclude app's own process: logs, db, internal files
+        for (String excludeDir : selfExcludeDirs) {
+            if (fullPath.startsWith(excludeDir)) {
+                Log.d(TAG, "Ignoring self-generated event: " + fullPath);
+                return;
+            }
+        }
 
         // Logical fix: Handle multi-flag events
         boolean isCloseWrite = (event & CLOSE_WRITE) != 0;
@@ -82,19 +99,17 @@ public class FileSystemCollector extends FileObserver {
         }
 
         if (shouldLog) {
-            // Only perform expensive File operations if we are actually logging/processing
             File file = new File(fullPath);
             long size = file.exists() ? file.length() : 0;
-
             String key = fullPath + "|" + logOperation;
             long now = System.currentTimeMillis();
             Long lastTime = lastEventMap.get(key);
-
             if (lastTime == null || (now - lastTime > DEBOUNCE_DELAY_MS)) {
                 lastEventMap.put(key, now);
                 FileSystemEvent logEvent = new FileSystemEvent(fullPath, logOperation, size, size);
-                storage.store(logEvent);
-                // Increment the live "files scanned" counter on the home dashboard.
+                com.dearmoon.shield.data.EventMerger.MergedEvent merged = eventMerger.mergeEvent(logEvent, "MODE_B");
+                com.dearmoon.shield.data.HybridFileSystemEvent hybrid = new com.dearmoon.shield.data.HybridFileSystemEvent(logEvent, merged.source, merged.mergeFlag);
+                storage.store(hybrid);
                 if (shieldStats != null) shieldStats.incrementFilesScanned(1);
                 Log.i(TAG, "LOGGED: " + logOperation + " - " + fullPath + " (" + size + " bytes)");
             }

@@ -1,6 +1,10 @@
 package com.dearmoon.shield.collectors;
 
 import android.content.Context;
+import android.content.SharedPreferences;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.FileObserver;
 import android.util.Log;
 import androidx.annotation.Nullable;
@@ -8,6 +12,9 @@ import com.dearmoon.shield.data.HoneyfileEvent;
 import com.dearmoon.shield.data.TelemetryStorage;
 import java.io.File;
 import java.io.FileWriter;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -17,30 +24,26 @@ public class HoneyfileCollector {
     private final List<HoneyfileObserver> observers = new ArrayList<>();
     private final List<File> honeyfiles = new ArrayList<>();
     private final String appPackageName;
-    private long lastHoneyfileCreationTime = 0;
+    private final Context context;
     private static final long CREATION_GRACE_PERIOD_MS = 5000; // 5 seconds after creation
 
     public HoneyfileCollector(TelemetryStorage storage, Context context) {
         this.storage = storage;
+        this.context = context;
         this.appPackageName = context.getPackageName();
         Log.i(TAG, "HoneyfileCollector initialized - Package: " + appPackageName);
     }
 
     public void createHoneyfiles(Context context, String[] directories) {
-        String[] honeyfileNames = {
-            "IMPORTANT_BACKUP.txt",
-            "PRIVATE_KEYS.dat",
-            "CREDENTIALS.txt",
-            "SECURE_VAULT.bin",
-            "FINANCIAL_DATA.xlsx",
-            "PASSWORDS.txt"
-        };
-        
+        final int HONEYFILE_COUNT = 6;
+
         for (String dir : directories) {
             File directory = new File(dir);
             if (!directory.exists()) continue;
 
-            for (String name : honeyfileNames) {
+            for (int i = 0; i < HONEYFILE_COUNT; i++) {
+                // L-03: Use device-fingerprint-derived name instead of static predictable names
+                String name = generateHoneyfileName(dir, i);
                 File honeyfile = new File(directory, name);
                 try (FileWriter writer = new FileWriter(honeyfile)) {
                     writer.write("SHIELD HONEYFILE - DO NOT ACCESS\n");
@@ -62,8 +65,6 @@ public class HoneyfileCollector {
             }
         }
         
-        // SECURITY FIX: Set timestamp to prevent self-logging during creation
-        lastHoneyfileCreationTime = System.currentTimeMillis();
         Log.i(TAG, "Honeyfile creation complete. Grace period: " + CREATION_GRACE_PERIOD_MS + "ms");
     }
 
@@ -87,22 +88,49 @@ public class HoneyfileCollector {
         Log.i(TAG, "Cleared " + deletedCount + " honeyfiles");
     }
 
+    // L-03: Derive an unpredictable but stable honeyfile name by hashing device + app
+    // fingerprint. Names are stored in SharedPreferences so they survive process restarts.
+    private String generateHoneyfileName(String dir, int index) {
+        String key = "honeyfile_" + dir.hashCode() + "_" + index;
+        SharedPreferences prefs = context.getSharedPreferences("ShieldHoneyfiles", Context.MODE_PRIVATE);
+        String stored = prefs.getString(key, null);
+        if (stored != null) return stored;
+
+        String[] extensions = {".txt", ".dat", ".bin", ".bak", ".key", ".db"};
+        try {
+            PackageInfo pi = context.getPackageManager()
+                    .getPackageInfo(context.getPackageName(), 0);
+            String seed = Build.FINGERPRINT + dir + index + pi.firstInstallTime;
+            byte[] hash = MessageDigest.getInstance("SHA-256")
+                    .digest(seed.getBytes(StandardCharsets.UTF_8));
+            String hex = String.format("%02x%02x%02x%02x", hash[0], hash[1], hash[2], hash[3]);
+            String name = hex + extensions[index % extensions.length];
+            prefs.edit().putString(key, name).apply();
+            return name;
+        } catch (NoSuchAlgorithmException | PackageManager.NameNotFoundException e) {
+            return "shield_" + Math.abs(dir.hashCode()) + "_" + index + ".dat";
+        }
+    }
+
     private class HoneyfileObserver extends FileObserver {
         private final String filePath;
+        // L-02: Per-file creation time so each observer has its own grace window
+        private final long fileCreationTime;
 
         HoneyfileObserver(String path) {
             super(path, OPEN | MODIFY | DELETE | CLOSE_WRITE);
             this.filePath = path;
+            this.fileCreationTime = new File(path).lastModified();
         }
 
         @Override
         public void onEvent(int event, @Nullable String path) {
             if (event == OPEN || event == MODIFY || event == DELETE || event == CLOSE_WRITE) {
                 String accessType = getAccessType(event);
-                
-                // SECURITY FIX: Use timestamp-based filtering instead of broken UID check
-                // Only skip events during grace period after honeyfile creation
-                long timeSinceCreation = System.currentTimeMillis() - lastHoneyfileCreationTime;
+
+                // L-02: Use per-file creation time so one file's grace period doesn't
+                // mask alerts on other honeyfiles created at different times
+                long timeSinceCreation = System.currentTimeMillis() - fileCreationTime;
                 if (timeSinceCreation < CREATION_GRACE_PERIOD_MS) {
                     Log.d(TAG, "Skipping honeyfile event during grace period: " + filePath + " (" + timeSinceCreation + "ms since creation)");
                     return;

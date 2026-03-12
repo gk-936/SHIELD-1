@@ -152,10 +152,15 @@ public class NetworkGuardService extends VpnService {
             Builder builder = new Builder();
             builder.addAddress("10.0.0.2", 32);
             builder.addRoute("0.0.0.0", 0);
-            builder.addDnsServer("8.8.8.8");
-            builder.addDnsServer("8.8.4.4");
+            // H-05: Use Quad9 security DNS (blocks malicious domains at resolution time)
+            // instead of Google DNS which provides no threat filtering.
+            builder.addDnsServer("9.9.9.9");          // Quad9 primary
+            builder.addDnsServer("149.112.112.112");  // Quad9 secondary
             builder.setMtu(1500);
             builder.setSession("NetworkGuard");
+            // NOTE: The port 4444/5555/6666/7777 blocklist only catches legacy RAT traffic.
+            // Modern HTTPS/443 C2 (Telegram, Pastebin, GitHub Gist) is NOT blocked by this list.
+            // Post-detection blockAllTraffic=true is the effective isolation mechanism.
 
             Intent intent = new Intent(this, MainActivity.class);
             PendingIntent pendingIntent = PendingIntent.getActivity(

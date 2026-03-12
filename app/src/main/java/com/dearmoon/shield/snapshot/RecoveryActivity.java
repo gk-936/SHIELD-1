@@ -424,13 +424,34 @@ public class RecoveryActivity extends AppCompatActivity {
         long lastSnapshotTime = getSharedPreferences("ShieldPrefs", MODE_PRIVATE)
                 .getLong("last_snapshot_time", 0);
 
+        StringBuilder info = new StringBuilder();
         if (lastSnapshotTime > 0) {
             java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat(
                     "dd MMM yyyy  •  HH:mm:ss", java.util.Locale.US);
-            tvSnapshotInfo.setText(sdf.format(new java.util.Date(lastSnapshotTime)));
+            info.append("Last snapshot: ").append(sdf.format(new java.util.Date(lastSnapshotTime)));
         } else {
-            tvSnapshotInfo.setText("No snapshot available");
+            info.append("No snapshot available");
         }
+
+        // Show the most recently added snapshot files (last 5)
+        try {
+            java.util.List<com.dearmoon.shield.snapshot.FileMetadata> files =
+                new com.dearmoon.shield.snapshot.SnapshotDatabase(this).getAllBackedUpFiles();
+            int n = files.size();
+            if (n > 0) {
+                info.append("\n\nRecently added files:\n");
+                int shown = 0;
+                for (int i = n - 1; i >= 0 && shown < 5; i--, shown++) {
+                    com.dearmoon.shield.snapshot.FileMetadata f = files.get(i);
+                    String name = new java.io.File(f.filePath).getName();
+                    info.append("• ").append(name).append("\n");
+                }
+            }
+        } catch (Exception e) {
+            info.append("\n[Error loading snapshot file list]");
+        }
+
+        tvSnapshotInfo.setText(info.toString().trim());
     }
 
     private String[] getMonitoredDirectories() {

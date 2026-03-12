@@ -34,13 +34,47 @@ public class EntropyAnalyzer {
             ".zip", ".rar", ".7z", ".gz", ".bz2", ".xz", ".zst", ".tar",
             // Android / Java packages (ZIP-based)
             ".apk", ".jar", ".aar", ".aab",
-            // Document formats with internal compression
-            ".docx", ".xlsx", ".pptx", ".odt", ".ods", ".odp",
-            // PDF (often contains compressed streams)
-            ".pdf",
+            // M-01 FIX: .docx/.xlsx/.pptx/.odt/.ods/.odp/.pdf REMOVED from allowlist.
+            // These are primary ransomware targets. Magic-byte check below handles
+            // the false-positive concern: if PK\x03\x04 header is present the file
+            // is still a valid ZIP-based document and we skip entropy scoring; only
+            // when the header is absent (encrypted/replaced) do we score normally.
             // Encrypted credential / key stores
             ".p12", ".pfx", ".jks"
         )));
+
+    /**
+     * M-01: For document formats (.docx/.xlsx/.pptx/.odt/.pdf) that were removed from the
+     * allowlist, check magic bytes to determine if the file still has its expected structure.
+     * If the structure is intact (natural compression) skip entropy scoring to avoid
+     * false positives. If structure is destroyed the file was likely encrypted by ransomware
+     * and should be scored normally.
+     */
+    private boolean hasExpectedDocumentStructure(File file) {
+        String name = file.getName().toLowerCase();
+        int dot = name.lastIndexOf('.');
+        if (dot < 0) return false;
+        String ext = name.substring(dot);
+        // Only applies to removed-from-allowlist document formats
+        if (!(ext.equals(".docx") || ext.equals(".xlsx") || ext.equals(".pptx")
+              || ext.equals(".odt")  || ext.equals(".ods")  || ext.equals(".odp")
+              || ext.equals(".pdf"))) {
+            return false;
+        }
+        try (FileInputStream fis = new FileInputStream(file)) {
+            byte[] magic = new byte[4];
+            if (fis.read(magic) < 4) return false;
+            // DOCX/XLSX/PPTX/ODT/ODS/ODP are ZIP: PK\x03\x04
+            if (magic[0] == 0x50 && magic[1] == 0x4B
+                    && magic[2] == 0x03 && magic[3] == 0x04) return true;
+            // PDF: %PDF
+            if (magic[0] == 0x25 && magic[1] == 0x50
+                    && magic[2] == 0x44 && magic[3] == 0x46) return true;
+            return false;  // Structure destroyed — score entropy normally
+        } catch (Exception e) {
+            return false;
+        }
+    }
 
     /**
      * Returns true if the file's extension is in the naturally-high-entropy allowlist,
@@ -51,7 +85,11 @@ public class EntropyAnalyzer {
         String name = file.getName().toLowerCase();
         int dot = name.lastIndexOf('.');
         if (dot < 0) return false;
-        return NATURALLY_HIGH_ENTROPY_EXTENSIONS.contains(name.substring(dot));
+        String ext = name.substring(dot);
+        // Standard allowlist check
+        if (NATURALLY_HIGH_ENTROPY_EXTENSIONS.contains(ext)) return true;
+        // M-01: For removed-from-allowlist document formats, check actual file structure
+        return hasExpectedDocumentStructure(file);
     }
 
     /**

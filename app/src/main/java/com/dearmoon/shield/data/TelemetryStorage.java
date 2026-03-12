@@ -29,8 +29,10 @@ public class TelemetryStorage {
                 event.setPackageName(info.packageName);
                 event.setAppLabel(info.appLabel);
             }
-            
-            if (event instanceof FileSystemEvent) {
+            if (event instanceof HybridFileSystemEvent) {
+                long id = database.insertFileSystemEvent((HybridFileSystemEvent) event);
+                Log.d(TAG, "EVENT STORED: HYBRID_FILE_SYSTEM (ID: " + id + ")");
+            } else if (event instanceof FileSystemEvent) {
                 long id = database.insertFileSystemEvent((FileSystemEvent) event);
                 Log.d(TAG, "EVENT STORED: FILE_SYSTEM (ID: " + id + ")");
             } else if (event instanceof HoneyfileEvent) {

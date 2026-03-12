@@ -2,13 +2,18 @@
  * daemon_main.cpp — SHIELD Mode-A daemon entry point
  *
  * Usage:
- *   shield_modea_daemon <unix_socket_path> <bpf_obj_path>
+ *   shield_modea_daemon <unix_socket_path> <bpf_obj_path> [<expected_app_uid>]
  *
- * Both arguments are required.  The Android service passes them when
- * launching the daemon via:
- *   su -c /data/local/tmp/shield_modea_daemon \
- *          /data/local/tmp/shield_modea.sock \
- *          /data/local/tmp/shield_bpf.o
+ * The first two arguments are required.  The third is the UID of the
+ * SHIELD app and is used to authenticate incoming socket connections via
+ * SO_PEERCRED — only that exact UID is allowed to connect.  If omitted
+ * the daemon falls back to a looser uid >= 10000 check.
+ *
+ * The Android service passes these at launch via:
+ *   su -c /data/data/com.dearmoon.shield/shield_modea_daemon \
+ *          /data/data/com.dearmoon.shield/shield_modea.sock \
+ *          /data/data/com.dearmoon.shield/shield_bpf.o \
+ *          <app_uid>
  *
  * The daemon MUST run as UID 0 (root).  If it detects otherwise it
  * exits immediately so ModeAService can fall back to Mode-B.
@@ -48,6 +53,9 @@ int main(int argc, char *argv[])
 
     const char *socket_path  = argv[1];
     const char *bpf_obj_path = argv[2];
+    uint32_t expected_uid    = (argc >= 4)
+                               ? static_cast<uint32_t>(std::strtoul(argv[3], nullptr, 10))
+                               : 0;
 
     /* ------------------------------------------------------------------ */
     /* 2. Root check                                                       */
@@ -68,7 +76,7 @@ int main(int argc, char *argv[])
     /* ------------------------------------------------------------------ */
     /* 4. Start daemon                                                      */
     /* ------------------------------------------------------------------ */
-    ModeADaemon daemon(socket_path, bpf_obj_path);
+    ModeADaemon daemon(socket_path, bpf_obj_path, expected_uid);
 
     if (!daemon.start()) {
         LOGE("Daemon start failed — exiting");

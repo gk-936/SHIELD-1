@@ -50,11 +50,16 @@ public class BehaviorCorrelationEngine {
      * @param fileUid       the attributed UID of the writing process, or {@code -1}
      *                      when attribution was not possible (unattributed event)
      */
-    public CorrelationResult correlateFileEvent(String filePath, long eventTimestamp, int fileUid) {
+    public CorrelationResult correlateFileEvent(String filePath, long eventTimestamp, int fileUid,
+                                                long sprtLastResetTimestamp) {
         long windowStart = eventTimestamp - CORRELATION_WINDOW_MS;
-        
+
+        // M-02: Clamp query start to the last SPRT reset boundary so pre-reset events
+        // from the previous detection window don't inflate the current behavior score.
+        long fileQueryStart = Math.max(windowStart, sprtLastResetTimestamp);
+
         // Query existing events within time window (REUSE database)
-        List<JSONObject> fileEvents = queryRecentFileEvents(windowStart, eventTimestamp);
+        List<JSONObject> fileEvents = queryRecentFileEvents(fileQueryStart, eventTimestamp);
         List<JSONObject> networkEvents = queryRecentNetworkEvents(windowStart, eventTimestamp, fileUid);
         List<JSONObject> honeyfileEvents = queryRecentHoneyfileEvents(windowStart, eventTimestamp);
         List<JSONObject> lockerEvents = queryRecentLockerEvents(windowStart, eventTimestamp);

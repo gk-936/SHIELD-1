@@ -29,10 +29,22 @@ public class ModeAFileCollector {
 
     private static final String TAG = "SHIELD_MODE_A";
 
-    private final UnifiedDetectionEngine detectionEngine;
+    private final UnifiedDetectionEngine              detectionEngine;
+    private final com.dearmoon.shield.data.EventMerger eventMerger;
+    private final com.dearmoon.shield.data.TelemetryStorage storage;
 
-    public ModeAFileCollector(UnifiedDetectionEngine detectionEngine) {
+    /**
+     * @param detectionEngine Shared engine from {@link com.dearmoon.shield.ShieldApplication}.
+     * @param eventMerger     Shared EventMerger from {@link com.dearmoon.shield.ShieldApplication}
+     *                        so Mode A and Mode B events about the same file can be deduplicated
+     *                        into a single database row.
+     */
+    public ModeAFileCollector(UnifiedDetectionEngine detectionEngine,
+                              com.dearmoon.shield.data.EventMerger eventMerger) {
         this.detectionEngine = detectionEngine;
+        this.eventMerger     = eventMerger;
+        this.storage = new com.dearmoon.shield.data.TelemetryStorage(
+                detectionEngine != null ? detectionEngine.getContext() : null);
     }
 
     /**
@@ -60,27 +72,20 @@ public class ModeAFileCollector {
                 filename.isEmpty() ? "<unknown>" : filename, data.bytes));
 
         FileSystemEvent event = new FileSystemEvent(
-                filename,
-                operation,
-                sizeApprox,   // sizeBefore
-                sizeApprox    // sizeAfter
+            filename,
+            operation,
+            sizeApprox,   // sizeBefore
+            sizeApprox    // sizeAfter
         );
-
-        // Enrich with kernel-attributed UID — the key advantage over Mode-B,
-        // which must rely on heuristics for UID attribution.
         event.setUid(data.uid);
+        event.setMode("MODE_A");  // proper setter — no reflection needed
 
-        // Tag event as MODE_A so it's distinguishable in the database.
-        // TelemetryEvent.mode has no public setter so we use reflection.
-        try {
-            java.lang.reflect.Field modeField =
-                    event.getClass().getSuperclass().getDeclaredField("mode");
-            modeField.setAccessible(true);
-            modeField.set(event, "MODE_A");
-        } catch (Exception ignored) {
-            // Non-critical: event still flows correctly through the pipeline.
-        }
-
+        // Merge with any recent Mode B event, or add as new
+        com.dearmoon.shield.data.EventMerger.MergedEvent merged = eventMerger.mergeEvent(event, "MODE_A");
+        // Store as HybridFileSystemEvent for DB (source/merge info)
+        com.dearmoon.shield.data.HybridFileSystemEvent hybrid = new com.dearmoon.shield.data.HybridFileSystemEvent(event, merged.source, merged.mergeFlag);
+        storage.store(hybrid);
+        // Forward to detection engine (for now, use the FileSystemEvent part)
         detectionEngine.processFileEvent(event);
     }
 

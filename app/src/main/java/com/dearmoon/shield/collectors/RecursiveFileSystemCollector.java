@@ -30,6 +30,7 @@ public class RecursiveFileSystemCollector {
     private final ShieldStats shieldStats;    // shared across all child collectors
     private UnifiedDetectionEngine detectionEngine;
     private SnapshotManager snapshotManager;
+    private com.dearmoon.shield.data.EventMerger sharedEventMerger;
     private final List<FileSystemCollector> collectors = new ArrayList<>();
 
     public RecursiveFileSystemCollector(String rootPath, TelemetryStorage storage) {
@@ -50,6 +51,12 @@ public class RecursiveFileSystemCollector {
     
     public void setSnapshotManager(SnapshotManager manager) {
         this.snapshotManager = manager;
+    }
+
+    /** Provide the application-scoped shared EventMerger so events from all collectors
+     *  in this tree feed into the same dedup window as Mode A events. */
+    public void setEventMerger(com.dearmoon.shield.data.EventMerger merger) {
+        this.sharedEventMerger = merger;
     }
     
     /**
@@ -98,6 +105,10 @@ public class RecursiveFileSystemCollector {
             
             if (snapshotManager != null) {
                 collector.setSnapshotManager(snapshotManager);
+            }
+
+            if (sharedEventMerger != null) {
+                collector.setEventMerger(sharedEventMerger);
             }
 
             if (shieldStats != null) {

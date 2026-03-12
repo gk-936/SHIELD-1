@@ -31,6 +31,8 @@ public abstract class TelemetryEvent {
 
     public long getTimestamp() { return timestamp; }
     public String getEventType() { return eventType; }
+    public String getMode()      { return mode; }
+    public void   setMode(String m) { this.mode = m; }
     public int getUid() { return uid; }
     public void setUid(int uid) { this.uid = uid; }
     public String getPackageName() { return packageName; }

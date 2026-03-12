@@ -30,7 +30,8 @@ public class ModeAController {
     /* Paths used on the Android device */
     public static final String DAEMON_PATH      = "/data/local/tmp/shield_modea_daemon";
     public static final String BPF_OBJ_PATH     = "/data/local/tmp/shield_bpf.o";
-    public static final String SOCKET_PATH      = "/data/local/tmp/shield_modea.sock";
+    // C-04: Moved from world-accessible /data/local/tmp/ to app-private directory
+    public static final String SOCKET_PATH      = "/data/data/com.dearmoon.shield/shield_modea.sock";
 
     /* Required kernel config options */
     private static final String[] REQUIRED_CONFIGS = {
@@ -176,7 +177,8 @@ public class ModeAController {
      */
     public boolean startDaemon() {
         try {
-            String cmd = DAEMON_PATH + " " + SOCKET_PATH + " " + BPF_OBJ_PATH;
+            String cmd = DAEMON_PATH + " " + SOCKET_PATH + " " + BPF_OBJ_PATH
+                       + " " + android.os.Process.myUid();
             daemonProcess = Runtime.getRuntime()
                     .exec(new String[]{"su", "-c", cmd});
             Log.i(TAG, "Root daemon started: " + cmd);

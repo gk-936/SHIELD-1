@@ -89,7 +89,8 @@ public class UnifiedDetectionEngine {
             // package-name path segment is inherently ambiguous without root or eBPF.
             int attributedUid = resolveAttributionUid(filePath);
             CorrelationResult correlation = correlationEngine.correlateFileEvent(
-                filePath, event.getTimestamp(), attributedUid);
+                filePath, event.getTimestamp(), attributedUid,
+                sprtDetector.getLastResetTimestamp());  // M-02: bound file query by SPRT reset
             String suspectPackageName = correlation.getPackageName();
 
             // Check Whitelist
@@ -185,7 +186,7 @@ public class UnifiedDetectionEngine {
                 triggerNetworkBlock();
 
                 // AUTOMATED RESTORE: Revert damages after a short delay to ensure termination
-                finalizeMitigationAndRestore();
+                finalizeMitigationAndRestore(suspectPackageName);
 
                 // Calculate estimated time to total infection
                 int totalFiles = snapshotManager != null ?
@@ -281,6 +282,10 @@ public class UnifiedDetectionEngine {
 
     public void shutdown() {
         detectionThread.quitSafely();
+    }
+
+    public Context getContext() {
+        return context;
     }
 
     // -------------------------------------------------------------------------
@@ -407,60 +412,116 @@ public class UnifiedDetectionEngine {
         }
 
         try {
+            // Step 1 – terminate via ActivityManager (KILL_BACKGROUND_PROCESSES permission declared)
             ActivityManager am = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
             if (am != null) {
-                Log.e(TAG, "INITIATING SAFETY TERMINATION: " + packageName);
-
-                // 1. More thorough kill using running process list
-                java.util.List<ActivityManager.RunningAppProcessInfo> processes = am.getRunningAppProcesses();
-                if (processes != null) {
-                    for (ActivityManager.RunningAppProcessInfo info : processes) {
-                        if (java.util.Arrays.asList(info.pkgList).contains(packageName)) {
-                            Log.w(TAG, "Terminating PID " + info.pid + " for " + packageName);
-                            // We attempt to kill the process. Note: non-root apps can only kill their own processes,
-                            // but killBackgroundProcesses(pkg) is the system-allowed way to stop other apps.
-                            // We call it multiple times to ensure persistent services are stopped.
-                        }
-                    }
-                }
-
-                // 2. Official way to stop a background app
                 am.killBackgroundProcesses(packageName);
+                Log.w(TAG, "killBackgroundProcesses issued for: " + packageName);
+            }
 
-                // Log the action to the database
+            // Step 2 – kernel kill via Mode A JNI (if Mode A is running); resolve PID first
+            int pid = getPidForPackage(packageName);
+            if (pid > 0) {
                 try {
-                    database.insertLockerShieldEvent(new com.dearmoon.shield.lockerguard.LockerShieldEvent(
-                        packageName, "PROCESS_KILLED", 100, "Automated response to high-risk detection"
-                    ));
+                    android.content.Intent killIntent = new android.content.Intent(
+                            com.dearmoon.shield.modea.ModeAService.ACTION_KILL_PID);
+                    killIntent.putExtra("pid", pid);
+                    context.sendBroadcast(killIntent);
+                    Log.w(TAG, "ModeA kill broadcast sent for PID " + pid);
                 } catch (Exception e) {
-                    Log.e(TAG, "Failed to log process kill", e);
+                    Log.e(TAG, "Failed to send ModeAService kill intent", e);
                 }
+            }
+
+            // Step 3 – open App Info as user-facing fallback so they can confirm Force Stop
+            android.content.Intent appInfo = new android.content.Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+            appInfo.setData(android.net.Uri.parse("package:" + packageName));
+            appInfo.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
+            context.startActivity(appInfo);
+
+            // Log the action to the database
+            try {
+                database.insertLockerShieldEvent(new com.dearmoon.shield.lockerguard.LockerShieldEvent(
+                    packageName, "PROCESS_KILL_INITIATED", 100, "Automated response to high-risk detection"
+                ));
+            } catch (Exception e) {
+                Log.e(TAG, "Failed to log process kill", e);
             }
         } catch (Exception e) {
             Log.e(TAG, "Error killing process: " + packageName, e);
         }
     }
 
-    private void finalizeMitigationAndRestore() {
+    private void finalizeMitigationAndRestore(String suspectPackageName) {
         if (snapshotManager == null) return;
 
-        detectionHandler.postDelayed(() -> {
-            try {
-                Log.e(TAG, "Finalizing mitigation: Stopping tracking and initiating restore");
-                snapshotManager.stopAttackTracking();
-                com.dearmoon.shield.snapshot.RestoreEngine.RestoreResult result =
-                    snapshotManager.performAutomatedRestore();
+        // Instead of a fixed delay, poll for process death (up to 10 seconds)
+        java.util.concurrent.ExecutorService executor = java.util.concurrent.Executors.newSingleThreadExecutor();
+        executor.submit(() -> {
+            boolean dead = waitForProcessDeath(suspectPackageName, 10_000);
+            if (dead) {
+                try {
+                    Log.e(TAG, "Finalizing mitigation: Stopping tracking and initiating restore");
+                    snapshotManager.stopAttackTracking();
+                    sprtDetector.reset(); // Clear ACCEPT_H1 latch now that attack session is resolved
+                    com.dearmoon.shield.snapshot.RestoreEngine.RestoreResult result =
+                        snapshotManager.performAutomatedRestore();
 
-                Log.i(TAG, "AUTOMATED RESTORE COMPLETED: " + result.restoredCount + " files recovered");
+                    Log.i(TAG, "AUTOMATED RESTORE COMPLETED: " + result.restoredCount + " files recovered");
 
-                // Notify system of completion
-                android.content.Intent intent = new android.content.Intent("com.dearmoon.shield.RESTORE_COMPLETE");
-                intent.putExtra("restored_count", result.restoredCount);
-                context.sendBroadcast(intent);
-            } catch (Exception e) {
-                Log.e(TAG, "Automated restore failed", e);
+                    // Notify system of completion
+                    android.content.Intent intent = new android.content.Intent("com.dearmoon.shield.RESTORE_COMPLETE");
+                    intent.putExtra("restored_count", result.restoredCount);
+                    context.sendBroadcast(intent);
+                } catch (Exception e) {
+                    Log.e(TAG, "Automated restore failed", e);
+                }
+            } else {
+                // Notify user: manual Force Stop required before restore
+                showManualStopRequiredAlert(suspectPackageName);
             }
-        }, 1000); // 1-second delay to ensure process is dead
+        });
+        executor.shutdown(); // Release thread; task is already submitted
+    }
+
+    // Helper: poll for process death
+    private boolean waitForProcessDeath(String pkg, long timeoutMs) {
+        long deadline = System.currentTimeMillis() + timeoutMs;
+        while (System.currentTimeMillis() < deadline) {
+            if (!isProcessRunning(pkg)) return true;
+            try { Thread.sleep(200); } catch (InterruptedException e) { break; }
+        }
+        return false;  // timed out — process still alive
+    }
+
+    private boolean isProcessRunning(String pkg) {
+        ActivityManager am = (ActivityManager)
+            context.getSystemService(Context.ACTIVITY_SERVICE);
+        if (am == null) return false;
+        java.util.List<ActivityManager.RunningAppProcessInfo> procs = am.getRunningAppProcesses();
+        if (procs == null) return false;
+        for (ActivityManager.RunningAppProcessInfo p : procs) {
+            if (java.util.Arrays.asList(p.pkgList).contains(pkg)) return true;
+        }
+        return false;
+    }
+
+    private int getPidForPackage(String pkg) {
+        ActivityManager am = (ActivityManager)
+            context.getSystemService(Context.ACTIVITY_SERVICE);
+        if (am == null) return -1;
+        java.util.List<ActivityManager.RunningAppProcessInfo> procs = am.getRunningAppProcesses();
+        if (procs == null) return -1;
+        for (ActivityManager.RunningAppProcessInfo p : procs) {
+            if (java.util.Arrays.asList(p.pkgList).contains(pkg)) return p.pid;
+        }
+        return -1;
+    }
+
+    // Placeholder for user notification
+    private void showManualStopRequiredAlert(String pkg) {
+        Log.w(TAG, "Manual Force Stop required for package: " + pkg);
+        // TODO: Implement user-facing alert/notification
     }
 
     private void showHighRiskAlert(String filePath, int score, int infectionTimeSec) {
