@@ -1,0 +1,10 @@
+[
+    {
+        "merged": "com.dearmoon.shield.ransim.app-mergeDebugResources-30:/layout/overlay_locker.xml",
+        "source": "com.dearmoon.shield.ransim.app-main-33:/layout/overlay_locker.xml"
+    },
+    {
+        "merged": "com.dearmoon.shield.ransim.app-mergeDebugResources-30:/layout/activity_main.xml",
+        "source": "com.dearmoon.shield.ransim.app-main-33:/layout/activity_main.xml"
+    }
+]

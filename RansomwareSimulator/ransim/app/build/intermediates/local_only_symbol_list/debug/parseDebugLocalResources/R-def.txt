@@ -1,0 +1,28 @@
+R_DEF: Internal format may change without notice
+local
+color dark_bg
+color dark_red
+color green
+color orange
+color red
+color white
+color yellow
+id password
+id passwordInput
+id statusBar
+id stopTestButton
+id subtitle
+id title
+id unlockButton
+layout activity_main
+layout overlay_locker
+string all_files_restored
+string all_permissions_granted
+string app_name
+string grant
+string permission_explanation
+string shield_detected
+string start
+string stop_all
+string test_password
+style Theme.RanSim.Dark

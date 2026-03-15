@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">SHIELD RanSim</string>
+    <string name="permission_explanation">SHIELD RanSim needs these permissions to simulate ransomware behaviour for security testing.</string>
+    <string name="start">START</string>
+    <string name="grant">Grant</string>
+    <string name="all_permissions_granted">All permissions granted — START</string>
+    <string name="stop_all">⏹ STOP ALL &amp; RESTORE</string>
+    <string name="test_password">TEST PASSWORD: 1234</string>
+    <string name="shield_detected">✅ SHIELD DETECTED!</string>
+    <string name="all_files_restored">✅ All files restored</string>
+</resources>
