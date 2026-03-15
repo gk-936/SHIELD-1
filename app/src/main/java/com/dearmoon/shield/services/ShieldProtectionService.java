@@ -134,7 +134,7 @@ public class ShieldProtectionService extends Service {
 
     private void initializeCollectors() {
         // Initialize honeyfile collector
-        honeyfileCollector = new HoneyfileCollector(storage, this);
+        honeyfileCollector = new HoneyfileCollector(storage, this, detectionEngine);
         String[] honeyfileDirs = getMonitoredDirectories();
         honeyfileCollector.createHoneyfiles(this, honeyfileDirs);
 
@@ -215,6 +215,13 @@ public class ShieldProtectionService extends Service {
             NotificationManager manager = getSystemService(NotificationManager.class);
             if (manager != null) {
                 manager.createNotificationChannel(channel);
+
+                NotificationChannel alertsChannel = new NotificationChannel(
+                        "shield_alerts",
+                        "SHIELD Alerts",
+                        NotificationManager.IMPORTANCE_HIGH);
+                alertsChannel.setDescription("High-priority security alerts and recovery status");
+                manager.createNotificationChannel(alertsChannel);
             }
         }
     }

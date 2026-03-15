@@ -203,6 +203,7 @@ public class BackupEncryptionManager {
                     .setBlockModes(BLOCK_MODE)
                     .setEncryptionPaddings(PADDING)
                     .setKeySize(AES_BITS)
+                    .setRandomizedEncryptionRequired(false)  // Allow manual IV injection (required for our architecture)
                     .setUserAuthenticationRequired(false)
                     .build());
             kg.generateKey();

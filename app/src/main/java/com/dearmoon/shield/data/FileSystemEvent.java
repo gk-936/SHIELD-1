@@ -20,6 +20,7 @@ public class FileSystemEvent extends TelemetryEvent {
     }
 
     private String extractExtension(String path) {
+        if (path == null) return "";
         int lastDot = path.lastIndexOf('.');
         return lastDot > 0 ? path.substring(lastDot) : "";
     }

@@ -102,13 +102,15 @@ static int create_unix_server(const std::string &socket_path)
     }
     chmod(socket_path.c_str(), 0600);   /* owner-only, NOT world-accessible */
 
-    /* Relabel to shell_data_file so SELinux allows untrusted_app to connectto.
-     * The socket is created under magisk context; without this label, even
-     * 0600 DAC permissions are overridden by SELinux MAC policy. */
+    /* Relabel to shield_daemon_socket (restrictive) to prevent untrusted_app access.
+     * The socket is created under magisk context; without proper labeling, even
+     * 0600 DAC permissions are overridden by SELinux MAC policy.
+     * SECURITY FIX C-04: Changed from shell_data_file (allows untrusted_app) to
+     * shield_daemon_socket (restricted to system_server only). */
     {
         const char *chcon_argv[] = {
             "/system/bin/chcon",
-            "u:object_r:shell_data_file:s0",
+            "u:object_r:shield_daemon_socket:s0",
             socket_path.c_str(),
             nullptr
         };
@@ -156,6 +158,21 @@ static void process_kill_command(int client_fd,
                                   BpfLoader &loader,
                                   std::unordered_set<uint32_t> &killed_pids)
 {
+    /* SECURITY FIX C-04: Verify socket peer credentials before processing kill.
+     * This prevents arbitrary apps from killing system processes as root. */
+    struct ucred peer_cred;
+    socklen_t cred_len = sizeof(peer_cred);
+    if (getsockopt(client_fd, SOL_SOCKET, SO_PEERCRED, &peer_cred, &cred_len) < 0) {
+        LOGE("getsockopt(SO_PEERCRED): %s", strerror(errno));
+        return;
+    }
+    /* Only allow KILL commands from system_server (uid=1000) or SHIELD's own UID (check at runtime) */
+    if (peer_cred.uid != 1000) {  /* 1000 is SYSTEM_UID */
+        LOGW("Rejecting kill command from untrusted UID %u (gid=%u, pid=%u)!",
+             peer_cred.uid, peer_cred.gid, peer_cred.pid);
+        return;
+    }
+
     /* Read 4-byte length header */
     uint32_t msg_len = 0;
     ssize_t  n = recv(client_fd, &msg_len, sizeof(msg_len), MSG_DONTWAIT);

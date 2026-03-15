@@ -254,6 +254,13 @@ public class EventDatabase extends SQLiteOpenHelper {
         onCreate(db);
     }
 
+    @Override
+    public void onOpen(SQLiteDatabase db) {
+        super.onOpen(db);
+        Cursor c = db.rawQuery("PRAGMA journal_mode=WAL", null);
+        if (c != null) c.close();
+    }
+
     // Insert methods
     public synchronized long insertFileSystemEvent(FileSystemEvent event) {
         SQLiteDatabase db = getWritableDatabase();

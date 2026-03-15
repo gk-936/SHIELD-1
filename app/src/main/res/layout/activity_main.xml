@@ -94,7 +94,7 @@
         app:layout_constraintEnd_toEndOf="parent" />
 
 
-    <!-- Main Mode Buttons -->
+    <!-- Unified Protection Button (Merged Root + Non-Root) -->
     <LinearLayout
         android:layout_width="0dp"
         android:layout_height="wrap_content"
@@ -106,24 +106,12 @@
         app:layout_constraintEnd_toEndOf="parent"
         android:padding="32dp">
 
-        <!-- Mode A (Root - Inactive) -->
+        <!-- Unified Protection Toggle (Root + Non-Root) -->
         <Button
-            android:id="@+id/btnModeA"
+            android:id="@+id/btnUnifiedProtection"
             android:layout_width="match_parent"
             android:layout_height="80dp"
-            android:text="Root"
-            android:textSize="18sp"
-            android:textColor="@color/text_muted"
-            android:background="@drawable/bg_glass_button_inactive"
-            app:backgroundTint="@null"
-            android:layout_marginBottom="16dp" />
-
-        <!-- Mode B (Non-Root Toggle) -->
-        <Button
-            android:id="@+id/btnModeB"
-            android:layout_width="match_parent"
-            android:layout_height="80dp"
-            android:text="Non-Root"
+            android:text="Start Protection"
             android:textSize="18sp"
             android:textColor="@color/text_primary"
             android:background="@drawable/bg_glass_button_inactive"

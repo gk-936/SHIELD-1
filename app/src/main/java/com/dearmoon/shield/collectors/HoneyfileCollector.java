@@ -10,6 +10,7 @@ import android.util.Log;
 import androidx.annotation.Nullable;
 import com.dearmoon.shield.data.HoneyfileEvent;
 import com.dearmoon.shield.data.TelemetryStorage;
+import com.dearmoon.shield.detection.UnifiedDetectionEngine;
 import java.io.File;
 import java.io.FileWriter;
 import java.nio.charset.StandardCharsets;
@@ -25,11 +26,13 @@ public class HoneyfileCollector {
     private final List<File> honeyfiles = new ArrayList<>();
     private final String appPackageName;
     private final Context context;
+    private final UnifiedDetectionEngine detectionEngine;
     private static final long CREATION_GRACE_PERIOD_MS = 5000; // 5 seconds after creation
 
-    public HoneyfileCollector(TelemetryStorage storage, Context context) {
+    public HoneyfileCollector(TelemetryStorage storage, Context context, UnifiedDetectionEngine detectionEngine) {
         this.storage = storage;
         this.context = context;
+        this.detectionEngine = detectionEngine;
         this.appPackageName = context.getPackageName();
         Log.i(TAG, "HoneyfileCollector initialized - Package: " + appPackageName);
     }
@@ -148,6 +151,11 @@ public class HoneyfileCollector {
                 );
                 storage.store(honeyEvent);
                 Log.w(TAG, "⚠️ HONEYFILE TRAP TRIGGERED: " + filePath + " (" + accessType + ") by UID " + callingUid);
+
+                // EMERGENCY KILL: Honeyfile access bypassed SPRT/Entropy requirements
+                if (detectionEngine != null) {
+                    detectionEngine.triggerHoneyfileKill(filePath, callingUid);
+                }
             }
         }
 

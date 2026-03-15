@@ -18,6 +18,7 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import com.dearmoon.shield.services.NetworkGuardService;
 import com.dearmoon.shield.services.ShieldProtectionService;
+import com.dearmoon.shield.security.SecurityUtils;
 import com.dearmoon.shield.ui.GlitchTextView;
 
 import androidx.biometric.BiometricManager;
@@ -40,8 +41,7 @@ public class MainActivity extends AppCompatActivity {
     private GlitchTextView tvProtectionStatus;
     private android.widget.TextView tvInfectionTimer;
     private android.view.View timerContainer;
-    private Button btnModeA;
-    private Button btnModeB;
+    private Button btnUnifiedProtection;
     private com.dearmoon.shield.ui.SecurityRippleView securityRipple;
     private HighRiskAlertReceiver alertReceiver;
     private android.content.BroadcastReceiver dataUpdateReceiver;
@@ -170,7 +170,13 @@ public class MainActivity extends AppCompatActivity {
             sb.append("    Needed for ransomware alerts and service status.\n\n");
         }
 
-        // 3. Accessibility service
+        // 3. Display over other apps (SYSTEM_ALERT_WINDOW)
+        boolean hasOverlay = Settings.canDrawOverlays(this);
+        sb.append(hasOverlay ? "\u2705" : "\u274C");
+        sb.append("  Display over other apps\n");
+        sb.append("    Needed to show emergency guidance over lockscreens.\n\n");
+
+        // 4. Accessibility service
         boolean hasA11y = isAccessibilityServiceEnabled();
         sb.append(hasA11y ? "\u2705" : "\u274C");
         sb.append("  Accessibility Service (LockerGuard)\n");
@@ -224,7 +230,15 @@ public class MainActivity extends AppCompatActivity {
             }
         }
 
-        // 3. Accessibility service (cannot request programmatically — send user to Settings)
+        // 3. Display over other apps
+        if (!Settings.canDrawOverlays(this)) {
+            Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                    Uri.parse("package:" + getPackageName()));
+            startActivity(intent);
+            return;
+        }
+
+        // 4. Accessibility service (cannot request programmatically — send user to Settings)
         if (!isAccessibilityServiceEnabled()) {
             Toast.makeText(this,
                     "Enable \"SHIELD LockerGuard\" in Accessibility Settings, then come back.",
@@ -257,8 +271,7 @@ public class MainActivity extends AppCompatActivity {
         tvInfectionTimer = findViewById(R.id.tvInfectionTimer);
         timerContainer = findViewById(R.id.timerContainer);
 
-        btnModeA = findViewById(R.id.btnModeA);
-        btnModeB = findViewById(R.id.btnModeB);
+        btnUnifiedProtection = findViewById(R.id.btnUnifiedProtection);
         gaugeView = findViewById(R.id.gaugeView);
         securityRipple = findViewById(R.id.securityRipple);
 
@@ -266,34 +279,31 @@ public class MainActivity extends AppCompatActivity {
         shieldStats = new ShieldStats(this);
         startGaugeBackgroundUpdater();
 
-        btnModeA.setOnClickListener(v -> {
-            triggerButtonRipple(btnModeA, true);
-            boolean modeARunning = isServiceRunning(com.dearmoon.shield.modea.ModeAService.class);
-            if (modeARunning) {
-                authenticateBiometric(() -> stopModeAService());
-            } else {
-                android.content.Intent rootIntent = new android.content.Intent(this, ModeConfirmActivity.class);
-                rootIntent.putExtra("mode", "ROOT");
-                startActivityForResult(rootIntent, MODE_A_CONFIRM_REQUEST);
-                overridePendingTransition(R.anim.slide_up_from_bottom, 0);
-            }
-        });
-        btnModeB.setOnClickListener(v -> {
-            triggerButtonRipple(btnModeB, false);
-
-            boolean isActive = getSharedPreferences("ShieldPrefs", Context.MODE_PRIVATE)
+        // Unified button: Intelligently start the appropriate protection mode(s) or stop all
+        btnUnifiedProtection.setOnClickListener(v -> {
+            boolean protectionActive = getSharedPreferences("ShieldPrefs", Context.MODE_PRIVATE)
                     .getBoolean("shield_active", false);
+            boolean modeARunning = isServiceRunning(com.dearmoon.shield.modea.ModeAService.class);
 
-            if (isActive) {
-                // Turning OFF → biometric required, no animation
-                authenticateBiometric(() -> stopShieldService());
+            if (protectionActive || modeARunning) {
+                // Protection is active (or at least Mode A is) — turn OFF
+                triggerButtonRipple(btnUnifiedProtection, modeARunning);  // true if Mode A running
+                authenticateBiometric(() -> stopProtection());
             } else {
-                // Turning ON → check permissions FIRST, then show animation
-                checkPermissionsAndStartAnimation();
+                // Protection is off — turn ON based on root availability
+                triggerButtonRipple(btnUnifiedProtection, canStartModeA());
+                if (canStartModeA()) {
+                    // Rooted device: show Mode A confirmation animation, which starts both modes
+                    android.content.Intent rootIntent = new android.content.Intent(this, ModeConfirmActivity.class);
+                    rootIntent.putExtra("mode", "ROOT");
+                    startActivityForResult(rootIntent, MODE_A_CONFIRM_REQUEST);
+                    overridePendingTransition(R.anim.slide_up_from_bottom, 0);
+                } else {
+                    // Non-rooted device: go straight to Mode B permission check
+                    checkPermissionsAndStartAnimation();
+                }
             }
         });
-        // Note: idle heartbeat removed — ModeConfirmActivity now provides the ON animation
-
 
         updateStatusDisplay();
 
@@ -516,6 +526,33 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * Checks if this device can run Mode A (root-based eBPF kernel monitoring).
+     * Requires: Android 11+, device root access, kernel eBPF support.
+     */
+    private boolean canStartModeA() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+            return false;  // Requires Android 11+
+        }
+        return SecurityUtils.isDeviceRooted();
+    }
+
+    /**
+     * Unified stop function: Stops both Mode A and Mode B cleanly.
+     * This ensures no services are left running when the user taps "Stop Protection".
+     */
+    private void stopProtection() {
+        Log.i(TAG, "Stopping all protection services...");
+        
+        // Stop Root Mode (Mode A) if running
+        stopService(new Intent(this, com.dearmoon.shield.modea.ModeAService.class));
+        
+        // Stop Standard Mode (Mode B)
+        stopShieldService();
+        
+        Toast.makeText(this, "Protection Disabled", Toast.LENGTH_SHORT).show();
+    }
+
     private void startModeAService() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
             Toast.makeText(this, "Root Mode requires Android 11+", Toast.LENGTH_SHORT).show();
@@ -528,18 +565,6 @@ public class MainActivity extends AppCompatActivity {
         Intent intent = new Intent(this, com.dearmoon.shield.modea.ModeAService.class);
         startForegroundService(intent);
         Toast.makeText(this, "Root Mode starting\u2026", Toast.LENGTH_SHORT).show();
-        updateStatusDisplay();
-    }
-
-    private void stopModeAService() {
-        stopService(new Intent(this, com.dearmoon.shield.modea.ModeAService.class));
-        // Stop shared infrastructure only if Mode B is not independently active.
-        boolean modeBActive = getSharedPreferences("ShieldPrefs", Context.MODE_PRIVATE)
-                .getBoolean("shield_active", false);
-        if (!modeBActive) {
-            stopShieldService();
-        }
-        Toast.makeText(this, "Root Mode stopped", Toast.LENGTH_SHORT).show();
         updateStatusDisplay();
     }
 
@@ -578,41 +603,42 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void updateStatusDisplay() {
-        boolean isServiceRunning = getSharedPreferences("ShieldPrefs", Context.MODE_PRIVATE)
-                .getBoolean("shield_active", false);
+        boolean isModeBRunning = isServiceRunning(ShieldProtectionService.class);
         boolean isVpnRunning = isServiceRunning(NetworkGuardService.class);
+        boolean isModeARunning = isServiceRunning(com.dearmoon.shield.modea.ModeAService.class);
 
-        if (isServiceRunning) {
+        // Determine unified button state and text
+        String buttonText;
+        boolean protectionActive = isModeBRunning || isModeARunning;
+
+        // Persist state to preferences for consistency
+        getSharedPreferences("ShieldPrefs", Context.MODE_PRIVATE)
+                .edit()
+                .putBoolean("shield_active", protectionActive)
+                .apply();
+        
+        if (protectionActive) {
+            // Button shows "Stop Protection" when anything is active
+            buttonText = "Stop Protection";
+            btnUnifiedProtection.setBackgroundResource(R.drawable.bg_glass_button_active);
+            btnUnifiedProtection.setTextColor(0xFFFFFFFF);
+            
             tvProtectionStatus.stopGlitchEffect();
             tvProtectionStatus.setText("System Protected" + (isVpnRunning ? " + Network Guard" : ""));
             tvProtectionStatus.setTextColor(0xFFD2DBEB);
             tvProtectionStatus.startScanBeam(() -> tvProtectionStatus.startCursorBlink());
-
-            btnModeB.setBackgroundResource(R.drawable.bg_glass_button_active);
-            btnModeB.setText("Active");
-            btnModeB.setTextColor(0xFFFFFFFF);
         } else {
+            // Button shows "Start Protection" when nothing is active
+            buttonText = "Start Protection";
+            btnUnifiedProtection.setBackgroundResource(R.drawable.bg_glass_button_inactive);
+            btnUnifiedProtection.setTextColor(ContextCompat.getColor(this, R.color.text_primary));
+            
             tvProtectionStatus.stopCursorBlink();
             tvProtectionStatus.setText("Protection Inactive");
             tvProtectionStatus.setTextColor(0xFF6A90B4);
             tvProtectionStatus.startGlitchEffect();
-
-            btnModeB.setBackgroundResource(R.drawable.bg_glass_button_inactive);
-            btnModeB.setText("Non-Root");
-            btnModeB.setTextColor(ContextCompat.getColor(this, R.color.text_primary));
         }
-
-        // Mode A button state
-        boolean isModeARunning = isServiceRunning(com.dearmoon.shield.modea.ModeAService.class);
-        if (isModeARunning) {
-            btnModeA.setBackgroundResource(R.drawable.bg_glass_button_active);
-            btnModeA.setText("Root Active");
-            btnModeA.setTextColor(0xFFFFFFFF);
-        } else {
-            btnModeA.setBackgroundResource(R.drawable.bg_glass_button_inactive);
-            btnModeA.setText("Root");
-            btnModeA.setTextColor(ContextCompat.getColor(this, R.color.text_primary));
-        }
+        btnUnifiedProtection.setText(buttonText);
     }
 
     private boolean isServiceRunning(Class<?> serviceClass) {
@@ -644,6 +670,8 @@ public class MainActivity extends AppCompatActivity {
                     Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED)
                 return false;
         }
+        if (!Settings.canDrawOverlays(this))
+            return false;
         if (!isAccessibilityServiceEnabled())
             return false;
         return true;

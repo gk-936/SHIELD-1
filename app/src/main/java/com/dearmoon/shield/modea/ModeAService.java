@@ -74,6 +74,12 @@ public class ModeAService extends Service {
     // instead of spending 10 s waiting for a socket that will never exist.
     private final AtomicBoolean    destroyed = new AtomicBoolean(false);
 
+    private static volatile boolean daemonConnected = false;
+
+    public static boolean isConnected() {
+        return daemonConnected;
+    }
+
     // Reusable event — allocated once, reused per poll iteration
     private final ShieldEventData reusableEvent = new ShieldEventData();
 
@@ -111,9 +117,9 @@ public class ModeAService extends Service {
 
         IntentFilter filter = new IntentFilter(ACTION_KILL_PID);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            registerReceiver(killReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
+            registerReceiver(killReceiver, filter, "com.dearmoon.shield.RESTART_PERMISSION", null, Context.RECEIVER_NOT_EXPORTED);
         } else {
-            registerReceiver(killReceiver, filter);
+            registerReceiver(killReceiver, filter, "com.dearmoon.shield.RESTART_PERMISSION", null);
         }
         Log.i(TAG, "ModeAService created");
     }
@@ -137,6 +143,7 @@ public class ModeAService extends Service {
         Log.i(TAG, "ModeAService stopping");
         // Signal initModeA() thread to abort before we tear down the daemon.
         destroyed.set(true);
+        daemonConnected = false;
         stopEventLoop();
         if (jni != null)         jni.nativeDisconnect();
         if (controller != null)  controller.stopDaemon();
@@ -219,6 +226,7 @@ public class ModeAService extends Service {
         }
 
         connected.set(true);
+        daemonConnected = true;
         updateNotification("Mode-A active — kernel telemetry running");
         sendBroadcast(new Intent(ACTION_STARTED));
         Log.i(TAG, "Mode-A fully operational");

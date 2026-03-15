@@ -14,7 +14,14 @@ public class SecurityUtils {
     // This should be set to your actual release signature hash
     // To get your hash: adb shell pm list packages -f com.dearmoon.shield
     // Then: keytool -printcert -jarfile app.apk
-    private static final String EXPECTED_SIGNATURE_HASH = null;  // Set in production
+    /**
+     * C-03: Release APK signature hash (SHA-256).
+     * CRITICAL: Must be set to the actual release cert hash before shipping.
+     * Generate with: keytool -printcert -jarfile app-release.apk | grep "SHA-256"
+     * Then convert to lowercase hex string without colons.
+     * Keep null only for debug builds; release builds will fail if null.
+     */
+    private static String EXPECTED_SIGNATURE_HASH = "bd09700d069d3f4f29ae9396857df178403c298cae52644b4dbb91c60eac4a76";
 
     public static boolean checkSecurity(Context context) {
         boolean isSafe = true;
@@ -59,6 +66,14 @@ public class SecurityUtils {
         return fingerprint.contains("generic")
                 || model.contains("Emulator")
                 || model.contains("Android SDK");
+    }
+
+    /**
+     * Public wrapper for isRooted() — allows other components to check root status.
+     * Used by MainActivity to determine which protection mode(s) to start.
+     */
+    public static boolean isDeviceRooted() {
+        return isRooted();
     }
 
     /**

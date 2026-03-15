@@ -1,0 +1,26 @@
+﻿Alias name: release
+Creation date: 12-Mar-2026
+Entry type: PrivateKeyEntry
+Certificate chain length: 1
+Certificate[1]:
+Owner: CN=Unknown, OU=Unknown, O=Unknown, L=Unknown, ST=Unknown, C=Unknown
+Issuer: CN=Unknown, OU=Unknown, O=Unknown, L=Unknown, ST=Unknown, C=Unknown
+Serial number: 4abd891f4247dcff
+Valid from: Thu Mar 12 23:37:46 IST 2026 until: Mon Jul 28 23:37:46 IST 2053
+Certificate fingerprints:
+	 SHA1: 91:04:55:6C:6E:6D:F1:5C:5D:27:36:5A:B5:3B:C1:59:62:A7:71:8A
+	 SHA256: BD:09:70:0D:06:9D:3F:4F:29:AE:93:96:85:7D:F1:78:40:3C:29:8C:AE:52:64:4B:4D:BB:91:C6:0E:AC:4A:76
+Signature algorithm name: SHA256withRSA
+Subject Public Key Algorithm: 2048-bit RSA key
+Version: 3
+
+Extensions: 
+
+#1: ObjectId: 2.5.29.14 Criticality=false
+SubjectKeyIdentifier [
+KeyIdentifier [
+0000: FA 2A 96 E0 32 B6 47 38   D6 84 38 6C 82 8D AE 40  .*..2.G8..8l...@
+0010: 41 7D 8D BC                                        A...
+]
+]
+

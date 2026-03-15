@@ -96,6 +96,13 @@ public class SnapshotDatabase extends SQLiteOpenHelper {
         }
     }
 
+    @Override
+    public void onOpen(SQLiteDatabase db) {
+        super.onOpen(db);
+        Cursor c = db.rawQuery("PRAGMA journal_mode=WAL", null);
+        if (c != null) c.close();
+    }
+
     // =========================================================================
     //  Core CRUD
     // =========================================================================

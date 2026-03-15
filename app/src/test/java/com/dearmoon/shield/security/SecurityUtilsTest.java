@@ -14,6 +14,9 @@ import org.junit.rules.TemporaryFolder;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.MockitoAnnotations;
+import org.junit.runner.RunWith;
+import org.robolectric.RobolectricTestRunner;
+import org.robolectric.annotation.Config;
 import java.io.File;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
@@ -25,6 +28,8 @@ import static org.junit.Assert.*;
  * Unit tests for SecurityUtils improvements.
  * Tests verify enhanced root detection and proper signature verification.
  */
+@RunWith(RobolectricTestRunner.class)
+@Config(sdk = 27)
 public class SecurityUtilsTest {
 
     @Rule
@@ -107,7 +112,16 @@ public class SecurityUtilsTest {
             .thenReturn(packageInfo);
 
         // In development mode (EXPECTED_SIGNATURE_HASH = null), should return true
-        assertTrue("Development mode should allow any signature", SecurityUtils.verifySignature(mockContext));
+        // Force the static field to null if it was set by other tests
+        Field field = SecurityUtils.class.getDeclaredField("EXPECTED_SIGNATURE_HASH");
+        field.setAccessible(true);
+        String originalHash = (String) field.get(null);
+        try {
+            field.set(null, null);
+            assertTrue("Development mode should allow any signature", SecurityUtils.verifySignature(mockContext));
+        } finally {
+            field.set(null, originalHash);
+        }
     }
 
     /**

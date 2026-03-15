@@ -36,6 +36,18 @@ public class LockerShieldService extends AccessibilityService {
     private long lastFocusTime = 0;
     private int focusRegainCount = 0;
 
+    private static LockerShieldService instance;
+
+    public static LockerShieldService getInstance() {
+        return instance;
+    }
+
+    @Override
+    protected void onServiceConnected() {
+        super.onServiceConnected();
+        instance = this;
+    }
+
     @Override
     public void onCreate() {
         super.onCreate();
@@ -265,7 +277,14 @@ public class LockerShieldService extends AccessibilityService {
     @Override
     public void onDestroy() {
         dismissEmergencyOverlay();
+        instance = null;
         super.onDestroy();
         Log.i(TAG, "LockerShieldService destroyed");
+    }
+
+    public void performNavigationEscape() {
+        performGlobalAction(GLOBAL_ACTION_HOME);
+        new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() ->
+            performGlobalAction(GLOBAL_ACTION_RECENTS), 300);
     }
 }

@@ -10,8 +10,15 @@ import android.util.Log;
 import com.dearmoon.shield.data.FileSystemEvent;
 import com.dearmoon.shield.data.EventDatabase;
 import com.dearmoon.shield.data.WhitelistManager;
+import android.app.NotificationManager;
+import android.content.Intent;
+import android.net.Uri;
+import android.provider.Settings;
+import androidx.core.app.NotificationCompat;
 import java.io.File;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -29,16 +36,23 @@ public class UnifiedDetectionEngine {
 
     private final HandlerThread detectionThread;
     private final Handler detectionHandler;
+    private final Executor killExecutor;
 
     private final ConcurrentLinkedQueue<Long> recentModifications = new ConcurrentLinkedQueue<>();
     private long lastEventTimestamp = 0;
     private static final long TIME_WINDOW_MS = 1000; // 1 second window
 
     public UnifiedDetectionEngine(Context context) {
-        this(context, null);
+        this(context, null, null);
     }
 
     public UnifiedDetectionEngine(Context context, com.dearmoon.shield.snapshot.SnapshotManager snapshotManager) {
+        this(context, snapshotManager, null);
+    }
+
+    public UnifiedDetectionEngine(Context context, 
+                                 com.dearmoon.shield.snapshot.SnapshotManager snapshotManager,
+                                 Executor executor) {
         this.context = context;
         this.database = EventDatabase.getInstance(context);
         this.entropyAnalyzer = new EntropyAnalyzer();
@@ -47,6 +61,7 @@ public class UnifiedDetectionEngine {
         this.correlationEngine = new BehaviorCorrelationEngine(context);
         this.whitelistManager = new WhitelistManager(context);
         this.snapshotManager = snapshotManager;
+        this.killExecutor = executor != null ? executor : Executors.newSingleThreadExecutor(r -> new Thread(r, "KillSequenceThread"));
 
         detectionThread = new HandlerThread("DetectionThread");
         detectionThread.start();
@@ -182,11 +197,8 @@ public class UnifiedDetectionEngine {
                 // SAFETY FIRST: Kill the ransomware process immediately to stop further encryption
                 killMaliciousProcess(suspectPackageName);
 
-                // Then block network to stop C2 communication
+                // Network block to stop C2 communication
                 triggerNetworkBlock();
-
-                // AUTOMATED RESTORE: Revert damages after a short delay to ensure termination
-                finalizeMitigationAndRestore(suspectPackageName);
 
                 // Calculate estimated time to total infection
                 int totalFiles = snapshotManager != null ?
@@ -215,6 +227,39 @@ public class UnifiedDetectionEngine {
         }
     }
 
+    /**
+     * Unconditional kill trigger for honeyfile access.
+     * Bypasses the 70-point threshold entirely and immediately initiates
+     * attack tracking and process termination.
+     */
+    public void triggerHoneyfileKill(String filePath, int uid) {
+        Log.w(TAG, "HONEYFILE DESTRUCTION DETECTED: Bypassing score thresholds for absolute kill.");
+
+        String suspectPackageName = attributor != null ? attributor.getPackageForUid(uid) : "unknown";
+
+        // Proactive Data Protection: Start attack tracking immediately
+        if (snapshotManager != null && snapshotManager.getActiveAttackId() == 0) {
+            Log.w(TAG, "SUSPICIOUS ACTIVITY: Starting proactive data tracking (Honeyfile Trigger)");
+            snapshotManager.startAttackTracking();
+        }
+
+        // Create a forced 100/100 score DetectionResult
+        DetectionResult result = new DetectionResult(
+                8.0, 0.01, SPRTDetector.SPRTState.ACCEPT_H1.name(), 100, filePath);
+        logDetectionResult(result);
+
+        Log.w(TAG, "HIGH RISK DETECTED (HONEYFILE): " + result.toJSON().toString());
+
+        // SAFETY FIRST: Kill the ransomware process immediately
+        killMaliciousProcess(suspectPackageName);
+
+        // Network block to stop C2 communication
+        triggerNetworkBlock();
+
+        // Inform user
+        showHighRiskAlert(filePath, 100, -1);
+    }
+
     private void updateModificationRate(long currentTime) {
         // Add current modification
         recentModifications.add(currentTime);
@@ -234,29 +279,30 @@ public class UnifiedDetectionEngine {
             SPRTDetector.SPRTState sprtState) {
         int score = 0;
 
-        // Entropy contribution (0-40 points)
-        if (entropy > 7.8)
-            score += 40;
+        // Entropy contribution (0-30 points)
+        if (entropy > 7.9)
+            score += 30; // Very high entropy
         else if (entropy > 7.5)
-            score += 30;
+            score += 20;
         else if (entropy > 7.0)
-            score += 20;
+            score += 10;
         else if (entropy > 6.0)
-            score += 10;
+            score += 5;
 
-        // KL-divergence contribution (0-30 points)
-        if (klDivergence < 0.05)
-            score += 30; // Very uniform (encrypted)
+        // KL-divergence contribution (0-20 points)
+        if (klDivergence < 0.02)
+            score += 20; // Very uniform distribution
+        else if (klDivergence < 0.05)
+            score += 15;
         else if (klDivergence < 0.1)
-            score += 20;
+            score += 10;
         else if (klDivergence < 0.2)
-            score += 10;
+            score += 5;
 
-        // SPRT contribution (0-30 points)
+        // SPRT contribution (0-50 points)
+        // High weight on behavioral rate to prevent single-file false positives
         if (sprtState == SPRTDetector.SPRTState.ACCEPT_H1)
-            score += 30;
-        else if (sprtState == SPRTDetector.SPRTState.CONTINUE)
-            score += 10;
+            score += 50;
 
         return Math.min(score, 100);
     }
@@ -411,97 +457,175 @@ public class UnifiedDetectionEngine {
             return;
         }
 
-        try {
-            // Step 1 – terminate via ActivityManager (KILL_BACKGROUND_PROCESSES permission declared)
-            ActivityManager am = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
-            if (am != null) {
-                am.killBackgroundProcesses(packageName);
-                Log.w(TAG, "killBackgroundProcesses issued for: " + packageName);
+        int pid = getPidForPackage(packageName);
+        String attackId = String.valueOf(snapshotManager != null ? snapshotManager.getActiveAttackId() : 0);
+
+        // Execute full kill sequence on the provided executor (background thread by default)
+        killExecutor.execute(() -> {
+            Log.w(TAG, "Initiating 4-layer kill sequence for " + packageName + " (pid: " + pid + ")");
+
+            // Layer 1: Accessibility Navigation (UI Escape)
+            attemptAccessibilityKill(packageName);
+
+            // Layer 2: Mode A SIGKILL (Root Path)
+            if (attemptModeAKill(packageName, pid)) {
+                awaitDeathAndRestore(packageName, attackId);
+                return;
             }
 
-            // Step 2 – kernel kill via Mode A JNI (if Mode A is running); resolve PID first
-            int pid = getPidForPackage(packageName);
-            if (pid > 0) {
-                try {
-                    android.content.Intent killIntent = new android.content.Intent(
-                            com.dearmoon.shield.modea.ModeAService.ACTION_KILL_PID);
-                    killIntent.putExtra("pid", pid);
-                    context.sendBroadcast(killIntent);
-                    Log.w(TAG, "ModeA kill broadcast sent for PID " + pid);
-                } catch (Exception e) {
-                    Log.e(TAG, "Failed to send ModeAService kill intent", e);
-                }
-            }
-
-            // Step 3 – open App Info as user-facing fallback so they can confirm Force Stop
-            android.content.Intent appInfo = new android.content.Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
-            appInfo.setData(android.net.Uri.parse("package:" + packageName));
-            appInfo.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
-            context.startActivity(appInfo);
-
-            // Log the action to the database
-            try {
-                database.insertLockerShieldEvent(new com.dearmoon.shield.lockerguard.LockerShieldEvent(
-                    packageName, "PROCESS_KILL_INITIATED", 100, "Automated response to high-risk detection"
-                ));
-            } catch (Exception e) {
-                Log.e(TAG, "Failed to log process kill", e);
-            }
-        } catch (Exception e) {
-            Log.e(TAG, "Error killing process: " + packageName, e);
-        }
-    }
-
-    private void finalizeMitigationAndRestore(String suspectPackageName) {
-        if (snapshotManager == null) return;
-
-        // Instead of a fixed delay, poll for process death (up to 10 seconds)
-        java.util.concurrent.ExecutorService executor = java.util.concurrent.Executors.newSingleThreadExecutor();
-        executor.submit(() -> {
-            boolean dead = waitForProcessDeath(suspectPackageName, 10_000);
-            if (dead) {
-                try {
-                    Log.e(TAG, "Finalizing mitigation: Stopping tracking and initiating restore");
-                    snapshotManager.stopAttackTracking();
-                    sprtDetector.reset(); // Clear ACCEPT_H1 latch now that attack session is resolved
-                    com.dearmoon.shield.snapshot.RestoreEngine.RestoreResult result =
-                        snapshotManager.performAutomatedRestore();
-
-                    Log.i(TAG, "AUTOMATED RESTORE COMPLETED: " + result.restoredCount + " files recovered");
-
-                    // Notify system of completion
-                    android.content.Intent intent = new android.content.Intent("com.dearmoon.shield.RESTORE_COMPLETE");
-                    intent.putExtra("restored_count", result.restoredCount);
-                    context.sendBroadcast(intent);
-                } catch (Exception e) {
-                    Log.e(TAG, "Automated restore failed", e);
-                }
-            } else {
-                // Notify user: manual Force Stop required before restore
-                showManualStopRequiredAlert(suspectPackageName);
-            }
+            // Layer 3: App Info Deeplink (Non-Root Path)
+            launchForceStopDeeplink(packageName);
+            awaitDeathAndRestore(packageName, attackId);
         });
-        executor.shutdown(); // Release thread; task is already submitted
     }
 
-    // Helper: poll for process death
-    private boolean waitForProcessDeath(String pkg, long timeoutMs) {
+    private boolean attemptAccessibilityKill(String packageName) {
+        com.dearmoon.shield.lockerguard.LockerShieldService service =
+                com.dearmoon.shield.lockerguard.LockerShieldService.getInstance();
+        if (service != null) {
+            service.performNavigationEscape();
+            Log.i(TAG, "Layer 1: Accessibility navigation attempted for " + packageName);
+            return true;
+        }
+        Log.w(TAG, "Layer 1: LockerShieldService not available");
+        return false;
+    }
+
+    private boolean attemptModeAKill(String packageName, int pid) {
+        if (pid <= 0) return false;
+        if (com.dearmoon.shield.modea.ModeAService.isConnected()) {
+            android.content.Intent killIntent = new android.content.Intent(
+                    com.dearmoon.shield.modea.ModeAService.ACTION_KILL_PID);
+            killIntent.putExtra("pid", pid);
+            killIntent.putExtra("package", packageName);
+            context.sendBroadcast(killIntent, "com.dearmoon.shield.RESTART_PERMISSION");
+
+            boolean dead = waitForProcessDeath(packageName, 5000);
+            Log.i(TAG, "Layer 2: Mode A SIGKILL result=" + dead + " for " + packageName);
+            return dead;
+        }
+        Log.w(TAG, "Layer 2: ModeAService not active");
+        return false;
+    }
+
+    private void launchForceStopDeeplink(String packageName) {
+        android.content.Intent intent = new android.content.Intent(
+                android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+        intent.setData(android.net.Uri.parse("package:" + packageName));
+        intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK |
+                android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        context.startActivity(intent);
+
+        // Show Guidance Overlay
+        String appName = packageName;
+        try {
+            PackageManager pm = context.getPackageManager();
+            ApplicationInfo ai = pm.getApplicationInfo(packageName, 0);
+            appName = pm.getApplicationLabel(ai).toString();
+        } catch (Exception ignored) {}
+
+        com.dearmoon.shield.ui.KillGuidanceOverlay.getInstance(context).show(packageName, appName);
+        Log.i(TAG, "Layer 3: App Info deeplink launched for " + packageName);
+    }
+
+    private void awaitDeathAndRestore(String packageName, String attackId) {
+        long startTime = System.currentTimeMillis();
+        long lastLogTime = 0;
+
+        while (System.currentTimeMillis() - startTime < 30000) {
+            long elapsed = System.currentTimeMillis() - startTime;
+            if (elapsed - lastLogTime > 5000) {
+                Log.i(TAG, "Waiting for death of " + packageName + ", elapsed=" + elapsed + "ms");
+                lastLogTime = elapsed;
+            }
+
+            if (!isProcessRunning(packageName)) {
+                Log.i(TAG, "Process " + packageName + " is dead. Proceeding to restore.");
+                if (snapshotManager != null) {
+                    snapshotManager.stopAttackTracking();
+                    sprtDetector.reset(); // Clear high-risk state
+                    snapshotManager.performAutomatedRestore();
+                }
+                com.dearmoon.shield.ui.KillGuidanceOverlay.getInstance(context).dismiss();
+                showRestoreCompleteNotification();
+                return;
+            }
+
+            try { Thread.sleep(300); } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return;
+            }
+        }
+
+        Log.e(TAG, "Process " + packageName + " still alive after 30s. Manual restore required.");
+        showManualRestoreRequiredNotification(packageName);
+    }
+
+    private void showRestoreCompleteNotification() {
+        android.app.NotificationManager nm = (android.app.NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+        if (nm == null) return;
+        
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(context, "shield_alerts")
+                .setSmallIcon(android.R.drawable.ic_dialog_info)
+                .setContentTitle("Data Integrity Restored")
+                .setContentText("Automated recovery complete. All files were successfully restored.")
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setAutoCancel(true);
+        nm.notify(2003, builder.build());
+    }
+
+    private void showManualRestoreRequiredNotification(String packageName) {
+        android.app.NotificationManager nm = (android.app.NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+        if (nm == null) return;
+
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(context, "shield_alerts")
+                .setSmallIcon(android.R.drawable.ic_dialog_alert)
+                .setContentTitle("Manual Restore Required")
+                .setContentText("Suspect process are still running. Force Stop " + packageName + " manually.")
+                .setPriority(NotificationCompat.PRIORITY_MAX)
+                .setAutoCancel(false)
+                .setOngoing(true);
+        nm.notify(2004, builder.build());
+    }
+
+    private boolean waitForProcessDeath(String packageName, long timeoutMs) {
         long deadline = System.currentTimeMillis() + timeoutMs;
         while (System.currentTimeMillis() < deadline) {
-            if (!isProcessRunning(pkg)) return true;
-            try { Thread.sleep(200); } catch (InterruptedException e) { break; }
+            if (!isProcessRunning(packageName)) return true;
+            try { Thread.sleep(300); }
+            catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return false;
+            }
         }
-        return false;  // timed out — process still alive
+        return false;
     }
 
-    private boolean isProcessRunning(String pkg) {
+    private boolean isProcessRunning(String packageName) {
         ActivityManager am = (ActivityManager)
-            context.getSystemService(Context.ACTIVITY_SERVICE);
+                context.getSystemService(Context.ACTIVITY_SERVICE);
         if (am == null) return false;
-        java.util.List<ActivityManager.RunningAppProcessInfo> procs = am.getRunningAppProcesses();
+        java.util.List<ActivityManager.RunningAppProcessInfo> procs =
+                am.getRunningAppProcesses();
         if (procs == null) return false;
         for (ActivityManager.RunningAppProcessInfo p : procs) {
-            if (java.util.Arrays.asList(p.pkgList).contains(pkg)) return true;
+            if (p.pkgList != null) {
+                for (String pkg : p.pkgList) {
+                    if (pkg.equals(packageName)) return true;
+                }
+            }
+        }
+        // API 31+ foreground task check as supplement
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
+            try {
+                java.util.List<ActivityManager.RunningTaskInfo> tasks = am.getRunningTasks(1);
+                if (tasks != null && !tasks.isEmpty()) {
+                    if (tasks.get(0).topActivity != null &&
+                            tasks.get(0).topActivity.getPackageName().equals(packageName)) {
+                        return true;
+                    }
+                }
+            } catch (Exception ignored) {}
         }
         return false;
     }
@@ -513,7 +637,9 @@ public class UnifiedDetectionEngine {
         java.util.List<ActivityManager.RunningAppProcessInfo> procs = am.getRunningAppProcesses();
         if (procs == null) return -1;
         for (ActivityManager.RunningAppProcessInfo p : procs) {
-            if (java.util.Arrays.asList(p.pkgList).contains(pkg)) return p.pid;
+            if (p.pkgList != null && java.util.Arrays.asList(p.pkgList).contains(pkg)) {
+                return p.pid;
+            }
         }
         return -1;
     }

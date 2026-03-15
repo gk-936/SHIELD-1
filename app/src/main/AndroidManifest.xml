@@ -2,6 +2,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <permission
+        android:name="com.dearmoon.shield.RESTART_PERMISSION"
+        android:protectionLevel="signature" />
+
     <!-- Permissions for Mode B functionality -->
     <!-- READ/WRITE_EXTERNAL_STORAGE are only declared for Android ≤ 10 (API 29).
          From Android 11 (API 30) onward, MANAGE_EXTERNAL_STORAGE replaces them
@@ -24,6 +28,7 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.KILL_BACKGROUND_PROCESSES" />
     <uses-permission android:name="android.permission.USE_BIOMETRIC" />
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
 
     <!-- StrongBox Keystore: optional hardware security module for TEE-anchored integrity keys -->
     <uses-feature
@@ -155,7 +160,7 @@
         <service
             android:name=".lockerguard.LockerShieldService"
             android:enabled="true"
-            android:exported="false"
+            android:exported="true"
             android:label="SHIELD Locker Guard"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
             <intent-filter>

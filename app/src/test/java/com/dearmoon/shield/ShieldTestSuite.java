@@ -8,6 +8,13 @@ import com.dearmoon.shield.detection.KLDivergenceCalculatorTest;
 import com.dearmoon.shield.detection.ProcessAttributionTest;
 import com.dearmoon.shield.detection.SPRTDetectorTest;
 import com.dearmoon.shield.snapshot.SnapshotIntegrityTest;
+import com.dearmoon.shield.data.EventMergerTest;
+import com.dearmoon.shield.modea.ModeAExclusionTest;
+import com.dearmoon.shield.detection.KillMechanismTest;
+import com.dearmoon.shield.security.ConfigAuditCheckerTest;
+import com.dearmoon.shield.security.DependencyIntegrityTest;
+import com.dearmoon.shield.data.PrivacyConsentTest;
+import com.dearmoon.shield.snapshot.BackupEncryptionTest;
 
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
@@ -49,6 +56,17 @@ import org.junit.runners.Suite;
 
         // --- Snapshot / integrity ---
         SnapshotIntegrityTest.class,
+        BackupEncryptionTest.class,
+
+        // --- Hybrid Telemetry & Mitigation ---
+        EventMergerTest.class,
+        ModeAExclusionTest.class,
+        KillMechanismTest.class,
+
+        // --- Security & Compliance ---
+        ConfigAuditCheckerTest.class,
+        DependencyIntegrityTest.class,
+        PrivacyConsentTest.class,
 
         // --- Incident analysis (Robolectric) ---
         IncidentFeatureTest.class,
