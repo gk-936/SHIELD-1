@@ -22,6 +22,8 @@ import java.util.concurrent.Executors;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.dearmoon.shield.detection.PackageAttributor;
+
 public class UnifiedDetectionEngine {
     private static final String TAG = "UnifiedDetectionEngine";
 
@@ -33,6 +35,8 @@ public class UnifiedDetectionEngine {
     private final BehaviorCorrelationEngine correlationEngine;
     private final WhitelistManager whitelistManager;
     private com.dearmoon.shield.snapshot.SnapshotManager snapshotManager;
+
+    private final PackageAttributor attributor;
 
     private final HandlerThread detectionThread;
     private final Handler detectionHandler;
@@ -62,6 +66,8 @@ public class UnifiedDetectionEngine {
         this.whitelistManager = new WhitelistManager(context);
         this.snapshotManager = snapshotManager;
         this.killExecutor = executor != null ? executor : Executors.newSingleThreadExecutor(r -> new Thread(r, "KillSequenceThread"));
+
+        this.attributor = new PackageAttributor(context);
 
         detectionThread = new HandlerThread("DetectionThread");
         detectionThread.start();
@@ -248,7 +254,11 @@ public class UnifiedDetectionEngine {
                 8.0, 0.01, SPRTDetector.SPRTState.ACCEPT_H1.name(), 100, filePath);
         logDetectionResult(result);
 
-        Log.w(TAG, "HIGH RISK DETECTED (HONEYFILE): " + result.toJSON().toString());
+        try {
+            Log.w(TAG, "HIGH RISK DETECTED (HONEYFILE): " + result.toJSON().toString());
+        } catch (org.json.JSONException e) {
+            Log.e(TAG, "Failed to convert DetectionResult to JSON", e);
+        }
 
         // SAFETY FIRST: Kill the ransomware process immediately
         killMaliciousProcess(suspectPackageName);
