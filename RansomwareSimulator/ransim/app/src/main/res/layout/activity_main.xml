@@ -1,44 +1,50 @@
-<?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:background="@color/dark_bg"
-    android:padding="16dp">
+    android:fillViewport="true">
 
-    <!-- Header -->
-    <TextView
-        android:id="@+id/title"
+    <LinearLayout
+        android:id="@+id/main_content_root"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="SHIELD RanSim"
-        android:textColor="@color/red"
-        android:textSize="28sp"
-        android:textStyle="bold"
-        android:gravity="center" />
+        android:orientation="vertical"
+        android:background="@color/dark_bg"
+        android:padding="16dp">
 
-    <TextView
-        android:id="@+id/subtitle"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Ransomware Behaviour Simulator — Security Research Only"
-        android:textColor="@color/white"
-        android:textSize="14sp"
-        android:gravity="center" />
+        <!-- Header -->
+        <TextView
+            android:id="@+id/title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="SHIELD RanSim"
+            android:textColor="@color/red"
+            android:textSize="28sp"
+            android:textStyle="bold"
+            android:gravity="center" />
 
-    <!-- Permissions checklist and scenario cards will be added programmatically -->
+        <TextView
+            android:id="@+id/subtitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Ransomware Behaviour Simulator — Security Research Only"
+            android:textColor="@color/white"
+            android:textSize="14sp"
+            android:gravity="center" />
 
-    <!-- Status bar -->
-    <TextView
-        android:id="@+id/statusBar"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="IDLE"
-        android:textColor="@color/yellow"
-        android:textSize="16sp"
-        android:gravity="center"
-        android:layout_marginTop="8dp" />
+        <!-- Permissions checklist and scenario cards will be added programmatically -->
 
-    <!-- Log panel and STOP button will be added programmatically -->
+        <!-- Status bar -->
+        <TextView
+            android:id="@+id/statusBar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="IDLE"
+            android:textColor="@color/yellow"
+            android:textSize="16sp"
+            android:gravity="center"
+            android:layout_marginTop="8dp" />
 
-</LinearLayout>
+        <!-- Log panel and STOP button will be added programmatically -->
+
+    </LinearLayout>
+</ScrollView>

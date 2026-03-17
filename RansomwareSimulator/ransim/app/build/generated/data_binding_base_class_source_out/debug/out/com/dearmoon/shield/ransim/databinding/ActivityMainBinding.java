@@ -5,6 +5,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.LinearLayout;
+import android.widget.ScrollView;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -17,7 +18,10 @@ import java.lang.String;
 
 public final class ActivityMainBinding implements ViewBinding {
   @NonNull
-  private final LinearLayout rootView;
+  private final ScrollView rootView;
+
+  @NonNull
+  public final LinearLayout mainContentRoot;
 
   @NonNull
   public final TextView statusBar;
@@ -28,9 +32,10 @@ public final class ActivityMainBinding implements ViewBinding {
   @NonNull
   public final TextView title;
 
-  private ActivityMainBinding(@NonNull LinearLayout rootView, @NonNull TextView statusBar,
-      @NonNull TextView subtitle, @NonNull TextView title) {
+  private ActivityMainBinding(@NonNull ScrollView rootView, @NonNull LinearLayout mainContentRoot,
+      @NonNull TextView statusBar, @NonNull TextView subtitle, @NonNull TextView title) {
     this.rootView = rootView;
+    this.mainContentRoot = mainContentRoot;
     this.statusBar = statusBar;
     this.subtitle = subtitle;
     this.title = title;
@@ -38,7 +43,7 @@ public final class ActivityMainBinding implements ViewBinding {
 
   @Override
   @NonNull
-  public LinearLayout getRoot() {
+  public ScrollView getRoot() {
     return rootView;
   }
 
@@ -63,6 +68,12 @@ public final class ActivityMainBinding implements ViewBinding {
     // This is done to optimize the compiled bytecode for size and performance.
     int id;
     missingId: {
+      id = R.id.main_content_root;
+      LinearLayout mainContentRoot = ViewBindings.findChildViewById(rootView, id);
+      if (mainContentRoot == null) {
+        break missingId;
+      }
+
       id = R.id.statusBar;
       TextView statusBar = ViewBindings.findChildViewById(rootView, id);
       if (statusBar == null) {
@@ -81,7 +92,8 @@ public final class ActivityMainBinding implements ViewBinding {
         break missingId;
       }
 
-      return new ActivityMainBinding((LinearLayout) rootView, statusBar, subtitle, title);
+      return new ActivityMainBinding((ScrollView) rootView, mainContentRoot, statusBar, subtitle,
+          title);
     }
     String missingId = rootView.getResources().getResourceName(id);
     throw new NullPointerException("Missing required view with ID: ".concat(missingId));

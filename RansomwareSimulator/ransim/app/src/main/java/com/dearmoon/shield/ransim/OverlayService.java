@@ -22,8 +22,13 @@
  */
 package com.dearmoon.shield.ransim;
 
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Intent;
+import android.graphics.PixelFormat;
 import android.os.*;
 import android.util.Log;
 import android.view.*;
@@ -89,7 +94,7 @@ public class OverlayService extends Service {
                 stopSelf();
             } else {
                 input.setError("Wrong password");
-                input.startAnimation(android.view.animation.AnimationUtils.loadAnimation(this, android.R.anim.shake));
+                // input.startAnimation(android.view.animation.AnimationUtils.loadAnimation(this, android.R.anim.shake));
             }
         });
         // STOP TEST button

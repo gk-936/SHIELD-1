@@ -33,15 +33,15 @@ public class FileAccessAdapter extends RecyclerView.Adapter<FileAccessAdapter.Vi
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         FileSystemEvent event = events.get(position);
         
-        String fileName = event.getFilePath();
-        if (fileName.contains("/")) {
-            fileName = fileName.substring(fileName.lastIndexOf("/") + 1);
-        }
+        String displayPath = event.getDisplayPath();
+        String fileName = displayPath;
+        int slash = fileName.lastIndexOf("/");
+        if (slash >= 0) fileName = fileName.substring(slash + 1);
         
         holder.tvFileName.setText(fileName);
         holder.tvOperation.setText(event.getOperation());
         holder.tvTime.setText(dateFormat.format(new Date(event.getTimestamp())));
-        holder.tvPath.setText(event.getFilePath());
+        holder.tvPath.setText(displayPath);
 
         int color;
         String op = event.getOperation();

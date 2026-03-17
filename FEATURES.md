@@ -14,6 +14,8 @@ Uses a custom eBPF-based daemon to monitor kernel system calls.
 ### 1.2 Mode B: User-Space Monitoring
 Uses Android's `FileObserver` for non-rooted devices.
 - **Recursive Directory Watching**: Monitors standard user directories (up to 8 levels deep).
+- **Explicit Path Monitoring**: Supports targeted monitoring of specific app sandboxes (e.g., RanSim) even when parent directories (like `Android/`) are globally skipped.
+- **Honeyfile Traps (NEW)**: Deploys unpredictable decoy files across the filesystem with device-fingerprint-derived names. Immediate "Absolute Kill" trigger on any access, bypassing heuristic scoring.
 - **Heuristic Attribution**: Attributes modifications to the foreground application when direct UID info is unavailable.
 
 ### 1.3 Hybrid Event Engine (NEW)
@@ -25,8 +27,8 @@ Uses Android's `FileObserver` for non-rooted devices.
 ## 2. Detection Engine (SPRT & Entropy)
 
 ### 2.1 SPRT (Sequential Probability Ratio Test)
-- **Statistical Detection**: Uses the Wald SPRT algorithm to detect anomalous modification rates with mathematical confidence.
-- **Min-Sample Guard**: Prevents false triggers on single file modifications.
+- **CRI-Weighted SPRT (NEW)**: Uses the Wald SPRT algorithm with Composite Ransomware Indicator (CRI) weights (Cohen's d calibrated) to detect anomalous modification rates with high mathematical confidence.
+- **Optimized Min-Sample Guard**: Reduced to 5 samples (from 10) for faster detection without increasing false positives.
 
 ### 2.2 Entropy-Based Detection
 - **Shannon Entropy Analysis**: Calculates the randomness of modified file chunks to detect encryption.
@@ -34,14 +36,14 @@ Uses Android's `FileObserver` for non-rooted devices.
 
 ### 2.3 Behavior Correlation
 - **KL-Divergence Scoring**: Measures the distance between current file modification patterns and a known "Normal" baseline.
-- **Risk Aggregation**: Combines entropy, SPRT state, and network behavior into a unified 0-100 Risk Score.
+- **Risk Aggregation**: Combines entropy, CRI-weighted SPRT state, and network behavior into a unified Risk Score. **Kill Threshold optimized to 43** (calibrated).
 
 ---
 
 ## 3. Network Protection (NetworkGuard)
 
 ### 3.1 C2 Communication Blocking
-- **DNS Interception**: Monitors UDP port 53 and blocks resolution for known ransomware C2 domains (e.g., Pastebin, Telegram API, Discord Webhooks).
+- **DNS Interception**: Monitors UDP port 53 and blocks resolution for known ransomware C2 domains (e.g., Pastebin, Telegram API, Discord, Paste.ee, Hastebin, Transfer.sh, Webhook.site).
 - **Quad9 Integration**: Configures secure DNS (9.9.9.9) for hardware-level threat filtering.
 
 ### 3.2 Post-Detection Isolation
@@ -70,6 +72,7 @@ Uses Android's `FileObserver` for non-rooted devices.
 
 ### 5.1 RASP (Runtime Application Self-Protection)
 - **Advanced Root Detection**: Detects Magisk, KernelSU, su binaries in PATH, and test-keys custom ROMs.
+- **Locker Detection (Enhanced)**: Monitors `typeWindowsChanged` and `typeWindowStateChanged` to detect full-screen overlays and screen-lock attempts.
 - **Tamper Detection**: Detects attached debuggers, hook frameworks (Xposed), and emulator environments.
 - **Signature Verification**: Validates the APK's own SHA-256 signature against a hard-coded release baseline.
 
@@ -90,7 +93,7 @@ Uses Android's `FileObserver` for non-rooted devices.
 ## 6. Incident Analysis (Ransomware DNA)
 
 ### 6.1 AttackFamily Classification
-Categorizes detected threats into five families (Locker, Crypto, Comm, wiper, Generic) for better forensic analysis.
+Categorizes detected threats into five families (Crypto, Locker, Hybrid, Reconnaissance, Unknown) for better forensic analysis.
 
 ### 6.2 Forensic DNA Profiles
 Generates comprehensive incident reports linking suspect PIDs, affected files, C2 attempts, and recovery status into a single "DNA Profile" in the database.

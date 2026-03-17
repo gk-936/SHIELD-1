@@ -34,13 +34,16 @@ public class HoneyfileCollectorTest {
     @Mock
     private Context mockContext;
 
+    @Mock
+    private UnifiedDetectionEngine mockDetectionEngine;
+
     private HoneyfileCollector collector;
 
     @Before
     public void setUp() {
         MockitoAnnotations.openMocks(this);
         when(mockContext.getPackageName()).thenReturn("com.dearmoon.shield");
-        collector = new HoneyfileCollector(mockStorage, mockContext);
+        collector = new HoneyfileCollector(mockStorage, mockContext, mockDetectionEngine);
     }
 
     // Helper method to simulate FileObserver event

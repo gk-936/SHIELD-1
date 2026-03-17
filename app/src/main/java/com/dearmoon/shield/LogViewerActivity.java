@@ -300,19 +300,41 @@ public class LogViewerActivity extends AppCompatActivity {
             case "FILE_SYSTEM":
                 String operation = json.optString("operation", "UNKNOWN");
                 String filePath = json.optString("filePath", "Unknown");
-                String fileName = new File(filePath).getName();
+                String displayName = json.optString("displayName", "");
+                String relativePath = json.optString("relativePath", "");
+                String fileUri = json.optString("fileUri", "");
+                String resolvedPath = json.optString("resolvedPath", "");
+
+                String bestDisplayPath =
+                        (!relativePath.isEmpty() && !displayName.isEmpty()) ? (relativePath + displayName)
+                                : (!displayName.isEmpty()) ? displayName
+                                : (!filePath.isEmpty() && !"Unknown".equals(filePath)) ? filePath
+                                : (!fileUri.isEmpty()) ? fileUri
+                                : "Unknown";
+
+                String fileName;
+                if (!displayName.isEmpty()) {
+                    fileName = displayName;
+                } else {
+                    // Avoid treating content:// URIs as filesystem paths just to "getName"
+                    int slash = bestDisplayPath.lastIndexOf('/');
+                    fileName = slash >= 0 ? bestDisplayPath.substring(slash + 1) : bestDisplayPath;
+                }
                 String extension = json.optString("fileExtension", "N/A");
                 long size = json.optLong("fileSizeAfter", 0);
 
                 entry.title = fileName;
                 entry.details = String.format(
-                        "Operation: %s\nFull Path: %s\nExtension: %s\nSize: %d bytes\nApp: %s (%s)",
+                        "Operation: %s\nFile: %s\nResolved Path: %s\nUri: %s\nExtension: %s\nSize: %d bytes\nApp: %s (%s)\nUID: %d",
                         operation,
-                        filePath,
+                        bestDisplayPath,
+                        resolvedPath.isEmpty() ? "N/A" : resolvedPath,
+                        fileUri.isEmpty() ? "N/A" : fileUri,
                         extension,
                         size,
                         json.optString("appLabel", "unknown"),
-                        json.optString("packageName", "unknown"));
+                        json.optString("packageName", "unknown"),
+                        json.optInt("uid", -1));
                 entry.severity = getSeverityForOperation(operation);
                 break;
 
@@ -393,7 +415,13 @@ public class LogViewerActivity extends AppCompatActivity {
         int confidenceScore = json.getInt("confidence_score");
         String sprtState = json.getString("sprt_state");
         String filePath = json.optString("file_path", "Unknown");
-        String fileName = new File(filePath).getName();
+        String fileName;
+        if (filePath == null || filePath.isEmpty() || "Unknown".equals(filePath)) {
+            fileName = "Unknown";
+        } else {
+            int slash = filePath.lastIndexOf('/');
+            fileName = slash >= 0 ? filePath.substring(slash + 1) : filePath;
+        }
 
         entry.title = "Detection: " + fileName;
         entry.details = String.format(

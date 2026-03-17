@@ -27,6 +27,11 @@ public class RiskEvaluator {
             case "FULLSCREEN_OVERLAY":
                 score += 25;
                 break;
+            case "FULLSCREEN_WINDOW_STACK":
+                // Stronger signal: observed as a separate topmost window in the system window stack.
+                // This catches non-focusable application overlays (e.g., simulation lockers).
+                score += 45;
+                break;
             case "RAPID_FOCUS_REGAIN":
                 score += 30;
                 break;

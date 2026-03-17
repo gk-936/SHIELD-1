@@ -1,0 +1,1459 @@
+﻿Initialized native services in: C:\Users\gokul D\.gradle\native
+Initialized jansi services in: C:\Users\gokul D\.gradle\native
+The client will now receive all logging from the daemon (pid: 6056). The daemon log file: C:\Users\gokul D\.gradle\daemon\9.0.0\daemon-6056.out.log
+Starting 5th build in daemon [uptime: 12 mins 11.197 secs, performance: 99%, GC rate: 0.00/s, heap usage: 0% of 512 MiB, non-heap usage: 56% of 384 MiB]
+Using 12 worker leases.
+Now considering [C:\Users\gokul D\SHIELD-1\RansomwareSimulator\ransim] as hierarchies to watch
+Watching the file system is configured to be enabled if available
+File system watching is active
+Starting Build
+Settings evaluated using settings file 'C:\Users\gokul D\SHIELD-1\RansomwareSimulator\ransim\settings.gradle.kts'.
+Projects loaded. Root project using build file 'C:\Users\gokul D\SHIELD-1\RansomwareSimulator\ransim\build.gradle.kts'.
+Included projects: [root project 'SHIELD-RanSim', project ':app']
+
+> Configure project :
+Evaluating root project 'SHIELD-RanSim' using build file 'C:\Users\gokul D\SHIELD-1\RansomwareSimulator\ransim\build.gradle.kts'.
+Resolved plugin [id: 'com.android.application', version: '8.13.2', apply: false]
+Resolved plugin [id: 'org.jetbrains.kotlin.android', version: '2.0.21', apply: false]
+
+> Configure project :app
+Evaluating project ':app' using build file 'C:\Users\gokul D\SHIELD-1\RansomwareSimulator\ransim\app\build.gradle.kts'.
+Resolved plugin [id: 'com.android.application']
+Resolved plugin [id: 'org.jetbrains.kotlin.android']
+Using default execution profile
+Using Kotlin Gradle Plugin gradle85 variant
+All projects evaluated.
+Task name matched 'assembleDebug'
+Selected primary task 'assembleDebug' from project :
+Adding -Xuse-inline-scopes-numbers Kotlin compiler flag for task :app:compileDebugKotlin
+Tasks to be executed: [task ':app:preBuild', task ':app:preDebugBuild', task ':app:mergeDebugNativeDebugMetadata', task ':app:checkKotlinGradlePluginConfigurationErrors', task ':app:dataBindingMergeDependencyArtifactsDebug', task ':app:generateDebugResValues', task ':app:generateDebugResources', task ':app:mergeDebugResources', task ':app:packageDebugResources', task ':app:processDebugNavigationResources', task ':app:parseDebugLocalResources', task ':app:dataBindingGenBaseClassesDebug', task ':app:checkDebugAarMetadata', task ':app:compileDebugNavigationResources', task ':app:mapDebugSourceSetPaths', task ':app:createDebugCompatibleScreenManifests', task ':app:extractDeepLinksDebug', task ':app:processDebugMainManifest', task ':app:processDebugManifest', task ':app:processDebugManifestForPackage', task ':app:processDebugResources', task ':app:compileDebugKotlin', task ':app:javaPreCompileDebug', task ':app:compileDebugJavaWithJavac', task ':app:mergeDebugShaders', task ':app:compileDebugShaders', task ':app:generateDebugAssets', task ':app:mergeDebugAssets', task ':app:compressDebugAssets', task ':app:desugarDebugFileDependencies', task ':app:dexBuilderDebug', task ':app:mergeDebugGlobalSynthetics', task ':app:processDebugJavaRes', task ':app:mergeDebugJavaResource', task ':app:checkDebugDuplicateClasses', task ':app:mergeExtDexDebug', task ':app:mergeLibDexDebug', task ':app:mergeProjectDexDebug', task ':app:mergeDebugJniLibFolders', task ':app:mergeDebugNativeLibs', task ':app:stripDebugDebugSymbols', task ':app:validateSigningDebug', task ':app:writeDebugAppMetadata', task ':app:writeDebugSigningConfigVersions', task ':app:packageDebug', task ':app:createDebugApkListingFileRedirect', task ':app:assembleDebug']
+Tasks that were excluded: []
+Resolve mutations for :app:preBuild (Thread[included builds,5,main]) started.
+:app:preBuild (Thread[included builds,5,main]) started.
+
+> Task :app:preBuild UP-TO-DATE
+Skipping task ':app:preBuild' as it has no actions.
+Resolve mutations for :app:preDebugBuild (Thread[included builds,5,main]) started.
+:app:preDebugBuild (Thread[included builds,5,main]) started.
+
+> Task :app:preDebugBuild UP-TO-DATE
+Skipping task ':app:preDebugBuild' as it has no actions.
+Resolve mutations for :app:mergeDebugNativeDebugMetadata (Thread[included builds,5,main]) started.
+:app:mergeDebugNativeDebugMetadata (Thread[included builds,5,main]) started.
+
+> Task :app:mergeDebugNativeDebugMetadata NO-SOURCE
+Skipping task ':app:mergeDebugNativeDebugMetadata' as it has no source files and no previous output files.
+Resolve mutations for :app:checkKotlinGradlePluginConfigurationErrors (Thread[Execution worker,5,main]) started.
+:app:checkKotlinGradlePluginConfigurationErrors (Thread[Execution worker,5,main]) started.
+
+> Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
+Skipping task ':app:checkKotlinGradlePluginConfigurationErrors' as task onlyIf 'errorDiagnostics are present' is false.
+Resolve mutations for :app:dataBindingMergeDependencyArtifactsDebug (Thread[Execution worker Thread 5,5,main]) started.
+:app:dataBindingMergeDependencyArtifactsDebug (Thread[Execution worker Thread 5,5,main]) started.
+
+> Task :app:dataBindingMergeDependencyArtifactsDebug UP-TO-DATE
+Caching disabled for task ':app:dataBindingMergeDependencyArtifactsDebug' because:
+  Build cache is disabled
+  Caching has been disabled for the task
+Skipping task ':app:dataBindingMergeDependencyArtifactsDebug' as it is up-to-date.
+Resolve mutations for :app:generateDebugResValues (Thread[Execution worker Thread 6,5,main]) started.
+:app:generateDebugResValues (Thread[Execution worker Thread 6,5,main]) started.
+
+> Task :app:generateDebugResValues UP-TO-DATE
+Caching disabled for task ':app:generateDebugResValues' because:
+  Build cache is disabled
+Skipping task ':app:generateDebugResValues' as it is up-to-date.
+Resolve mutations for :app:generateDebugResources (Thread[Execution worker Thread 6,5,main]) started.
+:app:generateDebugResources (Thread[Execution worker Thread 6,5,main]) started.
+
+> Task :app:generateDebugResources UP-TO-DATE
+Caching disabled for task ':app:generateDebugResources' because:
+  Build cache is disabled
+Skipping task ':app:generateDebugResources' as it is up-to-date.
+Resolve mutations for :app:mergeDebugResources (Thread[Execution worker Thread 6,5,main]) started.
+:app:mergeDebugResources (Thread[Execution worker Thread 6,5,main]) started.
+
+> Task :app:mergeDebugResources UP-TO-DATE
+Caching disabled for task ':app:mergeDebugResources' because:
+  Build cache is disabled
+Skipping task ':app:mergeDebugResources' as it is up-to-date.
+Resolve mutations for :app:packageDebugResources (Thread[Execution worker Thread 6,5,main]) started.
+:app:packageDebugResources (Thread[Execution worker Thread 6,5,main]) started.
+
+> Task :app:packageDebugResources UP-TO-DATE
+Caching disabled for task ':app:packageDebugResources' because:
+  Build cache is disabled
+Skipping task ':app:packageDebugResources' as it is up-to-date.
+Resolve mutations for :app:processDebugNavigationResources (Thread[Execution worker Thread 6,5,main]) started.
+:app:processDebugNavigationResources (Thread[Execution worker Thread 6,5,main]) started.
+
+> Task :app:processDebugNavigationResources UP-TO-DATE
+Caching disabled for task ':app:processDebugNavigationResources' because:
+  Build cache is disabled
+Skipping task ':app:processDebugNavigationResources' as it is up-to-date.
+Resolve mutations for :app:parseDebugLocalResources (Thread[Execution worker Thread 6,5,main]) started.
+:app:parseDebugLocalResources (Thread[Execution worker Thread 6,5,main]) started.
+
+> Task :app:parseDebugLocalResources UP-TO-DATE
+Caching disabled for task ':app:parseDebugLocalResources' because:
+  Build cache is disabled
+Skipping task ':app:parseDebugLocalResources' as it is up-to-date.
+Resolve mutations for :app:dataBindingGenBaseClassesDebug (Thread[Execution worker Thread 6,5,main]) started.
+:app:dataBindingGenBaseClassesDebug (Thread[Execution worker Thread 6,5,main]) started.
+
+> Task :app:dataBindingGenBaseClassesDebug UP-TO-DATE
+Caching disabled for task ':app:dataBindingGenBaseClassesDebug' because:
+  Build cache is disabled
+Skipping task ':app:dataBindingGenBaseClassesDebug' as it is up-to-date.
+Resolve mutations for :app:checkDebugAarMetadata (Thread[Execution worker Thread 6,5,main]) started.
+:app:checkDebugAarMetadata (Thread[Execution worker Thread 6,5,main]) started.
+
+> Task :app:checkDebugAarMetadata UP-TO-DATE
+Caching disabled for task ':app:checkDebugAarMetadata' because:
+  Build cache is disabled
+  Caching has been disabled for the task
+Skipping task ':app:checkDebugAarMetadata' as it is up-to-date.
+Resolve mutations for :app:compileDebugNavigationResources (Thread[Execution worker Thread 6,5,main]) started.
+:app:compileDebugNavigationResources (Thread[Execution worker Thread 10,5,main]) started.
+
+> Task :app:compileDebugNavigationResources UP-TO-DATE
+Caching disabled for task ':app:compileDebugNavigationResources' because:
+  Build cache is disabled
+Skipping task ':app:compileDebugNavigationResources' as it is up-to-date.
+Resolve mutations for :app:mapDebugSourceSetPaths (Thread[Execution worker Thread 6,5,main]) started.
+:app:mapDebugSourceSetPaths (Thread[Execution worker Thread 6,5,main]) started.
+
+> Task :app:mapDebugSourceSetPaths UP-TO-DATE
+Caching disabled for task ':app:mapDebugSourceSetPaths' because:
+  Build cache is disabled
+  Caching has been disabled for the task
+Skipping task ':app:mapDebugSourceSetPaths' as it is up-to-date.
+Resolve mutations for :app:createDebugCompatibleScreenManifests (Thread[Execution worker Thread 10,5,main]) started.
+:app:createDebugCompatibleScreenManifests (Thread[Execution worker Thread 10,5,main]) started.
+
+> Task :app:createDebugCompatibleScreenManifests UP-TO-DATE
+Caching disabled for task ':app:createDebugCompatibleScreenManifests' because:
+  Build cache is disabled
+  Caching has been disabled for the task
+Skipping task ':app:createDebugCompatibleScreenManifests' as it is up-to-date.
+Resolve mutations for :app:extractDeepLinksDebug (Thread[Execution worker Thread 6,5,main]) started.
+:app:extractDeepLinksDebug (Thread[Execution worker Thread 6,5,main]) started.
+
+> Task :app:extractDeepLinksDebug UP-TO-DATE
+Caching disabled for task ':app:extractDeepLinksDebug' because:
+  Build cache is disabled
+Skipping task ':app:extractDeepLinksDebug' as it is up-to-date.
+Resolve mutations for :app:processDebugMainManifest (Thread[Execution worker Thread 6,5,main]) started.
+:app:processDebugMainManifest (Thread[Execution worker Thread 6,5,main]) started.
+
+> Task :app:processDebugMainManifest
+Caching disabled for task ':app:processDebugMainManifest' because:
+  Build cache is disabled
+Task ':app:processDebugMainManifest' is not up-to-date because:
+  Input property 'mainManifest' file C:\Users\gokul D\SHIELD-1\RansomwareSimulator\ransim\app\src\main\AndroidManifest.xml has changed.
+package="com.dearmoon.shield.ransim" found in source AndroidManifest.xml: C:\Users\gokul D\SHIELD-1\RansomwareSimulator\ransim\app\src\main\AndroidManifest.xml.
+Setting the namespace via the package attribute in the source AndroidManifest.xml is no longer supported, and the value is ignored.
+Recommendation: remove package="com.dearmoon.shield.ransim" from the source AndroidManifest.xml: C:\Users\gokul D\SHIELD-1\RansomwareSimulator\ransim\app\src\main\AndroidManifest.xml.
+Loading library manifest C:\Users\gokul D\.gradle\caches\9.0.0\transforms\22f656249c43a783cc90fe5ae3032f77\transformed\jetified-viewbinding-8.13.2\AndroidManifest.xml
+Loading library manifest C:\Users\gokul D\.gradle\caches\9.0.0\transforms\fe36beb16503409fd1349a075179d3c5\transformed\material-1.12.0\AndroidManifest.xml
+Loading library manifest C:\Users\gokul D\.gradle\caches\9.0.0\transforms\91cf01e7cc28116ddea48d30b291d2d4\transformed\constraintlayout-2.2.0\AndroidManifest.xml
+Loading library manifest C:\Users\gokul D\.gradle\caches\9.0.0\transforms\baf17c9c954a1d9056e744a697b1b4c4\transformed\jetified-appcompat-resources-1.7.0\AndroidManifest.xml
+Loading library manifest C:\Users\gokul D\.gradle\caches\9.0.0\transforms\2e874a45b395cbf5de24d615ff0ed619\transformed\appcompat-1.7.0\AndroidManifest.xml
+Loading library manifest C:\Users\gokul D\.gradle\caches\9.0.0\transforms\6b21bdf962ba106bd44de4834c39f132\transformed\jetified-viewpager2-1.0.0\AndroidManifest.xml
+Loading library manifest C:\Users\gokul D\.gradle\caches\9.0.0\transforms\2ed2d9a50dcbe8b27a411acfbe225e44\transformed\fragment-1.5.4\AndroidManifest.xml
+Loading library manifest C:\Users\gokul D\.gradle\caches\9.0.0\transforms\2baf2f1595188de5a5f59eee12a329cb\transformed\jetified-activity-1.8.0\AndroidManifest.xml
+Loading library manifest C:\Users\gokul D\.gradle\caches\9.0.0\transforms\83bedd53c84fe353f3c56a952eb71c9f\transformed\jetified-savedstate-1.2.1\AndroidManifest.xml
+Loading library manifest C:\Users\gokul D\.gradle\caches\9.0.0\transforms\e6d7de8b3eedd6114a22a73caeea3c6d\transformed\jetified-emoji2-views-helper-1.3.0\AndroidManifest.xml
+Loading library manifest C:\Users\gokul D\.gradle\caches\9.0.0\transforms\3ed5beaf236c3291ac163ea7e5cbe721\transformed\jetified-emoji2-1.3.0\AndroidManifest.xml
+Loading library manifest C:\Users\gokul D\.gradle\caches\9.0.0\transforms\917f3590a32c6b1052f71902f3a025c4\transformed\transition-1.5.0\AndroidManifest.xml
+Loading library manifest C:\Users\gokul D\.gradle\caches\9.0.0\transforms\7571b8e156a0ee689e92123383e34619\transformed\dynamicanimation-1.0.0\AndroidManifest.xml
+Loading library manifest C:\Users\gokul D\.gradle\caches\9.0.0\transforms\7c6e0b99c1040936d0438ed0464109a8\transformed\legacy-support-core-utils-1.0.0\AndroidManifest.xml
+Loading library manifest C:\Users\gokul D\.gradle\caches\9.0.0\transforms\c82ffb5dab3ede63d49ea19e6c8ae5be\transformed\loader-1.0.0\AndroidManifest.xml
+Loading library manifest C:\Users\gokul D\.gradle\caches\9.0.0\transforms\de70bf0435763b2d2998570f0b738725\transformed\lifecycle-livedata-2.6.2\AndroidManifest.xml
+Loading library manifest C:\Users\gokul D\.gradle\caches\9.0.0\transforms\170555e003fa607a032ed5c8b10174f9\transformed\lifecycle-viewmodel-2.6.2\AndroidManifest.xml
+Loading library manifest C:\Users\gokul D\.gradle\caches\9.0.0\transforms\123aa25ee01c2b96bdd913e4643accbf\transformed\jetified-lifecycle-process-2.6.2\AndroidManifest.xml
+Loading library manifest C:\Users\gokul D\.gradle\caches\9.0.0\transforms\fc2badfc5aa83ecd8b748107a4d08c73\transformed\lifecycle-livedata-core-2.6.2\AndroidManifest.xml
+Loading library manifest C:\Users\gokul D\.gradle\caches\9.0.0\transforms\8fe53182154e38c9fb5e75cd2522f150\transformed\lifecycle-runtime-2.6.2\AndroidManifest.xml
+Loading library manifest C:\Users\gokul D\.gradle\caches\9.0.0\transforms\9cc69763c5cf1b0c543fad34de8594dc\transformed\jetified-lifecycle-viewmodel-savedstate-2.6.2\AndroidManifest.xml
+Loading library manifest C:\Users\gokul D\.gradle\caches\9.0.0\transforms\66088ec583e7947a97a2e634fe10f429\transformed\jetified-core-ktx-1.13.0\AndroidManifest.xml
+Loading library manifest C:\Users\gokul D\.gradle\caches\9.0.0\transforms\1c027c7bfe2e5f1618dde75b39078e51\transformed\drawerlayout-1.1.1\AndroidManifest.xml
+Loading library manifest C:\Users\gokul D\.gradle\caches\9.0.0\transforms\4eef7d70a812afa4826905002119857d\transformed\coordinatorlayout-1.1.0\AndroidManifest.xml
+Loading library manifest C:\Users\gokul D\.gradle\caches\9.0.0\transforms\b3efe26e7fc9492e7a0a4898cb9a57bc\transformed\vectordrawable-animated-1.1.0\AndroidManifest.xml
+Loading library manifest C:\Users\gokul D\.gradle\caches\9.0.0\transforms\d6b94ef9f1b28e3b343011f95b49f389\transformed\vectordrawable-1.1.0\AndroidManifest.xml
+Loading library manifest C:\Users\gokul D\.gradle\caches\9.0.0\transforms\7af3de433baf03df548b9bc11207e3b1\transformed\viewpager-1.0.0\AndroidManifest.xml
+Loading library manifest C:\Users\gokul D\.gradle\caches\9.0.0\transforms\a7ac0da0ee11e35a67bf64d0c8baf451\transformed\recyclerview-1.1.0\AndroidManifest.xml
+Loading library manifest C:\Users\gokul D\.gradle\caches\9.0.0\transforms\902dc6472f945df8fd3bc1fa86a8edca\transformed\customview-1.1.0\AndroidManifest.xml
+Loading library manifest C:\Users\gokul D\.gradle\caches\9.0.0\transforms\ce7b78b650823d0baa987458771f018b\transformed\core-1.13.0\AndroidManifest.xml
+Loading library manifest C:\Users\gokul D\.gradle\caches\9.0.0\transforms\a81686d40c5becc400be7427673f6ab6\transformed\jetified-annotation-experimental-1.4.0\AndroidManifest.xml
+Loading library manifest C:\Users\gokul D\.gradle\caches\9.0.0\transforms\2b99923e8f7c1effe02b650abf94be64\transformed\cardview-1.0.0\AndroidManifest.xml
+Loading library manifest C:\Users\gokul D\.gradle\caches\9.0.0\transforms\fc5f09a9b8142beb5d7e357636889bd1\transformed\cursoradapter-1.0.0\AndroidManifest.xml
+Loading library manifest C:\Users\gokul D\.gradle\caches\9.0.0\transforms\4c04dd8da943cc6b571c7f3ab0e6574f\transformed\jetified-profileinstaller-1.4.0\AndroidManifest.xml
+Loading library manifest C:\Users\gokul D\.gradle\caches\9.0.0\transforms\c30b79a59be5119d96a5a03892fd9d56\transformed\interpolator-1.0.0\AndroidManifest.xml
+Loading library manifest C:\Users\gokul D\.gradle\caches\9.0.0\transforms\d20b0abfaaa68859e28866e10ae903c8\transformed\versionedparcelable-1.1.1\AndroidManifest.xml
+Loading library manifest C:\Users\gokul D\.gradle\caches\9.0.0\transforms\fdd0b90628fc6c5f7b93d9c2274512c6\transformed\jetified-startup-runtime-1.1.1\AndroidManifest.xml
+Loading library manifest C:\Users\gokul D\.gradle\caches\9.0.0\transforms\800ec75241bba2fd4d22c7e66f966adc\transformed\jetified-tracing-1.0.0\AndroidManifest.xml
+Loading library manifest C:\Users\gokul D\.gradle\caches\9.0.0\transforms\1cafa28b5f8c1fdd07e2bd9e985ee532\transformed\core-runtime-2.2.0\AndroidManifest.xml
+Loading library manifest C:\Users\gokul D\.gradle\caches\9.0.0\transforms\7651a783201bbf54c573007777030944\transformed\documentfile-1.0.0\AndroidManifest.xml
+Loading library manifest C:\Users\gokul D\.gradle\caches\9.0.0\transforms\6239f3a08866b9b1ae83d7849b52e641\transformed\localbroadcastmanager-1.0.0\AndroidManifest.xml
+Loading library manifest C:\Users\gokul D\.gradle\caches\9.0.0\transforms\a506a09adcac89d10f31fd10b6402c7d\transformed\print-1.0.0\AndroidManifest.xml
+Merging main manifest C:\Users\gokul D\SHIELD-1\RansomwareSimulator\ransim\app\src\main\AndroidManifest.xml
+
+Merging library manifest C:\Users\gokul D\.gradle\caches\9.0.0\transforms\22f656249c43a783cc90fe5ae3032f77\transformed\jetified-viewbinding-8.13.2\AndroidManifest.xml
+Merging manifest with lower [androidx.databinding:viewbinding:8.13.2] AndroidManifest.xml:2:1-7:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.databinding:viewbinding:8.13.2] AndroidManifest.xml:5:5-44
+Merging library manifest C:\Users\gokul D\.gradle\caches\9.0.0\transforms\fe36beb16503409fd1349a075179d3c5\transformed\material-1.12.0\AndroidManifest.xml
+Merging manifest with lower [com.google.android.material:material:1.12.0] AndroidManifest.xml:17:1-24:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [com.google.android.material:material:1.12.0] AndroidManifest.xml:20:5-44
+application defined in both files...
+Merging application with lower [com.google.android.material:material:1.12.0] AndroidManifest.xml:22:5-20
+Merging library manifest C:\Users\gokul D\.gradle\caches\9.0.0\transforms\91cf01e7cc28116ddea48d30b291d2d4\transformed\constraintlayout-2.2.0\AndroidManifest.xml
+Merging manifest with lower [androidx.constraintlayout:constraintlayout:2.2.0] AndroidManifest.xml:2:1-9:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.constraintlayout:constraintlayout:2.2.0] AndroidManifest.xml:5:5-44
+application defined in both files...
+Merging application with lower [androidx.constraintlayout:constraintlayout:2.2.0] AndroidManifest.xml:7:5-20
+Merging library manifest C:\Users\gokul D\.gradle\caches\9.0.0\transforms\baf17c9c954a1d9056e744a697b1b4c4\transformed\jetified-appcompat-resources-1.7.0\AndroidManifest.xml
+Merging manifest with lower [androidx.appcompat:appcompat-resources:1.7.0] AndroidManifest.xml:2:1-7:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.appcompat:appcompat-resources:1.7.0] AndroidManifest.xml:5:5-44
+Merging library manifest C:\Users\gokul D\.gradle\caches\9.0.0\transforms\2e874a45b395cbf5de24d615ff0ed619\transformed\appcompat-1.7.0\AndroidManifest.xml
+Merging manifest with lower [androidx.appcompat:appcompat:1.7.0] AndroidManifest.xml:2:1-7:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.appcompat:appcompat:1.7.0] AndroidManifest.xml:5:5-44
+Merging library manifest C:\Users\gokul D\.gradle\caches\9.0.0\transforms\6b21bdf962ba106bd44de4834c39f132\transformed\jetified-viewpager2-1.0.0\AndroidManifest.xml
+Merging manifest with lower [androidx.viewpager2:viewpager2:1.0.0] AndroidManifest.xml:17:1-24:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.viewpager2:viewpager2:1.0.0] AndroidManifest.xml:20:5-22:41
+Merging library manifest C:\Users\gokul D\.gradle\caches\9.0.0\transforms\2ed2d9a50dcbe8b27a411acfbe225e44\transformed\fragment-1.5.4\AndroidManifest.xml
+Merging manifest with lower [androidx.fragment:fragment:1.5.4] AndroidManifest.xml:17:1-24:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.fragment:fragment:1.5.4] AndroidManifest.xml:20:5-22:41
+Merging library manifest C:\Users\gokul D\.gradle\caches\9.0.0\transforms\2baf2f1595188de5a5f59eee12a329cb\transformed\jetified-activity-1.8.0\AndroidManifest.xml
+Merging manifest with lower [androidx.activity:activity:1.8.0] AndroidManifest.xml:17:1-22:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.activity:activity:1.8.0] AndroidManifest.xml:20:5-44
+Merging library manifest C:\Users\gokul D\.gradle\caches\9.0.0\transforms\83bedd53c84fe353f3c56a952eb71c9f\transformed\jetified-savedstate-1.2.1\AndroidManifest.xml
+Merging manifest with lower [androidx.savedstate:savedstate:1.2.1] AndroidManifest.xml:17:1-22:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.savedstate:savedstate:1.2.1] AndroidManifest.xml:20:5-44
+Merging library manifest C:\Users\gokul D\.gradle\caches\9.0.0\transforms\e6d7de8b3eedd6114a22a73caeea3c6d\transformed\jetified-emoji2-views-helper-1.3.0\AndroidManifest.xml
+Merging manifest with lower [androidx.emoji2:emoji2-views-helper:1.3.0] AndroidManifest.xml:2:1-7:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.emoji2:emoji2-views-helper:1.3.0] AndroidManifest.xml:5:5-44
+Merging library manifest C:\Users\gokul D\.gradle\caches\9.0.0\transforms\3ed5beaf236c3291ac163ea7e5cbe721\transformed\jetified-emoji2-1.3.0\AndroidManifest.xml
+Merging manifest with lower [androidx.emoji2:emoji2:1.3.0] AndroidManifest.xml:17:1-35:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.emoji2:emoji2:1.3.0] AndroidManifest.xml:21:5-44
+application defined in both files...
+Merging application with lower [androidx.emoji2:emoji2:1.3.0] AndroidManifest.xml:23:5-33:19
+Adopted [provider: null]
+Merging library manifest C:\Users\gokul D\.gradle\caches\9.0.0\transforms\917f3590a32c6b1052f71902f3a025c4\transformed\transition-1.5.0\AndroidManifest.xml
+Merging manifest with lower [androidx.transition:transition:1.5.0] AndroidManifest.xml:2:1-7:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.transition:transition:1.5.0] AndroidManifest.xml:5:5-44
+Merging library manifest C:\Users\gokul D\.gradle\caches\9.0.0\transforms\7571b8e156a0ee689e92123383e34619\transformed\dynamicanimation-1.0.0\AndroidManifest.xml
+Merging manifest with lower [androidx.dynamicanimation:dynamicanimation:1.0.0] AndroidManifest.xml:17:1-22:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.dynamicanimation:dynamicanimation:1.0.0] AndroidManifest.xml:20:5-44
+Merging library manifest C:\Users\gokul D\.gradle\caches\9.0.0\transforms\7c6e0b99c1040936d0438ed0464109a8\transformed\legacy-support-core-utils-1.0.0\AndroidManifest.xml
+Merging manifest with lower [androidx.legacy:legacy-support-core-utils:1.0.0] AndroidManifest.xml:17:1-22:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.legacy:legacy-support-core-utils:1.0.0] AndroidManifest.xml:20:5-44
+Merging library manifest C:\Users\gokul D\.gradle\caches\9.0.0\transforms\c82ffb5dab3ede63d49ea19e6c8ae5be\transformed\loader-1.0.0\AndroidManifest.xml
+Merging manifest with lower [androidx.loader:loader:1.0.0] AndroidManifest.xml:17:1-22:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.loader:loader:1.0.0] AndroidManifest.xml:20:5-44
+Merging library manifest C:\Users\gokul D\.gradle\caches\9.0.0\transforms\de70bf0435763b2d2998570f0b738725\transformed\lifecycle-livedata-2.6.2\AndroidManifest.xml
+Merging manifest with lower [androidx.lifecycle:lifecycle-livedata:2.6.2] AndroidManifest.xml:17:1-22:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.lifecycle:lifecycle-livedata:2.6.2] AndroidManifest.xml:20:5-44
+Merging library manifest C:\Users\gokul D\.gradle\caches\9.0.0\transforms\170555e003fa607a032ed5c8b10174f9\transformed\lifecycle-viewmodel-2.6.2\AndroidManifest.xml
+Merging manifest with lower [androidx.lifecycle:lifecycle-viewmodel:2.6.2] AndroidManifest.xml:17:1-22:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.lifecycle:lifecycle-viewmodel:2.6.2] AndroidManifest.xml:20:5-44
+Merging library manifest C:\Users\gokul D\.gradle\caches\9.0.0\transforms\123aa25ee01c2b96bdd913e4643accbf\transformed\jetified-lifecycle-process-2.6.2\AndroidManifest.xml
+Merging manifest with lower [androidx.lifecycle:lifecycle-process:2.6.2] AndroidManifest.xml:17:1-35:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.lifecycle:lifecycle-process:2.6.2] AndroidManifest.xml:21:5-44
+application defined in both files...
+Merging application with lower [androidx.lifecycle:lifecycle-process:2.6.2] AndroidManifest.xml:23:5-33:19
+provider#androidx.startup.InitializationProvider defined in both files...
+Merging provider#androidx.startup.InitializationProvider with lower [androidx.lifecycle:lifecycle-process:2.6.2] AndroidManifest.xml:24:9-32:20
+Adopted [meta-data: null]
+Merging library manifest C:\Users\gokul D\.gradle\caches\9.0.0\transforms\fc2badfc5aa83ecd8b748107a4d08c73\transformed\lifecycle-livedata-core-2.6.2\AndroidManifest.xml
+Merging manifest with lower [androidx.lifecycle:lifecycle-livedata-core:2.6.2] AndroidManifest.xml:17:1-22:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.lifecycle:lifecycle-livedata-core:2.6.2] AndroidManifest.xml:20:5-44
+Merging library manifest C:\Users\gokul D\.gradle\caches\9.0.0\transforms\8fe53182154e38c9fb5e75cd2522f150\transformed\lifecycle-runtime-2.6.2\AndroidManifest.xml
+Merging manifest with lower [androidx.lifecycle:lifecycle-runtime:2.6.2] AndroidManifest.xml:2:1-7:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.lifecycle:lifecycle-runtime:2.6.2] AndroidManifest.xml:5:5-44
+Merging library manifest C:\Users\gokul D\.gradle\caches\9.0.0\transforms\9cc69763c5cf1b0c543fad34de8594dc\transformed\jetified-lifecycle-viewmodel-savedstate-2.6.2\AndroidManifest.xml
+Merging manifest with lower [androidx.lifecycle:lifecycle-viewmodel-savedstate:2.6.2] AndroidManifest.xml:17:1-22:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.lifecycle:lifecycle-viewmodel-savedstate:2.6.2] AndroidManifest.xml:20:5-44
+Merging library manifest C:\Users\gokul D\.gradle\caches\9.0.0\transforms\66088ec583e7947a97a2e634fe10f429\transformed\jetified-core-ktx-1.13.0\AndroidManifest.xml
+Merging manifest with lower [androidx.core:core-ktx:1.13.0] AndroidManifest.xml:2:1-7:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.core:core-ktx:1.13.0] AndroidManifest.xml:5:5-44
+Merging library manifest C:\Users\gokul D\.gradle\caches\9.0.0\transforms\1c027c7bfe2e5f1618dde75b39078e51\transformed\drawerlayout-1.1.1\AndroidManifest.xml
+Merging manifest with lower [androidx.drawerlayout:drawerlayout:1.1.1] AndroidManifest.xml:17:1-24:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.drawerlayout:drawerlayout:1.1.1] AndroidManifest.xml:20:5-22:41
+Merging library manifest C:\Users\gokul D\.gradle\caches\9.0.0\transforms\4eef7d70a812afa4826905002119857d\transformed\coordinatorlayout-1.1.0\AndroidManifest.xml
+Merging manifest with lower [androidx.coordinatorlayout:coordinatorlayout:1.1.0] AndroidManifest.xml:17:1-24:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.coordinatorlayout:coordinatorlayout:1.1.0] AndroidManifest.xml:20:5-22:41
+Merging library manifest C:\Users\gokul D\.gradle\caches\9.0.0\transforms\b3efe26e7fc9492e7a0a4898cb9a57bc\transformed\vectordrawable-animated-1.1.0\AndroidManifest.xml
+Merging manifest with lower [androidx.vectordrawable:vectordrawable-animated:1.1.0] AndroidManifest.xml:17:1-24:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.vectordrawable:vectordrawable-animated:1.1.0] AndroidManifest.xml:20:5-22:41
+Merging library manifest C:\Users\gokul D\.gradle\caches\9.0.0\transforms\d6b94ef9f1b28e3b343011f95b49f389\transformed\vectordrawable-1.1.0\AndroidManifest.xml
+Merging manifest with lower [androidx.vectordrawable:vectordrawable:1.1.0] AndroidManifest.xml:17:1-24:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.vectordrawable:vectordrawable:1.1.0] AndroidManifest.xml:20:5-22:41
+Merging library manifest C:\Users\gokul D\.gradle\caches\9.0.0\transforms\7af3de433baf03df548b9bc11207e3b1\transformed\viewpager-1.0.0\AndroidManifest.xml
+Merging manifest with lower [androidx.viewpager:viewpager:1.0.0] AndroidManifest.xml:17:1-22:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.viewpager:viewpager:1.0.0] AndroidManifest.xml:20:5-44
+Merging library manifest C:\Users\gokul D\.gradle\caches\9.0.0\transforms\a7ac0da0ee11e35a67bf64d0c8baf451\transformed\recyclerview-1.1.0\AndroidManifest.xml
+Merging manifest with lower [androidx.recyclerview:recyclerview:1.1.0] AndroidManifest.xml:17:1-24:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.recyclerview:recyclerview:1.1.0] AndroidManifest.xml:20:5-22:41
+Merging library manifest C:\Users\gokul D\.gradle\caches\9.0.0\transforms\902dc6472f945df8fd3bc1fa86a8edca\transformed\customview-1.1.0\AndroidManifest.xml
+Merging manifest with lower [androidx.customview:customview:1.1.0] AndroidManifest.xml:17:1-24:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.customview:customview:1.1.0] AndroidManifest.xml:20:5-22:41
+Merging library manifest C:\Users\gokul D\.gradle\caches\9.0.0\transforms\ce7b78b650823d0baa987458771f018b\transformed\core-1.13.0\AndroidManifest.xml
+Merging manifest with lower [androidx.core:core:1.13.0] AndroidManifest.xml:17:1-30:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.core:core:1.13.0] AndroidManifest.xml:20:5-44
+Adopted [permission: null]
+Adopted [uses-permission: null]
+application defined in both files...
+Merging application with lower [androidx.core:core:1.13.0] AndroidManifest.xml:28:5-89
+Merging library manifest C:\Users\gokul D\.gradle\caches\9.0.0\transforms\a81686d40c5becc400be7427673f6ab6\transformed\jetified-annotation-experimental-1.4.0\AndroidManifest.xml
+Merging manifest with lower [androidx.annotation:annotation-experimental:1.4.0] AndroidManifest.xml:2:1-7:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.annotation:annotation-experimental:1.4.0] AndroidManifest.xml:5:5-44
+Merging library manifest C:\Users\gokul D\.gradle\caches\9.0.0\transforms\2b99923e8f7c1effe02b650abf94be64\transformed\cardview-1.0.0\AndroidManifest.xml
+Merging manifest with lower [androidx.cardview:cardview:1.0.0] AndroidManifest.xml:17:1-22:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.cardview:cardview:1.0.0] AndroidManifest.xml:20:5-44
+Merging library manifest C:\Users\gokul D\.gradle\caches\9.0.0\transforms\fc5f09a9b8142beb5d7e357636889bd1\transformed\cursoradapter-1.0.0\AndroidManifest.xml
+Merging manifest with lower [androidx.cursoradapter:cursoradapter:1.0.0] AndroidManifest.xml:17:1-22:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.cursoradapter:cursoradapter:1.0.0] AndroidManifest.xml:20:5-44
+Merging library manifest C:\Users\gokul D\.gradle\caches\9.0.0\transforms\4c04dd8da943cc6b571c7f3ab0e6574f\transformed\jetified-profileinstaller-1.4.0\AndroidManifest.xml
+Merging manifest with lower [androidx.profileinstaller:profileinstaller:1.4.0] AndroidManifest.xml:17:1-55:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.profileinstaller:profileinstaller:1.4.0] AndroidManifest.xml:21:5-44
+application defined in both files...
+Merging application with lower [androidx.profileinstaller:profileinstaller:1.4.0] AndroidManifest.xml:23:5-53:19
+provider#androidx.startup.InitializationProvider defined in both files...
+Merging provider#androidx.startup.InitializationProvider with lower [androidx.profileinstaller:profileinstaller:1.4.0] AndroidManifest.xml:24:9-32:20
+Adopted [meta-data: null]
+Adopted [receiver: null]
+Merging library manifest C:\Users\gokul D\.gradle\caches\9.0.0\transforms\c30b79a59be5119d96a5a03892fd9d56\transformed\interpolator-1.0.0\AndroidManifest.xml
+Merging manifest with lower [androidx.interpolator:interpolator:1.0.0] AndroidManifest.xml:17:1-22:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.interpolator:interpolator:1.0.0] AndroidManifest.xml:20:5-44
+Merging library manifest C:\Users\gokul D\.gradle\caches\9.0.0\transforms\d20b0abfaaa68859e28866e10ae903c8\transformed\versionedparcelable-1.1.1\AndroidManifest.xml
+Merging manifest with lower [androidx.versionedparcelable:versionedparcelable:1.1.1] AndroidManifest.xml:17:1-27:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.versionedparcelable:versionedparcelable:1.1.1] AndroidManifest.xml:20:5-22:41
+application defined in both files...
+Merging application with lower [androidx.versionedparcelable:versionedparcelable:1.1.1] AndroidManifest.xml:24:5-25:19
+Merging library manifest C:\Users\gokul D\.gradle\caches\9.0.0\transforms\fdd0b90628fc6c5f7b93d9c2274512c6\transformed\jetified-startup-runtime-1.1.1\AndroidManifest.xml
+Merging manifest with lower [androidx.startup:startup-runtime:1.1.1] AndroidManifest.xml:17:1-33:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.startup:startup-runtime:1.1.1] AndroidManifest.xml:21:5-23:41
+application defined in both files...
+Merging application with lower [androidx.startup:startup-runtime:1.1.1] AndroidManifest.xml:25:5-31:19
+provider#androidx.startup.InitializationProvider defined in both files...
+Merging provider#androidx.startup.InitializationProvider with lower [androidx.startup:startup-runtime:1.1.1] AndroidManifest.xml:26:9-30:34
+Merging library manifest C:\Users\gokul D\.gradle\caches\9.0.0\transforms\800ec75241bba2fd4d22c7e66f966adc\transformed\jetified-tracing-1.0.0\AndroidManifest.xml
+Merging manifest with lower [androidx.tracing:tracing:1.0.0] AndroidManifest.xml:17:1-24:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.tracing:tracing:1.0.0] AndroidManifest.xml:20:5-22:41
+Merging library manifest C:\Users\gokul D\.gradle\caches\9.0.0\transforms\1cafa28b5f8c1fdd07e2bd9e985ee532\transformed\core-runtime-2.2.0\AndroidManifest.xml
+Merging manifest with lower [androidx.arch.core:core-runtime:2.2.0] AndroidManifest.xml:17:1-22:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.arch.core:core-runtime:2.2.0] AndroidManifest.xml:20:5-44
+Merging library manifest C:\Users\gokul D\.gradle\caches\9.0.0\transforms\7651a783201bbf54c573007777030944\transformed\documentfile-1.0.0\AndroidManifest.xml
+Merging manifest with lower [androidx.documentfile:documentfile:1.0.0] AndroidManifest.xml:17:1-22:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.documentfile:documentfile:1.0.0] AndroidManifest.xml:20:5-44
+Merging library manifest C:\Users\gokul D\.gradle\caches\9.0.0\transforms\6239f3a08866b9b1ae83d7849b52e641\transformed\localbroadcastmanager-1.0.0\AndroidManifest.xml
+Merging manifest with lower [androidx.localbroadcastmanager:localbroadcastmanager:1.0.0] AndroidManifest.xml:17:1-22:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.localbroadcastmanager:localbroadcastmanager:1.0.0] AndroidManifest.xml:20:5-44
+Merging library manifest C:\Users\gokul D\.gradle\caches\9.0.0\transforms\a506a09adcac89d10f31fd10b6402c7d\transformed\print-1.0.0\AndroidManifest.xml
+Merging manifest with lower [androidx.print:print:1.0.0] AndroidManifest.xml:17:1-22:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.print:print:1.0.0] AndroidManifest.xml:20:5-44
+Merging result: SUCCESS
+1<?xml version="1.0" encoding="utf-8"?>
+2<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+3    package="com.dearmoon.shield.ransim"
+4    android:versionCode="1"
+5    android:versionName="1.0" >
+6
+7    <uses-sdk
+8        android:minSdkVersion="24"
+9        android:targetSdkVersion="35" />
+10
+11    <!--
+12        SHIELD RANSIM ù SECURITY RESEARCH ONLY
+13        This app simulates ransomware for testing SHIELD detection.
+14        All file operations are sandboxed and reversible.
+15    -->
+16
+17    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+17-->C:\Users\gokul D\SHIELD-1\RansomwareSimulator\ransim\app\src\main\AndroidManifest.xml:12:5-80
+17-->C:\Users\gokul D\SHIELD-1\RansomwareSimulator\ransim\app\src\main\AndroidManifest.xml:12:22-77
+18    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+18-->C:\Users\gokul D\SHIELD-1\RansomwareSimulator\ransim\app\src\main\AndroidManifest.xml:13:5-81
+18-->C:\Users\gokul D\SHIELD-1\RansomwareSimulator\ransim\app\src\main\AndroidManifest.xml:13:22-78
+19    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
+19-->C:\Users\gokul D\SHIELD-1\RansomwareSimulator\ransim\app\src\main\AndroidManifest.xml:14:5-82
+19-->C:\Users\gokul D\SHIELD-1\RansomwareSimulator\ransim\app\src\main\AndroidManifest.xml:14:22-79
+20    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+20-->C:\Users\gokul D\SHIELD-1\RansomwareSimulator\ransim\app\src\main\AndroidManifest.xml:15:5-78
+20-->C:\Users\gokul D\SHIELD-1\RansomwareSimulator\ransim\app\src\main\AndroidManifest.xml:15:22-75
+21    <uses-permission android:name="android.permission.WAKE_LOCK" />
+21-->C:\Users\gokul D\SHIELD-1\RansomwareSimulator\ransim\app\src\main\AndroidManifest.xml:16:5-68
+21-->C:\Users\gokul D\SHIELD-1\RansomwareSimulator\ransim\app\src\main\AndroidManifest.xml:16:22-65
+22    <uses-permission android:name="android.permission.INTERNET" />
+22-->C:\Users\gokul D\SHIELD-1\RansomwareSimulator\ransim\app\src\main\AndroidManifest.xml:17:5-67
+22-->C:\Users\gokul D\SHIELD-1\RansomwareSimulator\ransim\app\src\main\AndroidManifest.xml:17:22-64
+23    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+23-->C:\Users\gokul D\SHIELD-1\RansomwareSimulator\ransim\app\src\main\AndroidManifest.xml:18:5-77
+23-->C:\Users\gokul D\SHIELD-1\RansomwareSimulator\ransim\app\src\main\AndroidManifest.xml:18:22-74
+24    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+24-->C:\Users\gokul D\SHIELD-1\RansomwareSimulator\ransim\app\src\main\AndroidManifest.xml:19:5-77
+24-->C:\Users\gokul D\SHIELD-1\RansomwareSimulator\ransim\app\src\main\AndroidManifest.xml:19:22-74
+25    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+25-->C:\Users\gokul D\SHIELD-1\RansomwareSimulator\ransim\app\src\main\AndroidManifest.xml:20:5-119
+25-->C:\Users\gokul D\SHIELD-1\RansomwareSimulator\ransim\app\src\main\AndroidManifest.xml:20:22-80
+26
+27    <permission
+27-->[androidx.core:core:1.13.0] C:\Users\gokul D\.gradle\caches\9.0.0\transforms\ce7b78b650823d0baa987458771f018b\transformed\core-1.13.0\AndroidManifest.xml:22:5-24:47
+28        android:name="com.dearmoon.shield.ransim.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
+28-->[androidx.core:core:1.13.0] C:\Users\gokul D\.gradle\caches\9.0.0\transforms\ce7b78b650823d0baa987458771f018b\transformed\core-1.13.0\AndroidManifest.xml:23:9-81
+29        android:protectionLevel="signature" />
+29-->[androidx.core:core:1.13.0] C:\Users\gokul D\.gradle\caches\9.0.0\transforms\ce7b78b650823d0baa987458771f018b\transformed\core-1.13.0\AndroidManifest.xml:24:9-44
+30
+31    <uses-permission android:name="com.dearmoon.shield.ransim.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION" />
+31-->[androidx.core:core:1.13.0] C:\Users\gokul D\.gradle\caches\9.0.0\transforms\ce7b78b650823d0baa987458771f018b\transformed\core-1.13.0\AndroidManifest.xml:26:5-97
+31-->[androidx.core:core:1.13.0] C:\Users\gokul D\.gradle\caches\9.0.0\transforms\ce7b78b650823d0baa987458771f018b\transformed\core-1.13.0\AndroidManifest.xml:26:22-94
+32
+33    <application
+33-->C:\Users\gokul D\SHIELD-1\RansomwareSimulator\ransim\app\src\main\AndroidManifest.xml:22:5-44:19
+34        android:allowBackup="false"
+34-->C:\Users\gokul D\SHIELD-1\RansomwareSimulator\ransim\app\src\main\AndroidManifest.xml:23:9-36
+35        android:appComponentFactory="androidx.core.app.CoreComponentFactory"
+35-->[androidx.core:core:1.13.0] C:\Users\gokul D\.gradle\caches\9.0.0\transforms\ce7b78b650823d0baa987458771f018b\transformed\core-1.13.0\AndroidManifest.xml:28:18-86
+36        android:debuggable="true"
+37        android:extractNativeLibs="false"
+38        android:icon="@android:mipmap/sym_def_app_icon"
+38-->C:\Users\gokul D\SHIELD-1\RansomwareSimulator\ransim\app\src\main\AndroidManifest.xml:24:9-56
+39        android:label="SHIELD RanSim"
+39-->C:\Users\gokul D\SHIELD-1\RansomwareSimulator\ransim\app\src\main\AndroidManifest.xml:25:9-38
+40        android:theme="@style/Theme.RanSim.Dark" >
+40-->C:\Users\gokul D\SHIELD-1\RansomwareSimulator\ransim\app\src\main\AndroidManifest.xml:26:9-49
+41        <activity
+41-->C:\Users\gokul D\SHIELD-1\RansomwareSimulator\ransim\app\src\main\AndroidManifest.xml:28:9-35:20
+42            android:name="com.dearmoon.shield.ransim.MainActivity"
+42-->C:\Users\gokul D\SHIELD-1\RansomwareSimulator\ransim\app\src\main\AndroidManifest.xml:29:13-41
+43            android:exported="true" >
+43-->C:\Users\gokul D\SHIELD-1\RansomwareSimulator\ransim\app\src\main\AndroidManifest.xml:30:13-36
+44            <intent-filter>
+44-->C:\Users\gokul D\SHIELD-1\RansomwareSimulator\ransim\app\src\main\AndroidManifest.xml:31:13-34:29
+45                <action android:name="android.intent.action.MAIN" />
+45-->C:\Users\gokul D\SHIELD-1\RansomwareSimulator\ransim\app\src\main\AndroidManifest.xml:32:17-69
+45-->C:\Users\gokul D\SHIELD-1\RansomwareSimulator\ransim\app\src\main\AndroidManifest.xml:32:25-66
+46
+47                <category android:name="android.intent.category.LAUNCHER" />
+47-->C:\Users\gokul D\SHIELD-1\RansomwareSimulator\ransim\app\src\main\AndroidManifest.xml:33:17-77
+47-->C:\Users\gokul D\SHIELD-1\RansomwareSimulator\ransim\app\src\main\AndroidManifest.xml:33:27-74
+48            </intent-filter>
+49        </activity>
+50
+51        <service
+51-->C:\Users\gokul D\SHIELD-1\RansomwareSimulator\ransim\app\src\main\AndroidManifest.xml:37:9-41:19
+52            android:name="com.dearmoon.shield.ransim.OverlayService"
+52-->C:\Users\gokul D\SHIELD-1\RansomwareSimulator\ransim\app\src\main\AndroidManifest.xml:38:13-43
+53            android:exported="false"
+53-->C:\Users\gokul D\SHIELD-1\RansomwareSimulator\ransim\app\src\main\AndroidManifest.xml:39:13-37
+54            android:foregroundServiceType="mediaProjection|dataSync|specialUse" >
+54-->C:\Users\gokul D\SHIELD-1\RansomwareSimulator\ransim\app\src\main\AndroidManifest.xml:40:13-80
+55        </service>
+56
+57        <receiver
+57-->C:\Users\gokul D\SHIELD-1\RansomwareSimulator\ransim\app\src\main\AndroidManifest.xml:43:9-98
+58            android:name="com.dearmoon.shield.ransim.BootReceiver"
+58-->C:\Users\gokul D\SHIELD-1\RansomwareSimulator\ransim\app\src\main\AndroidManifest.xml:43:19-47
+59            android:enabled="true"
+59-->C:\Users\gokul D\SHIELD-1\RansomwareSimulator\ransim\app\src\main\AndroidManifest.xml:43:48-70
+60            android:exported="false" />
+60-->C:\Users\gokul D\SHIELD-1\RansomwareSimulator\ransim\app\src\main\AndroidManifest.xml:43:71-95
+61
+62        <provider
+62-->[androidx.emoji2:emoji2:1.3.0] C:\Users\gokul D\.gradle\caches\9.0.0\transforms\3ed5beaf236c3291ac163ea7e5cbe721\transformed\jetified-emoji2-1.3.0\AndroidManifest.xml:24:9-32:20
+63            android:name="androidx.startup.InitializationProvider"
+63-->[androidx.emoji2:emoji2:1.3.0] C:\Users\gokul D\.gradle\caches\9.0.0\transforms\3ed5beaf236c3291ac163ea7e5cbe721\transformed\jetified-emoji2-1.3.0\AndroidManifest.xml:25:13-67
+64            android:authorities="com.dearmoon.shield.ransim.androidx-startup"
+64-->[androidx.emoji2:emoji2:1.3.0] C:\Users\gokul D\.gradle\caches\9.0.0\transforms\3ed5beaf236c3291ac163ea7e5cbe721\transformed\jetified-emoji2-1.3.0\AndroidManifest.xml:26:13-68
+65            android:exported="false" >
+65-->[androidx.emoji2:emoji2:1.3.0] C:\Users\gokul D\.gradle\caches\9.0.0\transforms\3ed5beaf236c3291ac163ea7e5cbe721\transformed\jetified-emoji2-1.3.0\AndroidManifest.xml:27:13-37
+66            <meta-data
+66-->[androidx.emoji2:emoji2:1.3.0] C:\Users\gokul D\.gradle\caches\9.0.0\transforms\3ed5beaf236c3291ac163ea7e5cbe721\transformed\jetified-emoji2-1.3.0\AndroidManifest.xml:29:13-31:52
+67                android:name="androidx.emoji2.text.EmojiCompatInitializer"
+67-->[androidx.emoji2:emoji2:1.3.0] C:\Users\gokul D\.gradle\caches\9.0.0\transforms\3ed5beaf236c3291ac163ea7e5cbe721\transformed\jetified-emoji2-1.3.0\AndroidManifest.xml:30:17-75
+68                android:value="androidx.startup" />
+68-->[androidx.emoji2:emoji2:1.3.0] C:\Users\gokul D\.gradle\caches\9.0.0\transforms\3ed5beaf236c3291ac163ea7e5cbe721\transformed\jetified-emoji2-1.3.0\AndroidManifest.xml:31:17-49
+69            <meta-data
+69-->[androidx.lifecycle:lifecycle-process:2.6.2] C:\Users\gokul D\.gradle\caches\9.0.0\transforms\123aa25ee01c2b96bdd913e4643accbf\transformed\jetified-lifecycle-process-2.6.2\AndroidManifest.xml:29:13-31:52
+70                android:name="androidx.lifecycle.ProcessLifecycleInitializer"
+70-->[androidx.lifecycle:lifecycle-process:2.6.2] C:\Users\gokul D\.gradle\caches\9.0.0\transforms\123aa25ee01c2b96bdd913e4643accbf\transformed\jetified-lifecycle-process-2.6.2\AndroidManifest.xml:30:17-78
+71                android:value="androidx.startup" />
+71-->[androidx.lifecycle:lifecycle-process:2.6.2] C:\Users\gokul D\.gradle\caches\9.0.0\transforms\123aa25ee01c2b96bdd913e4643accbf\transformed\jetified-lifecycle-process-2.6.2\AndroidManifest.xml:31:17-49
+72            <meta-data
+72-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\gokul D\.gradle\caches\9.0.0\transforms\4c04dd8da943cc6b571c7f3ab0e6574f\transformed\jetified-profileinstaller-1.4.0\AndroidManifest.xml:29:13-31:52
+73                android:name="androidx.profileinstaller.ProfileInstallerInitializer"
+73-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\gokul D\.gradle\caches\9.0.0\transforms\4c04dd8da943cc6b571c7f3ab0e6574f\transformed\jetified-profileinstaller-1.4.0\AndroidManifest.xml:30:17-85
+74                android:value="androidx.startup" />
+74-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\gokul D\.gradle\caches\9.0.0\transforms\4c04dd8da943cc6b571c7f3ab0e6574f\transformed\jetified-profileinstaller-1.4.0\AndroidManifest.xml:31:17-49
+75        </provider>
+76
+77        <receiver
+77-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\gokul D\.gradle\caches\9.0.0\transforms\4c04dd8da943cc6b571c7f3ab0e6574f\transformed\jetified-profileinstaller-1.4.0\AndroidManifest.xml:34:9-52:20
+78            android:name="androidx.profileinstaller.ProfileInstallReceiver"
+78-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\gokul D\.gradle\caches\9.0.0\transforms\4c04dd8da943cc6b571c7f3ab0e6574f\transformed\jetified-profileinstaller-1.4.0\AndroidManifest.xml:35:13-76
+79            android:directBootAware="false"
+79-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\gokul D\.gradle\caches\9.0.0\transforms\4c04dd8da943cc6b571c7f3ab0e6574f\transformed\jetified-profileinstaller-1.4.0\AndroidManifest.xml:36:13-44
+80            android:enabled="true"
+80-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\gokul D\.gradle\caches\9.0.0\transforms\4c04dd8da943cc6b571c7f3ab0e6574f\transformed\jetified-profileinstaller-1.4.0\AndroidManifest.xml:37:13-35
+81            android:exported="true"
+81-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\gokul D\.gradle\caches\9.0.0\transforms\4c04dd8da943cc6b571c7f3ab0e6574f\transformed\jetified-profileinstaller-1.4.0\AndroidManifest.xml:38:13-36
+82            android:permission="android.permission.DUMP" >
+82-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\gokul D\.gradle\caches\9.0.0\transforms\4c04dd8da943cc6b571c7f3ab0e6574f\transformed\jetified-profileinstaller-1.4.0\AndroidManifest.xml:39:13-57
+83            <intent-filter>
+83-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\gokul D\.gradle\caches\9.0.0\transforms\4c04dd8da943cc6b571c7f3ab0e6574f\transformed\jetified-profileinstaller-1.4.0\AndroidManifest.xml:40:13-42:29
+84                <action android:name="androidx.profileinstaller.action.INSTALL_PROFILE" />
+84-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\gokul D\.gradle\caches\9.0.0\transforms\4c04dd8da943cc6b571c7f3ab0e6574f\transformed\jetified-profileinstaller-1.4.0\AndroidManifest.xml:41:17-91
+84-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\gokul D\.gradle\caches\9.0.0\transforms\4c04dd8da943cc6b571c7f3ab0e6574f\transformed\jetified-profileinstaller-1.4.0\AndroidManifest.xml:41:25-88
+85            </intent-filter>
+86            <intent-filter>
+86-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\gokul D\.gradle\caches\9.0.0\transforms\4c04dd8da943cc6b571c7f3ab0e6574f\transformed\jetified-profileinstaller-1.4.0\AndroidManifest.xml:43:13-45:29
+87                <action android:name="androidx.profileinstaller.action.SKIP_FILE" />
+87-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\gokul D\.gradle\caches\9.0.0\transforms\4c04dd8da943cc6b571c7f3ab0e6574f\transformed\jetified-profileinstaller-1.4.0\AndroidManifest.xml:44:17-85
+87-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\gokul D\.gradle\caches\9.0.0\transforms\4c04dd8da943cc6b571c7f3ab0e6574f\transformed\jetified-profileinstaller-1.4.0\AndroidManifest.xml:44:25-82
+88            </intent-filter>
+89            <intent-filter>
+89-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\gokul D\.gradle\caches\9.0.0\transforms\4c04dd8da943cc6b571c7f3ab0e6574f\transformed\jetified-profileinstaller-1.4.0\AndroidManifest.xml:46:13-48:29
+90                <action android:name="androidx.profileinstaller.action.SAVE_PROFILE" />
+90-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\gokul D\.gradle\caches\9.0.0\transforms\4c04dd8da943cc6b571c7f3ab0e6574f\transformed\jetified-profileinstaller-1.4.0\AndroidManifest.xml:47:17-88
+90-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\gokul D\.gradle\caches\9.0.0\transforms\4c04dd8da943cc6b571c7f3ab0e6574f\transformed\jetified-profileinstaller-1.4.0\AndroidManifest.xml:47:25-85
+91            </intent-filter>
+92            <intent-filter>
+92-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\gokul D\.gradle\caches\9.0.0\transforms\4c04dd8da943cc6b571c7f3ab0e6574f\transformed\jetified-profileinstaller-1.4.0\AndroidManifest.xml:49:13-51:29
+93                <action android:name="androidx.profileinstaller.action.BENCHMARK_OPERATION" />
+93-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\gokul D\.gradle\caches\9.0.0\transforms\4c04dd8da943cc6b571c7f3ab0e6574f\transformed\jetified-profileinstaller-1.4.0\AndroidManifest.xml:50:17-95
+93-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\gokul D\.gradle\caches\9.0.0\transforms\4c04dd8da943cc6b571c7f3ab0e6574f\transformed\jetified-profileinstaller-1.4.0\AndroidManifest.xml:50:25-92
+94            </intent-filter>
+95        </receiver>
+96    </application>
+97
+98</manifest>
+
+Merged manifest saved to C:\Users\gokul D\SHIELD-1\RansomwareSimulator\ransim\app\build\intermediates\merged_manifest\debug\processDebugMainManifest\AndroidManifest.xml
+Resolve mutations for :app:processDebugManifest (Thread[Execution worker Thread 5,5,main]) started.
+:app:processDebugManifest (Thread[Execution worker Thread 5,5,main]) started.
+
+> Task :app:processDebugManifest
+Caching disabled for task ':app:processDebugManifest' because:
+  Build cache is disabled
+Task ':app:processDebugManifest' is not up-to-date because:
+  Input property 'mainMergedManifest' file C:\Users\gokul D\SHIELD-1\RansomwareSimulator\ransim\app\build\intermediates\merged_manifest\debug\processDebugMainManifest\AndroidManifest.xml has changed.
+Resolve mutations for :app:processDebugManifestForPackage (Thread[Execution worker Thread 6,5,main]) started.
+:app:processDebugManifestForPackage (Thread[Execution worker Thread 6,5,main]) started.
+Resolve mutations for :app:javaPreCompileDebug (Thread[Execution worker Thread 5,5,main]) started.
+:app:javaPreCompileDebug (Thread[Execution worker Thread 5,5,main]) started.
+
+> Task :app:javaPreCompileDebug UP-TO-DATE
+Caching disabled for task ':app:javaPreCompileDebug' because:
+  Build cache is disabled
+Skipping task ':app:javaPreCompileDebug' as it is up-to-date.
+Resolve mutations for :app:mergeDebugShaders (Thread[Execution worker Thread 5,5,main]) started.
+:app:mergeDebugShaders (Thread[Execution worker Thread 8,5,main]) started.
+
+> Task :app:mergeDebugShaders UP-TO-DATE
+Caching disabled for task ':app:mergeDebugShaders' because:
+  Build cache is disabled
+  Simple merging task
+Skipping task ':app:mergeDebugShaders' as it is up-to-date.
+
+> Task :app:processDebugManifestForPackage
+Custom actions are attached to task ':app:processDebugManifestForPackage'.
+Caching disabled for task ':app:processDebugManifestForPackage' because:
+  Build cache is disabled
+Task ':app:processDebugManifestForPackage' is not up-to-date because:
+  Input property 'mergedManifests' file C:\Users\gokul D\SHIELD-1\RansomwareSimulator\ransim\app\build\intermediates\merged_manifests\debug\processDebugManifest\AndroidManifest.xml has changed.
+Resolve mutations for :app:processDebugResources (Thread[Execution worker Thread 6,5,main]) started.
+:app:processDebugResources (Thread[Execution worker Thread 6,5,main]) started.
+Resolve mutations for :app:compileDebugShaders (Thread[Execution worker Thread 5,5,main]) started.
+:app:compileDebugShaders (Thread[Execution worker Thread 5,5,main]) started.
+
+> Task :app:compileDebugShaders NO-SOURCE
+Skipping task ':app:compileDebugShaders' as it has no source files and no previous output files.
+Resolve mutations for :app:generateDebugAssets (Thread[Execution worker Thread 9,5,main]) started.
+:app:generateDebugAssets (Thread[Execution worker Thread 9,5,main]) started.
+
+> Task :app:generateDebugAssets UP-TO-DATE
+Skipping task ':app:generateDebugAssets' as it has no actions.
+Resolve mutations for :app:mergeDebugAssets (Thread[Execution worker Thread 9,5,main]) started.
+:app:mergeDebugAssets (Thread[Execution worker Thread 9,5,main]) started.
+
+> Task :app:mergeDebugAssets UP-TO-DATE
+Caching disabled for task ':app:mergeDebugAssets' because:
+  Build cache is disabled
+  Simple merging task
+Skipping task ':app:mergeDebugAssets' as it is up-to-date.
+Resolve mutations for :app:compressDebugAssets (Thread[Execution worker Thread 9,5,main]) started.
+:app:compressDebugAssets (Thread[Execution worker Thread 9,5,main]) started.
+
+> Task :app:compressDebugAssets UP-TO-DATE
+Caching disabled for task ':app:compressDebugAssets' because:
+  Build cache is disabled
+Skipping task ':app:compressDebugAssets' as it is up-to-date.
+Resolve mutations for :app:desugarDebugFileDependencies (Thread[Execution worker Thread 9,5,main]) started.
+:app:desugarDebugFileDependencies (Thread[Execution worker Thread 9,5,main]) started.
+
+> Task :app:desugarDebugFileDependencies UP-TO-DATE
+Caching disabled for task ':app:desugarDebugFileDependencies' because:
+  Build cache is disabled
+Skipping task ':app:desugarDebugFileDependencies' as it is up-to-date.
+Resolve mutations for :app:checkDebugDuplicateClasses (Thread[Execution worker Thread 9,5,main]) started.
+:app:checkDebugDuplicateClasses (Thread[Execution worker Thread 9,5,main]) started.
+
+> Task :app:checkDebugDuplicateClasses UP-TO-DATE
+Caching disabled for task ':app:checkDebugDuplicateClasses' because:
+  Build cache is disabled
+  Caching has been disabled for the task
+Skipping task ':app:checkDebugDuplicateClasses' as it is up-to-date.
+Resolve mutations for :app:mergeExtDexDebug (Thread[Execution worker Thread 9,5,main]) started.
+:app:mergeExtDexDebug (Thread[Execution worker Thread 9,5,main]) started.
+
+> Task :app:mergeExtDexDebug UP-TO-DATE
+Caching disabled for task ':app:mergeExtDexDebug' because:
+  Build cache is disabled
+Skipping task ':app:mergeExtDexDebug' as it is up-to-date.
+Resolve mutations for :app:mergeLibDexDebug (Thread[Execution worker Thread 8,5,main]) started.
+:app:mergeLibDexDebug (Thread[Execution worker Thread 8,5,main]) started.
+
+> Task :app:mergeLibDexDebug UP-TO-DATE
+Caching disabled for task ':app:mergeLibDexDebug' because:
+  Build cache is disabled
+Skipping task ':app:mergeLibDexDebug' as it is up-to-date.
+Resolve mutations for :app:mergeDebugJniLibFolders (Thread[Execution worker Thread 8,5,main]) started.
+:app:mergeDebugJniLibFolders (Thread[Execution worker Thread 8,5,main]) started.
+
+> Task :app:mergeDebugJniLibFolders UP-TO-DATE
+Caching disabled for task ':app:mergeDebugJniLibFolders' because:
+  Build cache is disabled
+  Simple merging task
+Skipping task ':app:mergeDebugJniLibFolders' as it is up-to-date.
+Resolve mutations for :app:mergeDebugNativeLibs (Thread[Execution worker Thread 9,5,main]) started.
+:app:mergeDebugNativeLibs (Thread[Execution worker Thread 9,5,main]) started.
+
+> Task :app:mergeDebugNativeLibs NO-SOURCE
+Skipping task ':app:mergeDebugNativeLibs' as it has no source files and no previous output files.
+Resolve mutations for :app:stripDebugDebugSymbols (Thread[Execution worker Thread 8,5,main]) started.
+:app:stripDebugDebugSymbols (Thread[Execution worker Thread 8,5,main]) started.
+
+> Task :app:stripDebugDebugSymbols NO-SOURCE
+Skipping task ':app:stripDebugDebugSymbols' as it has no source files and no previous output files.
+Resolve mutations for :app:validateSigningDebug (Thread[Execution worker Thread 8,5,main]) started.
+:app:validateSigningDebug (Thread[Execution worker Thread 8,5,main]) started.
+
+> Task :app:validateSigningDebug UP-TO-DATE
+Caching disabled for task ':app:validateSigningDebug' because:
+  Build cache is disabled
+  Caching has been disabled for the task
+Skipping task ':app:validateSigningDebug' as it is up-to-date.
+Resolve mutations for :app:writeDebugAppMetadata (Thread[Execution worker Thread 9,5,main]) started.
+:app:writeDebugAppMetadata (Thread[Execution worker Thread 9,5,main]) started.
+
+> Task :app:writeDebugAppMetadata UP-TO-DATE
+Caching disabled for task ':app:writeDebugAppMetadata' because:
+  Build cache is disabled
+  Caching has been disabled for the task
+Skipping task ':app:writeDebugAppMetadata' as it is up-to-date.
+Resolve mutations for :app:writeDebugSigningConfigVersions (Thread[Execution worker Thread 8,5,main]) started.
+:app:writeDebugSigningConfigVersions (Thread[Execution worker Thread 8,5,main]) started.
+
+> Task :app:writeDebugSigningConfigVersions UP-TO-DATE
+Caching disabled for task ':app:writeDebugSigningConfigVersions' because:
+  Build cache is disabled
+  Caching has been disabled for the task
+Skipping task ':app:writeDebugSigningConfigVersions' as it is up-to-date.
+
+> Task :app:processDebugResources FAILED
+Caching disabled for task ':app:processDebugResources' because:
+  Build cache is disabled
+Task ':app:processDebugResources' is not up-to-date because:
+  Task has failed previously.
+The input changes require a full rebuild for incremental task ':app:processDebugResources'.
+AAPT2 aapt2-8.13.2-14304508-windows Daemon #0: starting
+Android resource linking failed:
+process = AAPT2 aapt2-8.13.2-14304508-windows Daemon #0:
+command = C:\Users\gokul D\.gradle\caches\9.0.0\transforms\2f2157f2aa9e83455e8d287397615fe9\transformed\aapt2-8.13.2-14304508-windows\aapt2.exe link -I\
+        C:\Users\gokul D\AppData\Local\Android\Sdk\platforms\android-35\android.jar\
+        --manifest\
+        C:\Users\gokul D\SHIELD-1\RansomwareSimulator\ransim\app\build\intermediates\packaged_manifests\debug\processDebugManifestForPackage\AndroidManifest.xml\
+        -o\
+        C:\Users\gokul D\SHIELD-1\RansomwareSimulator\ransim\app\build\intermediates\linked_resources_binary_format\debug\processDebugResources\linked-resources-binary-format-debug.ap_\
+        -R\
+        @C:\Users\gokul D\SHIELD-1\RansomwareSimulator\ransim\app\build\intermediates\incremental\processDebugResources\resources-list-for-linked-resources-binary-format-debug.ap_.txt\
+        --auto-add-overlay\
+        --custom-package\
+        com.dearmoon.shield.ransim\
+        -0\
+        apk\
+        --output-text-symbols\
+        C:\Users\gokul D\SHIELD-1\RansomwareSimulator\ransim\app\build\intermediates\runtime_symbol_list\debug\processDebugResources\R.txt\
+        --no-version-vectors\
+        --proguard-minimal-keep-rules\
+        --no-proguard-location-reference\
+        --emit-ids\
+        C:\Users\gokul D\SHIELD-1\RansomwareSimulator\ransim\app\build\intermediates\stable_resource_ids_file\debug\processDebugResources\stableIds.txt
+AAPT2 aapt2-8.13.2-14304508-windows Daemon #0: shutdown
+./gradlew : 
+At line:1 char:1
++ ./gradlew assembleDebug --stacktrace 
+--info > build_output_2.txt 2>&1
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: 
+    (:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommand 
+   Error
+ 
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task 
+':app:processDebugResources'.
+> A failure occurred while executing com.and
+roid.build.gradle.internal.res.LinkApplicati
+onAndroidResourcesTask$TaskAction
+   > Android resource linking failed
+     com.dearmoon.shield.ransim.app-mergeDeb
+ugResources-30:/layout/overlay_locker.xml:97
+: error: resource color/black (aka 
+com.dearmoon.shield.ransim:color/black) not 
+found.
+     com.dearmoon.shield.ransim.app-mergeDeb
+ugResources-30:/layout/overlay_locker.xml:10
+6: error: resource color/black (aka 
+com.dearmoon.shield.ransim:color/black) not 
+found.
+     com.dearmoon.shield.ransim.app-mergeDeb
+ugResources-30:/layout/overlay_locker.xml:11
+3: error: resource color/black (aka 
+com.dearmoon.shield.ransim:color/black) not 
+found.
+     error: failed linking file resources.
+
+
+* Try:
+> Run with --debug option to get more log 
+output.
+> Run with --scan to generate a Build Scan 
+(Powered by Develocity).
+> Get more help at https://help.gradle.org.
+
+* Exception is:
+org.gradle.api.tasks.TaskExecutionException:
+ Execution failed for task 
+':app:processDebugResources'.
+	at org.gradle.api.internal.tasks.execution.
+ExecuteActionsTaskExecuter.lambda$executeIfV
+alid$1(ExecuteActionsTaskExecuter.java:135)
+	at org.gradle.internal.Try$Failure.ifSucces
+sfulOrElse(Try.java:288)
+	at org.gradle.api.internal.tasks.execution.
+ExecuteActionsTaskExecuter.executeIfValid(Ex
+ecuteActionsTaskExecuter.java:133)
+	at org.gradle.api.internal.tasks.execution.
+ExecuteActionsTaskExecuter.execute(ExecuteAc
+tionsTaskExecuter.java:121)
+	at org.gradle.api.internal.tasks.execution.
+ProblemsTaskPathTrackingTaskExecuter.execute
+(ProblemsTaskPathTrackingTaskExecuter.java:4
+1)
+	at org.gradle.api.internal.tasks.execution.
+FinalizePropertiesTaskExecuter.execute(Final
+izePropertiesTaskExecuter.java:46)
+	at org.gradle.api.internal.tasks.execution.
+ResolveTaskExecutionModeExecuter.execute(Res
+olveTaskExecutionModeExecuter.java:51)
+	at org.gradle.api.internal.tasks.execution.
+SkipTaskWithNoActionsExecuter.execute(SkipTa
+skWithNoActionsExecuter.java:57)
+	at org.gradle.api.internal.tasks.execution.
+SkipOnlyIfTaskExecuter.execute(SkipOnlyIfTas
+kExecuter.java:74)
+	at org.gradle.api.internal.tasks.execution.
+CatchExceptionTaskExecuter.execute(CatchExce
+ptionTaskExecuter.java:36)
+	at org.gradle.api.internal.tasks.execution.
+EventFiringTaskExecuter$1.executeTask(EventF
+iringTaskExecuter.java:77)
+	at org.gradle.api.internal.tasks.execution.
+EventFiringTaskExecuter$1.call(EventFiringTa
+skExecuter.java:55)
+	at org.gradle.api.internal.tasks.execution.
+EventFiringTaskExecuter$1.call(EventFiringTa
+skExecuter.java:52)
+	at org.gradle.internal.operations.DefaultBu
+ildOperationRunner$CallableBuildOperationWor
+ker.execute(DefaultBuildOperationRunner.java
+:209)
+	at org.gradle.internal.operations.DefaultBu
+ildOperationRunner$CallableBuildOperationWor
+ker.execute(DefaultBuildOperationRunner.java
+:204)
+	at org.gradle.internal.operations.DefaultBu
+ildOperationRunner$2.execute(DefaultBuildOpe
+rationRunner.java:66)
+	at org.gradle.internal.operations.DefaultBu
+ildOperationRunner$2.execute(DefaultBuildOpe
+rationRunner.java:59)
+	at org.gradle.internal.operations.DefaultBu
+ildOperationRunner.execute(DefaultBuildOpera
+tionRunner.java:166)
+	at org.gradle.internal.operations.DefaultBu
+ildOperationRunner.execute(DefaultBuildOpera
+tionRunner.java:59)
+	at org.gradle.internal.operations.DefaultBu
+ildOperationRunner.call(DefaultBuildOperatio
+nRunner.java:53)
+	at org.gradle.api.internal.tasks.execution.
+EventFiringTaskExecuter.execute(EventFiringT
+askExecuter.java:52)
+	at org.gradle.execution.plan.LocalTaskNodeE
+xecutor.execute(LocalTaskNodeExecutor.java:4
+5)
+	at org.gradle.execution.taskgraph.DefaultTa
+skExecutionGraph$InvokeNodeExecutorsAction.e
+xecute(DefaultTaskExecutionGraph.java:347)
+	at org.gradle.execution.taskgraph.DefaultTa
+skExecutionGraph$InvokeNodeExecutorsAction.e
+xecute(DefaultTaskExecutionGraph.java:334)
+	at org.gradle.execution.taskgraph.DefaultTa
+skExecutionGraph$BuildOperationAwareExecutio
+nAction.lambda$execute$0(DefaultTaskExecutio
+nGraph.java:330)
+	at org.gradle.internal.operations.CurrentBu
+ildOperationRef.with(CurrentBuildOperationRe
+f.java:84)
+	at org.gradle.execution.taskgraph.DefaultTa
+skExecutionGraph$BuildOperationAwareExecutio
+nAction.execute(DefaultTaskExecutionGraph.ja
+va:330)
+	at org.gradle.execution.taskgraph.DefaultTa
+skExecutionGraph$BuildOperationAwareExecutio
+nAction.execute(DefaultTaskExecutionGraph.ja
+va:319)
+	at org.gradle.execution.plan.DefaultPlanExe
+cutor$ExecutorWorker.execute(DefaultPlanExec
+utor.java:459)
+	at org.gradle.execution.plan.DefaultPlanExe
+cutor$ExecutorWorker.run(DefaultPlanExecutor
+.java:376)
+	at org.gradle.internal.concurrent.ExecutorP
+olicy$CatchAndRecordFailures.onExecute(Execu
+torPolicy.java:64)
+	at org.gradle.internal.concurrent.AbstractM
+anagedExecutor$1.run(AbstractManagedExecutor
+.java:47)
+Caused by: org.gradle.workers.internal.Defau
+ltWorkerExecutor$WorkExecutionException: A 
+failure occurred while executing com.android
+.build.gradle.internal.res.LinkApplicationAn
+droidResourcesTask$TaskAction
+	at org.gradle.workers.internal.DefaultWorke
+rExecutor$WorkItemExecution.waitForCompletio
+n(DefaultWorkerExecutor.java:289)
+	at org.gradle.internal.work.DefaultAsyncWor
+kTracker.lambda$waitForItemsAndGatherFailure
+s$2(DefaultAsyncWorkTracker.java:130)
+	at org.gradle.internal.Factories$1.create(F
+actories.java:31)
+	at org.gradle.internal.work.DefaultWorkerLe
+aseService.withoutLocks(DefaultWorkerLeaseSe
+rvice.java:335)
+	at org.gradle.internal.work.DefaultWorkerLe
+aseService.withoutLocks(DefaultWorkerLeaseSe
+rvice.java:318)
+	at org.gradle.internal.work.DefaultWorkerLe
+aseService.withoutLock(DefaultWorkerLeaseSer
+vice.java:323)
+	at org.gradle.internal.work.DefaultAsyncWor
+kTracker.waitForItemsAndGatherFailures(Defau
+ltAsyncWorkTracker.java:126)
+	at org.gradle.internal.work.DefaultAsyncWor
+kTracker.waitForItemsAndGatherFailures(Defau
+ltAsyncWorkTracker.java:92)
+	at org.gradle.internal.work.DefaultAsyncWor
+kTracker.waitForAll(DefaultAsyncWorkTracker.
+java:78)
+	at org.gradle.internal.work.DefaultAsyncWor
+kTracker.waitForCompletion(DefaultAsyncWorkT
+racker.java:66)
+	at org.gradle.api.internal.tasks.execution.
+TaskExecution$3.run(TaskExecution.java:260)
+	at org.gradle.internal.operations.DefaultBu
+ildOperationRunner$1.execute(DefaultBuildOpe
+rationRunner.java:29)
+	at org.gradle.internal.operations.DefaultBu
+ildOperationRunner$1.execute(DefaultBuildOpe
+rationRunner.java:26)
+	at org.gradle.internal.operations.DefaultBu
+ildOperationRunner$2.execute(DefaultBuildOpe
+rationRunner.java:66)
+	at org.gradle.internal.operations.DefaultBu
+ildOperationRunner$2.execute(DefaultBuildOpe
+rationRunner.java:59)
+	at org.gradle.internal.operations.DefaultBu
+ildOperationRunner.execute(DefaultBuildOpera
+tionRunner.java:166)
+	at org.gradle.internal.operations.DefaultBu
+ildOperationRunner.execute(DefaultBuildOpera
+tionRunner.java:59)
+	at org.gradle.internal.operations.DefaultBu
+ildOperationRunner.run(DefaultBuildOperation
+Runner.java:47)
+	at org.gradle.api.internal.tasks.execution.
+TaskExecution.executeAction(TaskExecution.ja
+va:237)
+	at org.gradle.api.internal.tasks.execution.
+TaskExecution.executeActions(TaskExecution.j
+ava:220)
+	at org.gradle.api.internal.tasks.execution.
+TaskExecution.executeWithPreviousOutputFiles
+(TaskExecution.java:203)
+	at org.gradle.api.internal.tasks.execution.
+TaskExecution.execute(TaskExecution.java:170
+)
+	at org.gradle.internal.execution.steps.Exec
+uteStep.executeInternal(ExecuteStep.java:105
+)
+	at org.gradle.internal.execution.steps.Exec
+uteStep.access$000(ExecuteStep.java:44)
+	at org.gradle.internal.execution.steps.Exec
+uteStep$1.call(ExecuteStep.java:59)
+	at org.gradle.internal.execution.steps.Exec
+uteStep$1.call(ExecuteStep.java:56)
+	at org.gradle.internal.operations.DefaultBu
+ildOperationRunner$CallableBuildOperationWor
+ker.execute(DefaultBuildOperationRunner.java
+:209)
+	at org.gradle.internal.operations.DefaultBu
+ildOperationRunner$CallableBuildOperationWor
+ker.execute(DefaultBuildOperationRunner.java
+:204)
+	at org.gradle.internal.operations.DefaultBu
+ildOperationRunner$2.execute(DefaultBuildOpe
+rationRunner.java:66)
+	at org.gradle.internal.operations.DefaultBu
+ildOperationRunner$2.execute(DefaultBuildOpe
+rationRunner.java:59)
+	at org.gradle.internal.operations.DefaultBu
+ildOperationRunner.execute(DefaultBuildOpera
+tionRunner.java:166)
+	at org.gradle.internal.operations.DefaultBu
+ildOperationRunner.execute(DefaultBuildOpera
+tionRunner.java:59)
+	at org.gradle.internal.operations.DefaultBu
+ildOperationRunner.call(DefaultBuildOperatio
+nRunner.java:53)
+	at org.gradle.internal.execution.steps.Exec
+uteStep.execute(ExecuteStep.java:56)
+	at org.gradle.internal.execution.steps.Exec
+uteStep.execute(ExecuteStep.java:44)
+	at org.gradle.internal.execution.steps.Canc
+elExecutionStep.execute(CancelExecutionStep.
+java:42)
+	at org.gradle.internal.execution.steps.Time
+outStep.executeWithoutTimeout(TimeoutStep.ja
+va:75)
+	at org.gradle.internal.execution.steps.Time
+outStep.execute(TimeoutStep.java:55)
+	at org.gradle.internal.execution.steps.PreC
+reateOutputParentsStep.execute(PreCreateOutp
+utParentsStep.java:50)
+	at org.gradle.internal.execution.steps.PreC
+reateOutputParentsStep.execute(PreCreateOutp
+utParentsStep.java:28)
+	at org.gradle.internal.execution.steps.Remo
+vePreviousOutputsStep.execute(RemovePrevious
+OutputsStep.java:68)
+	at org.gradle.internal.execution.steps.Remo
+vePreviousOutputsStep.execute(RemovePrevious
+OutputsStep.java:38)
+	at org.gradle.internal.execution.steps.Broa
+dcastChangingOutputsStep.execute(BroadcastCh
+angingOutputsStep.java:61)
+	at org.gradle.internal.execution.steps.Broa
+dcastChangingOutputsStep.execute(BroadcastCh
+angingOutputsStep.java:26)
+	at org.gradle.internal.execution.steps.Capt
+ureOutputsAfterExecutionStep.execute(Capture
+OutputsAfterExecutionStep.java:69)
+	at org.gradle.internal.execution.steps.Capt
+ureOutputsAfterExecutionStep.execute(Capture
+OutputsAfterExecutionStep.java:46)
+	at org.gradle.internal.execution.steps.Reso
+lveInputChangesStep.execute(ResolveInputChan
+gesStep.java:39)
+	at org.gradle.internal.execution.steps.Reso
+lveInputChangesStep.execute(ResolveInputChan
+gesStep.java:28)
+	at org.gradle.internal.execution.steps.Buil
+dCacheStep.executeWithoutCache(BuildCacheSte
+p.java:189)
+	at org.gradle.internal.execution.steps.Buil
+dCacheStep.lambda$execute$1(BuildCacheStep.j
+ava:75)
+	at org.gradle.internal.Either$Right.fold(Ei
+ther.java:176)
+	at org.gradle.internal.execution.caching.Ca
+chingState.fold(CachingState.java:62)
+	at org.gradle.internal.execution.steps.Buil
+dCacheStep.execute(BuildCacheStep.java:73)
+	at org.gradle.internal.execution.steps.Buil
+dCacheStep.execute(BuildCacheStep.java:48)
+	at org.gradle.internal.execution.steps.Stor
+eExecutionStateStep.execute(StoreExecutionSt
+ateStep.java:46)
+	at org.gradle.internal.execution.steps.Stor
+eExecutionStateStep.execute(StoreExecutionSt
+ateStep.java:35)
+	at org.gradle.internal.execution.steps.Skip
+UpToDateStep.executeBecause(SkipUpToDateStep
+.java:75)
+	at org.gradle.internal.execution.steps.Skip
+UpToDateStep.lambda$execute$2(SkipUpToDateSt
+ep.java:53)
+	at org.gradle.internal.execution.steps.Skip
+UpToDateStep.execute(SkipUpToDateStep.java:5
+3)
+	at org.gradle.internal.execution.steps.Skip
+UpToDateStep.execute(SkipUpToDateStep.java:3
+5)
+	at org.gradle.internal.execution.steps.lega
+cy.MarkSnapshottingInputsFinishedStep.execut
+e(MarkSnapshottingInputsFinishedStep.java:37
+)
+	at org.gradle.internal.execution.steps.lega
+cy.MarkSnapshottingInputsFinishedStep.execut
+e(MarkSnapshottingInputsFinishedStep.java:27
+)
+	at org.gradle.internal.execution.steps.Reso
+lveIncrementalCachingStateStep.executeDelega
+te(ResolveIncrementalCachingStateStep.java:4
+9)
+	at org.gradle.internal.execution.steps.Reso
+lveIncrementalCachingStateStep.executeDelega
+te(ResolveIncrementalCachingStateStep.java:2
+7)
+	at org.gradle.internal.execution.steps.Abst
+ractResolveCachingStateStep.execute(Abstract
+ResolveCachingStateStep.java:71)
+	at org.gradle.internal.execution.steps.Abst
+ractResolveCachingStateStep.execute(Abstract
+ResolveCachingStateStep.java:39)
+	at org.gradle.internal.execution.steps.Reso
+lveChangesStep.execute(ResolveChangesStep.ja
+va:64)
+	at org.gradle.internal.execution.steps.Reso
+lveChangesStep.execute(ResolveChangesStep.ja
+va:35)
+	at org.gradle.internal.execution.steps.Vali
+dateStep.execute(ValidateStep.java:62)
+	at org.gradle.internal.execution.steps.Vali
+dateStep.execute(ValidateStep.java:40)
+	at org.gradle.internal.execution.steps.Abst
+ractCaptureStateBeforeExecutionStep.execute(
+AbstractCaptureStateBeforeExecutionStep.java
+:76)
+	at org.gradle.internal.execution.steps.Abst
+ractCaptureStateBeforeExecutionStep.execute(
+AbstractCaptureStateBeforeExecutionStep.java
+:45)
+	at org.gradle.internal.execution.steps.Abst
+ractSkipEmptyWorkStep.executeWithNonEmptySou
+rces(AbstractSkipEmptyWorkStep.java:136)
+	at org.gradle.internal.execution.steps.Abst
+ractSkipEmptyWorkStep.execute(AbstractSkipEm
+ptyWorkStep.java:61)
+	at org.gradle.internal.execution.steps.Abst
+ractSkipEmptyWorkStep.execute(AbstractSkipEm
+ptyWorkStep.java:38)
+	at org.gradle.internal.execution.steps.lega
+cy.MarkSnapshottingInputsStartedStep.execute
+(MarkSnapshottingInputsStartedStep.java:38)
+	at org.gradle.internal.execution.steps.Load
+PreviousExecutionStateStep.execute(LoadPrevi
+ousExecutionStateStep.java:36)
+	at org.gradle.internal.execution.steps.Load
+PreviousExecutionStateStep.execute(LoadPrevi
+ousExecutionStateStep.java:23)
+	at org.gradle.internal.execution.steps.Hand
+leStaleOutputsStep.execute(HandleStaleOutput
+sStep.java:75)
+	at org.gradle.internal.execution.steps.Hand
+leStaleOutputsStep.execute(HandleStaleOutput
+sStep.java:41)
+	at org.gradle.internal.execution.steps.Assi
+gnMutableWorkspaceStep.lambda$execute$0(Assi
+gnMutableWorkspaceStep.java:35)
+	at org.gradle.api.internal.tasks.execution.
+TaskExecution$4.withWorkspace(TaskExecution.
+java:297)
+	at org.gradle.internal.execution.steps.Assi
+gnMutableWorkspaceStep.execute(AssignMutable
+WorkspaceStep.java:31)
+	at org.gradle.internal.execution.steps.Assi
+gnMutableWorkspaceStep.execute(AssignMutable
+WorkspaceStep.java:22)
+	at org.gradle.internal.execution.steps.Choo
+sePipelineStep.execute(ChoosePipelineStep.ja
+va:40)
+	at org.gradle.internal.execution.steps.Choo
+sePipelineStep.execute(ChoosePipelineStep.ja
+va:23)
+	at org.gradle.internal.execution.steps.Exec
+uteWorkBuildOperationFiringStep.lambda$execu
+te$2(ExecuteWorkBuildOperationFiringStep.jav
+a:67)
+	at org.gradle.internal.execution.steps.Exec
+uteWorkBuildOperationFiringStep.execute(Exec
+uteWorkBuildOperationFiringStep.java:67)
+	at org.gradle.internal.execution.steps.Exec
+uteWorkBuildOperationFiringStep.execute(Exec
+uteWorkBuildOperationFiringStep.java:39)
+	at org.gradle.internal.execution.steps.Iden
+tityCacheStep.execute(IdentityCacheStep.java
+:46)
+	at org.gradle.internal.execution.steps.Iden
+tityCacheStep.execute(IdentityCacheStep.java
+:34)
+	at org.gradle.internal.execution.steps.Iden
+tifyStep.execute(IdentifyStep.java:47)
+	at org.gradle.internal.execution.steps.Iden
+tifyStep.execute(IdentifyStep.java:34)
+	at org.gradle.internal.execution.impl.Defau
+ltExecutionEngine$1.execute(DefaultExecution
+Engine.java:64)
+	at org.gradle.api.internal.tasks.execution.
+ExecuteActionsTaskExecuter.executeIfValid(Ex
+ecuteActionsTaskExecuter.java:132)
+	... 29 more
+Caused by: com.android.builder.internal.aapt
+.v2.Aapt2Exception: Android resource 
+linking failed
+com.dearmoon.shield.ransim.app-mergeDebugRes
+ources-30:/layout/overlay_locker.xml:97: 
+error: resource color/black (aka 
+com.dearmoon.shield.ransim:color/black) not 
+found.
+com.dearmoon.shield.ransim.app-mergeDebugRes
+ources-30:/layout/overlay_locker.xml:106: 
+error: resource color/black (aka 
+com.dearmoon.shield.ransim:color/black) not 
+found.
+com.dearmoon.shield.ransim.app-mergeDebugRes
+ources-30:/layout/overlay_locker.xml:113: 
+error: resource color/black (aka 
+com.dearmoon.shield.ransim:color/black) not 
+found.
+error: failed linking file resources.
+
+	at com.android.builder.internal.aapt.v2.Aap
+t2Exception$Companion.create(Aapt2Exception.
+kt:45)
+	at com.android.builder.internal.aapt.v2.Aap
+t2Exception$Companion.create$default(Aapt2Ex
+ception.kt:31)
+	at com.android.builder.internal.aapt.v2.Aap
+t2DaemonImpl.doLink(Aapt2DaemonImpl.kt:191)
+	at com.android.builder.internal.aapt.v2.Aap
+t2Daemon.link(Aapt2Daemon.kt:124)
+	at com.android.builder.internal.aapt.v2.Aap
+t2DaemonManager$LeasedAaptDaemon.link(Aapt2D
+aemonManager.kt:176)
+	at com.android.builder.internal.aapt.v2.Aap
+t2DaemonManager$leasingAapt2Daemon$1.link(Aa
+pt2DaemonManager.kt:199)
+	at com.android.build.gradle.internal.servic
+es.PartialInProcessResourceProcessor.link(Pa
+rtialInProcessResourceProcessor.kt:51)
+	at com.android.build.gradle.internal.res.Aa
+pt2ProcessResourcesRunnableKt.processResourc
+es(Aapt2ProcessResourcesRunnable.kt:74)
+	at com.android.build.gradle.internal.res.Li
+nkApplicationAndroidResourcesTask$Companion.
+invokeAaptForSplit(LinkApplicationAndroidRes
+ourcesTask.kt:1060)
+	at com.android.build.gradle.internal.res.Li
+nkApplicationAndroidResourcesTask$Companion.
+access$invokeAaptForSplit(LinkApplicationAnd
+roidResourcesTask.kt:886)
+	at com.android.build.gradle.internal.res.Li
+nkApplicationAndroidResourcesTask$TaskAction
+.run(LinkApplicationAndroidResourcesTask.kt:
+463)
+	at com.android.build.gradle.internal.profil
+e.ProfileAwareWorkAction.execute(ProfileAwar
+eWorkAction.kt:74)
+	at org.gradle.workers.internal.DefaultWorke
+rServer.execute(DefaultWorkerServer.java:68)
+	at org.gradle.workers.internal.NoIsolationW
+orkerFactory$1$1.create(NoIsolationWorkerFac
+tory.java:66)
+	at org.gradle.workers.internal.NoIsolationW
+orkerFactory$1$1.create(NoIsolationWorkerFac
+tory.java:62)
+	at org.gradle.internal.classloader.ClassLoa
+derUtils.executeInClassloader(ClassLoaderUti
+ls.java:100)
+	at org.gradle.workers.internal.NoIsolationW
+orkerFactory$1.lambda$execute$0(NoIsolationW
+orkerFactory.java:62)
+	at org.gradle.workers.internal.AbstractWork
+er$1.call(AbstractWorker.java:44)
+	at org.gradle.workers.internal.AbstractWork
+er$1.call(AbstractWorker.java:41)
+	at org.gradle.internal.operations.DefaultBu
+ildOperationRunner$CallableBuildOperationWor
+ker.execute(DefaultBuildOperationRunner.java
+:209)
+	at org.gradle.internal.operations.DefaultBu
+ildOperationRunner$CallableBuildOperationWor
+ker.execute(DefaultBuildOperationRunner.java
+:204)
+	at org.gradle.internal.operations.DefaultBu
+ildOperationRunner$2.execute(DefaultBuildOpe
+rationRunner.java:66)
+	at org.gradle.internal.operations.DefaultBu
+ildOperationRunner$2.execute(DefaultBuildOpe
+rationRunner.java:59)
+	at org.gradle.internal.operations.DefaultBu
+ildOperationRunner.execute(DefaultBuildOpera
+tionRunner.java:166)
+	at org.gradle.internal.operations.DefaultBu
+ildOperationRunner.execute(DefaultBuildOpera
+tionRunner.java:59)
+	at org.gradle.internal.operations.DefaultBu
+ildOperationRunner.call(DefaultBuildOperatio
+nRunner.java:53)
+	at org.gradle.workers.internal.AbstractWork
+er.executeWrappedInBuildOperation(AbstractWo
+rker.java:41)
+	at org.gradle.workers.internal.NoIsolationW
+orkerFactory$1.execute(NoIsolationWorkerFact
+ory.java:59)
+	at org.gradle.workers.internal.DefaultWorke
+rExecutor.lambda$submitWork$0(DefaultWorkerE
+xecutor.java:176)
+	at org.gradle.internal.work.DefaultConditio
+nalExecutionQueue$ExecutionRunner.runExecuti
+on(DefaultConditionalExecutionQueue.java:194
+)
+	at org.gradle.internal.work.DefaultConditio
+nalExecutionQueue$ExecutionRunner.access$700
+(DefaultConditionalExecutionQueue.java:127)
+	at org.gradle.internal.work.DefaultConditio
+nalExecutionQueue$ExecutionRunner$1.run(Defa
+ultConditionalExecutionQueue.java:169)
+	at org.gradle.internal.Factories$1.create(F
+actories.java:31)
+	at org.gradle.internal.work.DefaultWorkerLe
+aseService.withLocks(DefaultWorkerLeaseServi
+ce.java:263)
+	at org.gradle.internal.work.DefaultWorkerLe
+aseService.runAsWorkerThread(DefaultWorkerLe
+aseService.java:127)
+	at org.gradle.internal.work.DefaultWorkerLe
+aseService.runAsWorkerThread(DefaultWorkerLe
+aseService.java:132)
+	at org.gradle.internal.work.DefaultConditio
+nalExecutionQueue$ExecutionRunner.runBatch(D
+efaultConditionalExecutionQueue.java:164)
+	at org.gradle.internal.work.DefaultConditio
+nalExecutionQueue$ExecutionRunner.run(Defaul
+tConditionalExecutionQueue.java:133)
+	... 2 more
+	Suppressed: 
+java.util.NoSuchElementException: Unable to 
+get absolute path from com.dearmoon.shield.r
+ansim.app-mergeDebugResources-30:/layout/ove
+rlay_locker.xml
+                       because com.dearmoon.
+shield.ransim.app-mergeDebugResources-30 is 
+not key in sourceSetPathMap.
+		at com.android.ide.common.resources.Relati
+veResourceUtils$relativeResourcePathToAbsolu
+tePath$1.invoke(RelativeResourceUtils.kt:91)
+		at com.android.ide.common.resources.Relati
+veResourceUtils$relativeResourcePathToAbsolu
+tePath$1.invoke(RelativeResourceUtils.kt:68)
+		at com.android.ide.common.resources.Relati
+veResourceUtils.relativeResourcePathToAbsolu
+tePath(RelativeResourceUtils.kt:61)
+		at com.android.ide.common.blame.parser.aap
+t.Aapt2ErrorParser$MessageParser.parse(Aapt2
+ErrorParser.kt:124)
+		at com.android.ide.common.blame.parser.aap
+t.Aapt2ErrorParser.parse(Aapt2ErrorParser.kt
+:99)
+		at com.android.ide.common.blame.parser.aap
+t.Aapt2OutputParser.parse(Aapt2OutputParser.
+java:56)
+		at com.android.ide.common.blame.parser.Too
+lOutputParser.parseToolOutput(ToolOutputPars
+er.java:84)
+		at com.android.build.gradle.internal.res.A
+apt2ErrorUtils.rewriteException(Aapt2ErrorUt
+ils.kt:219)
+		at com.android.build.gradle.internal.res.A
+apt2ErrorUtils.rewriteLinkException(Aapt2Err
+orUtils.kt:133)
+		at com.android.build.gradle.internal.res.A
+apt2ProcessResourcesRunnableKt.processResour
+ces(Aapt2ProcessResourcesRunnable.kt:76)
+		at com.android.build.gradle.internal.res.L
+inkApplicationAndroidResourcesTask$Companion
+.invokeAaptForSplit(LinkApplicationAndroidRe
+sourcesTask.kt:1060)
+		at com.android.build.gradle.internal.res.L
+inkApplicationAndroidResourcesTask$Companion
+.access$invokeAaptForSplit(LinkApplicationAn
+droidResourcesTask.kt:886)
+29 actionable tasks: 4 executed, 25 up-to-date
+Watched directory hierarchies: [C:\Users\gokul D\SHIELD-1\RansomwareSimulator\ransim]
+		at com.android.build.gradle.internal.res.L
+inkApplicationAndroidResourcesTask$TaskActio
+n.run(LinkApplicationAndroidResourcesTask.kt
+:463)
+		at com.android.build.gradle.internal.profi
+le.ProfileAwareWorkAction.execute(ProfileAwa
+reWorkAction.kt:74)
+		at org.gradle.workers.internal.DefaultWork
+erServer.execute(DefaultWorkerServer.java:68
+)
+		at org.gradle.workers.internal.NoIsolation
+WorkerFactory$1$1.create(NoIsolationWorkerFa
+ctory.java:66)
+		at org.gradle.workers.internal.NoIsolation
+WorkerFactory$1$1.create(NoIsolationWorkerFa
+ctory.java:62)
+		at org.gradle.internal.classloader.ClassLo
+aderUtils.executeInClassloader(ClassLoaderUt
+ils.java:100)
+		at org.gradle.workers.internal.NoIsolation
+WorkerFactory$1.lambda$execute$0(NoIsolation
+WorkerFactory.java:62)
+		at org.gradle.workers.internal.AbstractWor
+ker$1.call(AbstractWorker.java:44)
+		at org.gradle.workers.internal.AbstractWor
+ker$1.call(AbstractWorker.java:41)
+		at org.gradle.internal.operations.DefaultB
+uildOperationRunner$CallableBuildOperationWo
+rker.execute(DefaultBuildOperationRunner.jav
+a:209)
+		at org.gradle.internal.operations.DefaultB
+uildOperationRunner$CallableBuildOperationWo
+rker.execute(DefaultBuildOperationRunner.jav
+a:204)
+		at org.gradle.internal.operations.DefaultB
+uildOperationRunner$2.execute(DefaultBuildOp
+erationRunner.java:66)
+		at org.gradle.internal.operations.DefaultB
+uildOperationRunner$2.execute(DefaultBuildOp
+erationRunner.java:59)
+		at org.gradle.internal.operations.DefaultB
+uildOperationRunner.execute(DefaultBuildOper
+ationRunner.java:166)
+		at org.gradle.internal.operations.DefaultB
+uildOperationRunner.execute(DefaultBuildOper
+ationRunner.java:59)
+		at org.gradle.internal.operations.DefaultB
+uildOperationRunner.call(DefaultBuildOperati
+onRunner.java:53)
+		at org.gradle.workers.internal.AbstractWor
+ker.executeWrappedInBuildOperation(AbstractW
+orker.java:41)
+		at org.gradle.workers.internal.NoIsolation
+WorkerFactory$1.execute(NoIsolationWorkerFac
+tory.java:59)
+		at org.gradle.workers.internal.DefaultWork
+erExecutor.lambda$submitWork$0(DefaultWorker
+Executor.java:176)
+		at java.base/java.util.concurrent.FutureTa
+sk.run(FutureTask.java:264)
+		at org.gradle.internal.work.DefaultConditi
+onalExecutionQueue$ExecutionRunner.runExecut
+ion(DefaultConditionalExecutionQueue.java:19
+4)
+		at org.gradle.internal.work.DefaultConditi
+onalExecutionQueue$ExecutionRunner.access$70
+0(DefaultConditionalExecutionQueue.java:127)
+		at org.gradle.internal.work.DefaultConditi
+onalExecutionQueue$ExecutionRunner$1.run(Def
+aultConditionalExecutionQueue.java:169)
+		at org.gradle.internal.Factories$1.create(
+Factories.java:31)
+		at org.gradle.internal.work.DefaultWorkerL
+easeService.withLocks(DefaultWorkerLeaseServ
+ice.java:263)
+		at org.gradle.internal.work.DefaultWorkerL
+easeService.runAsWorkerThread(DefaultWorkerL
+easeService.java:127)
+		at org.gradle.internal.work.DefaultWorkerL
+easeService.runAsWorkerThread(DefaultWorkerL
+easeService.java:132)
+		at org.gradle.internal.work.DefaultConditi
+onalExecutionQueue$ExecutionRunner.runBatch(
+DefaultConditionalExecutionQueue.java:164)
+		at org.gradle.internal.work.DefaultConditi
+onalExecutionQueue$ExecutionRunner.run(Defau
+ltConditionalExecutionQueue.java:133)
+		at java.base/java.util.concurrent.Executor
+s$RunnableAdapter.call(Executors.java:539)
+		at java.base/java.util.concurrent.FutureTa
+sk.run(FutureTask.java:264)
+		at org.gradle.internal.concurrent.Executor
+Policy$CatchAndRecordFailures.onExecute(Exec
+utorPolicy.java:64)
+		at org.gradle.internal.concurrent.Abstract
+ManagedExecutor$1.run(AbstractManagedExecuto
+r.java:47)
+		at java.base/java.util.concurrent.ThreadPo
+olExecutor.runWorker(ThreadPoolExecutor.java
+:1136)
+		at java.base/java.util.concurrent.ThreadPo
+olExecutor$Worker.run(ThreadPoolExecutor.jav
+a:635)
+		at java.base/java.lang.Thread.run(Thread.j
+ava:842)
+
+
+BUILD FAILED in 19s

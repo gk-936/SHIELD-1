@@ -19,10 +19,9 @@ import java.io.File;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import com.dearmoon.shield.detection.PackageAttributor;
+import com.dearmoon.shield.security.PersistenceAuditor;
 
 public class UnifiedDetectionEngine {
     private static final String TAG = "UnifiedDetectionEngine";
@@ -91,24 +90,21 @@ public class UnifiedDetectionEngine {
 
     private void analyzeFileEvent(FileSystemEvent event) {
         try {
-            String operation = event.toJSON().optString("operation", "");
-            String filePath = event.toJSON().optString("filePath", "");
+            String operation = event.getOperation();
+            String filePath = event.getFilePath();
 
             Log.d(TAG, "Analyzing file event: " + operation + " on " + filePath);
 
-            // Resolve the UID of the process that modified this file using three strategies
-            // in priority order:
-            //   1. Path-based attribution: parse /data/data/<pkg>/ or /data/user/N/<pkg>/ to
-            //      determine the owning package deterministically via PackageManager.
-            //   2. Shared-storage path attribution: parse Android/data/<pkg>/ prefix from
-            //      /sdcard/ or /storage/emulated/N/ paths.
-            //   3. Foreground-process heuristic: query ActivityManager for the current
-            //      foreground non-SHIELD process as a time-correlated best guess.
-            // Returns -1 (unattributed) if none of the above yields a confident answer.
-            // LIMITATION: FileObserver does not expose the writing PID/UID at the kernel
-            // level. Attribution for files in arbitrary shared-storage locations without a
-            // package-name path segment is inherently ambiguous without root or eBPF.
-            int attributedUid = resolveAttributionUid(filePath);
+            // Resolve the UID of the process that modified this file.
+            // PRIORITY:
+            //   1. Kernel-provided UID (Mode A): If eBPF telemetry is active, the UID is
+            //      captured directly from the syscall. This is 100% accurate.
+            //   2. Path-based attribution (Fallback): Parse /data/data/<pkg>/ etc.
+            //   3. Foreground-process heuristic (Fallback): Correlate with current activities.
+            int attributedUid = event.getUid();
+            if (attributedUid == -1) {
+                attributedUid = attributor.resolveUidFromPath(filePath);
+            }
             CorrelationResult correlation = correlationEngine.correlateFileEvent(
                 filePath, event.getTimestamp(), attributedUid,
                 sprtDetector.getLastResetTimestamp());  // M-02: bound file query by SPRT reset
@@ -143,7 +139,7 @@ public class UnifiedDetectionEngine {
                 // Cap delta to avoid massive drift if service was suspended
                 sprtDetector.recordTimePassed(Math.min(deltaSeconds, 5.0));
             }
-            sprtDetector.recordEvent();
+            sprtDetector.recordEvent(correlation.getCriContribution());
             lastEventTimestamp = currentTime;
 
             // Update modification rate for legacy monitoring
@@ -348,113 +344,6 @@ public class UnifiedDetectionEngine {
     // Process Attribution
     // -------------------------------------------------------------------------
 
-    /**
-     * Attempt to identify the UID of the process responsible for a file event.
-     *
-     * <p>Strategy 1 — private storage path parsing: paths under /data/data/<pkg>/ or
-     * /data/user/N/<pkg>/ encode the owning package name directly. This is deterministic
-     * and covers the most common ransomware attack surface (app-private or downloaded
-     * files staged in app directories).
-     *
-     * <p>Strategy 2 — shared-storage subdirectory parsing: paths that contain the
-     * segment Android/data/<pkg>/ or Android/obb/<pkg>/ expose the package name
-     * regardless of which storage volume they sit on.
-     *
-     * <p>Strategy 3 — foreground process heuristic: if neither path pattern matched,
-     * the foreground non-SHIELD app at event time is the most likely candidate. This
-     * is a heuristic and will be wrong for background writers, but is far more accurate
-     * than returning SHIELD's own UID.
-     *
-     * <p>Returns -1 when no confident attribution is possible (unattributed event).
-     */
-    private int resolveAttributionUid(String filePath) {
-        if (filePath == null) return -1;
-
-        // --- Strategy 1: app-private storage ---
-        String pkg = extractPackageFromPrivatePath(filePath);
-        if (pkg != null) {
-            try {
-                ApplicationInfo ai = context.getPackageManager()
-                        .getApplicationInfo(pkg, 0);
-                Log.d(TAG, "Attribution(private-path): " + filePath + " → " + pkg
-                        + " uid=" + ai.uid);
-                return ai.uid;
-            } catch (PackageManager.NameNotFoundException e) {
-                Log.w(TAG, "Attribution: package '" + pkg + "' from path not found");
-            }
-        }
-
-        // --- Strategy 2: shared-storage Android/data or Android/obb segment ---
-        pkg = extractPackageFromSharedStoragePath(filePath);
-        if (pkg != null) {
-            try {
-                ApplicationInfo ai = context.getPackageManager()
-                        .getApplicationInfo(pkg, 0);
-                Log.d(TAG, "Attribution(shared-path): " + filePath + " → " + pkg
-                        + " uid=" + ai.uid);
-                return ai.uid;
-            } catch (PackageManager.NameNotFoundException e) {
-                Log.w(TAG, "Attribution: package '" + pkg + "' from shared path not found");
-            }
-        }
-
-        // --- Strategy 3: foreground process heuristic ---
-        try {
-            ActivityManager am = (ActivityManager)
-                    context.getSystemService(Context.ACTIVITY_SERVICE);
-            if (am != null) {
-                java.util.List<ActivityManager.RunningAppProcessInfo> procs =
-                        am.getRunningAppProcesses();
-                if (procs != null) {
-                    for (ActivityManager.RunningAppProcessInfo proc : procs) {
-                        if (proc.importance
-                                == ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND
-                                && !proc.processName.equals(context.getPackageName())) {
-                            Log.d(TAG, "Attribution(foreground-heuristic): "
-                                    + filePath + " → " + proc.processName
-                                    + " uid=" + proc.uid);
-                            return proc.uid;
-                        }
-                    }
-                }
-            }
-        } catch (Exception e) {
-            Log.w(TAG, "Attribution: foreground lookup failed", e);
-        }
-
-        // Unattributed — cannot determine writer without root or eBPF
-        Log.d(TAG, "Attribution(unresolved): " + filePath + " → uid=-1");
-        return -1;
-    }
-
-    /**
-     * Extract the package name from an app-private storage path.
-     * Handles both /data/data/<pkg>/ and /data/user/<userId>/<pkg>/ layouts.
-     */
-    private String extractPackageFromPrivatePath(String filePath) {
-        // /data/data/<pkg>/...
-        Matcher m1 = Pattern.compile("^/data/data/([a-zA-Z][a-zA-Z0-9_.]+)/").matcher(filePath);
-        if (m1.find()) return m1.group(1);
-
-        // /data/user/<userId>/<pkg>/...
-        Matcher m2 = Pattern.compile("^/data/user/\\d+/([a-zA-Z][a-zA-Z0-9_.]+)/").matcher(filePath);
-        if (m2.find()) return m2.group(1);
-
-        return null;
-    }
-
-    /**
-     * Extract the package name from a shared-storage path that contains the
-     * Android/data/<pkg>/ or Android/obb/<pkg>/ directory segment.
-     * Covers /sdcard/Android/data/<pkg>/ and /storage/emulated/N/Android/data/<pkg>/.
-     */
-    private String extractPackageFromSharedStoragePath(String filePath) {
-        Matcher m = Pattern.compile(
-                "(?:/storage/emulated/\\d+|/sdcard)/Android/(?:data|obb)/([a-zA-Z][a-zA-Z0-9_.]+)/"
-        ).matcher(filePath);
-        if (m.find()) return m.group(1);
-        return null;
-    }
     
     private void triggerNetworkBlock() {
         android.content.Intent intent = new android.content.Intent("com.dearmoon.shield.EMERGENCY_MODE");
@@ -473,6 +362,9 @@ public class UnifiedDetectionEngine {
         // Execute full kill sequence on the provided executor (background thread by default)
         killExecutor.execute(() -> {
             Log.w(TAG, "Initiating 4-layer kill sequence for " + packageName + " (pid: " + pid + ")");
+
+            // Persistence audit: lockers often register BOOT_COMPLETED to restart on reboot.
+            PersistenceAuditor.auditBootPersistence(context, packageName);
 
             // Layer 1: Accessibility Navigation (UI Escape)
             attemptAccessibilityKill(packageName);
@@ -689,7 +581,7 @@ public class UnifiedDetectionEngine {
                 androidx.core.app.NotificationCompat.Builder builder = new androidx.core.app.NotificationCompat.Builder(context, "shield_alerts")
                     .setSmallIcon(android.R.drawable.ic_dialog_alert)
                     .setContentTitle("⚠️ RANSOMWARE BLOCKED")
-                    .setContentText("Malicious process terminated. Recovering data for: " + (filePath != null ? new File(filePath).getName() : "Unknown"))
+                    .setContentText("Malicious process terminated. Recovering data for: " + basenameForDisplay(filePath))
                     .setPriority(androidx.core.app.NotificationCompat.PRIORITY_MAX)
                     .setCategory(androidx.core.app.NotificationCompat.CATEGORY_ALARM)
                     .setAutoCancel(true)
@@ -700,5 +592,12 @@ public class UnifiedDetectionEngine {
         } catch (Exception e) {
             Log.e(TAG, "Failed to post high risk system notification", e);
         }
+    }
+
+    private static String basenameForDisplay(String pathOrUriOrRel) {
+        if (pathOrUriOrRel == null || pathOrUriOrRel.isEmpty()) return "Unknown";
+        int slash = pathOrUriOrRel.lastIndexOf('/');
+        String base = slash >= 0 ? pathOrUriOrRel.substring(slash + 1) : pathOrUriOrRel;
+        return base.isEmpty() ? "Unknown" : base;
     }
 }

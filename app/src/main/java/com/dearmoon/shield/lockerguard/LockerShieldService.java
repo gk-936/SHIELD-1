@@ -14,6 +14,9 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.WindowManager;
 import android.view.accessibility.AccessibilityEvent;
+import android.view.accessibility.AccessibilityNodeInfo;
+import android.view.accessibility.AccessibilityWindowInfo;
+import android.graphics.Rect;
 import android.widget.Button;
 import android.widget.TextView;
 import com.dearmoon.shield.R;
@@ -74,6 +77,13 @@ public class LockerShieldService extends AccessibilityService {
             case AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED:
                 handleWindowStateChange(packageName, event, now);
                 break;
+
+            // Critical for overlay-style lockers: fires when windows are added/removed.
+            // The service config enables this event type; handle it explicitly so it's not ignored.
+            case AccessibilityEvent.TYPE_WINDOWS_CHANGED:
+                handleWindowStateChange(packageName, event, now);
+                inspectWindowStackForOverlays(now);
+                break;
                 
             case AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED:
                 handleWindowContentChange(packageName, now);
@@ -123,6 +133,78 @@ public class LockerShieldService extends AccessibilityService {
         
         lastForegroundPackage = packageName;
         lastFocusTime = now;
+    }
+
+    /**
+     * Detects non-focusable full-screen overlays by inspecting the accessibility window stack.
+     *
+     * RanSim's locker uses TYPE_APPLICATION_OVERLAY with FLAG_NOT_FOCUSABLE, which often does not
+     * steal focus; in that case, focus-based heuristics won't attribute events to the overlay app.
+     *
+     * With flagRetrieveInteractiveWindows enabled, getWindows() returns a snapshot of on-screen
+     * windows. We look for a topmost full-screen window whose root package is a non-whitelisted app.
+     */
+    private void inspectWindowStackForOverlays(long now) {
+        try {
+            java.util.List<AccessibilityWindowInfo> windows = getWindows();
+            if (windows == null || windows.isEmpty()) return;
+
+            Rect screen = new Rect();
+            try {
+                android.view.Display d = (windowManager != null) ? windowManager.getDefaultDisplay() : null;
+                if (d != null) {
+                    android.graphics.Point p = new android.graphics.Point();
+                    d.getRealSize(p);
+                    screen.set(0, 0, p.x, p.y);
+                } else {
+                    int w = getResources().getDisplayMetrics().widthPixels;
+                    int h = getResources().getDisplayMetrics().heightPixels;
+                    screen.set(0, 0, w, h);
+                }
+            } catch (Exception e) {
+                int w = getResources().getDisplayMetrics().widthPixels;
+                int h = getResources().getDisplayMetrics().heightPixels;
+                screen.set(0, 0, w, h);
+            }
+
+            // Iterate from topmost to bottommost (Android generally orders windows back-to-front).
+            for (int i = windows.size() - 1; i >= 0; i--) {
+                AccessibilityWindowInfo w = windows.get(i);
+                if (w == null) continue;
+
+                int type = w.getType();
+                // Ignore our own overlays and regular app windows; we’re hunting overlay-ish windows.
+                if (type == AccessibilityWindowInfo.TYPE_ACCESSIBILITY_OVERLAY) continue;
+
+                AccessibilityNodeInfo root = w.getRoot();
+                if (root == null || root.getPackageName() == null) continue;
+                String pkg = root.getPackageName().toString();
+                if (pkg == null || pkg.isEmpty()) continue;
+                if (whitelistManager.isWhitelisted(pkg)) continue;
+                if (pkg.equals(getPackageName())) continue;
+
+                Rect bounds = new Rect();
+                w.getBoundsInScreen(bounds);
+
+                // Consider "fullscreen" if it covers ≥ 90% of screen area.
+                long screenArea = (long) screen.width() * (long) screen.height();
+                long winArea = (long) bounds.width() * (long) bounds.height();
+                if (screenArea <= 0) continue;
+                if (winArea < (screenArea * 9L) / 10L) continue;
+
+                // Many overlays surface as TYPE_SYSTEM; we accept any type except accessibility overlay.
+                int score = riskEvaluator.evaluateRisk(pkg, "FULLSCREEN_WINDOW_STACK");
+                logThreat(pkg, "FULLSCREEN_WINDOW_STACK", score,
+                        "Topmost fullscreen window detected (type=" + type + ", bounds=" + bounds + ")");
+                if (riskEvaluator.isThresholdExceeded(pkg)) {
+                    triggerEmergencyResponse(pkg, score);
+                }
+                // Only act on the topmost suspicious window.
+                return;
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "Window stack inspection failed", e);
+        }
     }
 
     private void handleWindowContentChange(String packageName, long now) {

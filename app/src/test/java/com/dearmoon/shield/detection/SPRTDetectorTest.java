@@ -9,7 +9,7 @@ import static org.junit.Assert.*;
  * Unit tests for {@link SPRTDetector}.
  *
  * Key behaviours under test:
- *   1. Min-sample guard (MIN_SAMPLES_FOR_H1 = 10) — no single-event false trigger.
+ *   1. Min-sample guard (MIN_SAMPLES_FOR_H1 = 5) — no single-event false trigger.
  *   2. H0 acceptance when the rate is slow.
  *   3. H1 acceptance only after enough rapid events.
  *   4. Time-decay (recordTimePassed) moves LLR toward H0.
@@ -55,23 +55,25 @@ public class SPRTDetectorTest {
         // log(λ1/λ0) = log(15.0/0.1) = log(150) ≈ 5.01
         // log(B) = log((1-β)/α) = log(0.95/0.05) = log(19) ≈ 2.94
         // Without the guard, 5.01 > 2.94 would fire H1 on event #1.
-        detector.recordEvent();
+        detector.recordEvent(1.0);
         assertNotEquals("Single event must NOT result in ACCEPT_H1 (min-sample guard)",
                 SPRTDetector.SPRTState.ACCEPT_H1, detector.getCurrentState());
     }
 
     @Test
-    public void twoEvents_doNotTriggerH1() {
-        detector.recordEvent();
-        detector.recordEvent();
-        assertNotEquals("Two events must not trigger H1 — guard requires at least 10",
+    public void fourEvents_doNotTriggerH1() {
+        detector.recordEvent(1.0);
+        detector.recordEvent(1.0);
+        detector.recordEvent(1.0);
+        detector.recordEvent(1.0);
+        assertNotEquals("4 events must not trigger H1 — guard requires at least 5",
                 SPRTDetector.SPRTState.ACCEPT_H1, detector.getCurrentState());
     }
 
     @Test
-    public void nineEvents_doNotTriggerH1() {
-        for (int i = 0; i < 9; i++) detector.recordEvent();
-        assertNotEquals("9 events should still be below MIN_SAMPLES_FOR_H1 (= 10)",
+    public void fiveRapidEvents_triggerH1() {
+        for (int i = 0; i < 5; i++) detector.recordEvent(1.0);
+        assertEquals("5 rapid events (no decay) must accept H1",
                 SPRTDetector.SPRTState.ACCEPT_H1, detector.getCurrentState());
     }
 
@@ -81,15 +83,14 @@ public class SPRTDetectorTest {
 
     @Test
     public void tenRapidEvents_triggerH1() {
-        // Fire 10 events with NO time decay → LLR = 10 × log(50) ≈ 39.1 >> log(19)
-        for (int i = 0; i < 10; i++) detector.recordEvent();
+        for (int i = 0; i < 10; i++) detector.recordEvent(1.0);
         assertEquals("10 rapid events (no decay) must accept H1",
                 SPRTDetector.SPRTState.ACCEPT_H1, detector.getCurrentState());
     }
 
     @Test
     public void fiftyRapidEvents_stayH1() {
-        for (int i = 0; i < 50; i++) detector.recordEvent();
+        for (int i = 0; i < 50; i++) detector.recordEvent(1.0);
         assertEquals("50 rapid events must remain at ACCEPT_H1",
                 SPRTDetector.SPRTState.ACCEPT_H1, detector.getCurrentState());
     }
@@ -113,7 +114,7 @@ public class SPRTDetectorTest {
     public void oneSecondQuiet_afterOneBurst_remainsContinue() {
         // Single event raises LLR by log(150) ≈ 5.01; 1 second quiet decays by (0.1-15.0)×1 = -14.9
         // Final LLR ≈ -9.89 < log(A) ≈ -2.94 → ACCEPT_H0
-        detector.recordEvent();
+        detector.recordEvent(1.0);
         detector.recordTimePassed(1.0);
         // We only assert it did NOT flip to H1 (one event + heavy decay)
         assertNotEquals("After one event and 1s decay, must not be ACCEPT_H1",
@@ -127,15 +128,15 @@ public class SPRTDetectorTest {
     @Test
     public void recordEvent_incrementsLLR() {
         double before = detector.getLogLikelihoodRatio();
-        detector.recordEvent();
+        detector.recordEvent(1.0);
         double after = detector.getLogLikelihoodRatio();
-        assertTrue("recordEvent() must increase LLR", after > before);
+        assertTrue("recordEvent(1.0) must increase LLR", after > before);
     }
 
     @Test
     public void recordTimePassed_decreasesLLR() {
         // Inject some LLR to start above 0
-        detector.recordEvent();
+        detector.recordEvent(1.0);
         double before = detector.getLogLikelihoodRatio();
         detector.recordTimePassed(0.5); // decay: (0.1 - 15.0) × 0.5 = -7.45
         double after = detector.getLogLikelihoodRatio();
@@ -145,9 +146,9 @@ public class SPRTDetectorTest {
     @Test
     public void sampleCount_incrementsOnEachEvent() {
         assertEquals(0, detector.getSampleCount());
-        detector.recordEvent();
+        detector.recordEvent(1.0);
         assertEquals(1, detector.getSampleCount());
-        detector.recordEvent();
+        detector.recordEvent(1.0);
         assertEquals(2, detector.getSampleCount());
     }
 
@@ -157,7 +158,7 @@ public class SPRTDetectorTest {
 
     @Test
     public void reset_restoresInitialState() {
-        for (int i = 0; i < 20; i++) detector.recordEvent(); // force H1
+        for (int i = 0; i < 20; i++) detector.recordEvent(1.0); // force H1
         detector.reset();
 
         assertEquals("After reset, state must be CONTINUE",
@@ -198,7 +199,7 @@ public class SPRTDetectorTest {
     @Test
     public void fullCycle_burstThenQuiet_thenReset() {
         // Burst → H1
-        for (int i = 0; i < 10; i++) detector.recordEvent();
+        for (int i = 0; i < 10; i++) detector.recordEvent(1.0);
         assertEquals(SPRTDetector.SPRTState.ACCEPT_H1, detector.getCurrentState());
 
         // Reset (as done by UnifiedDetectionEngine on H0)
@@ -219,14 +220,13 @@ public class SPRTDetectorTest {
 
     @Test
     public void exactlyMinSamples_triggersH1_ifLlrAboveBoundary() {
-        // Each event adds log(150) ≈ 5.01; after 10 events LLR ≈ 50.1 >> log(19) ≈ 2.94
-        // So the 10th event is the first one that can trigger H1.
-        for (int i = 0; i < 9; i++) detector.recordEvent();
-        assertNotEquals("9 events should not be H1", SPRTDetector.SPRTState.ACCEPT_H1,
+        // After 5 events LLR ≈ 5 * 1.06 ≈ 5.3 >> log(19) ≈ 2.94
+        for (int i = 0; i < 4; i++) detector.recordEvent(1.0);
+        assertNotEquals("4 events should not be H1", SPRTDetector.SPRTState.ACCEPT_H1,
                 detector.getCurrentState());
 
-        detector.recordEvent(); // 10th event
-        assertEquals("10th event (MIN_SAMPLES_FOR_H1) should trigger H1",
+        detector.recordEvent(1.0); // 5th event
+        assertEquals("5th event (MIN_SAMPLES_FOR_H1) should trigger H1",
                 SPRTDetector.SPRTState.ACCEPT_H1, detector.getCurrentState());
     }
 
@@ -242,7 +242,7 @@ public class SPRTDetectorTest {
 
         for (int t = 0; t < threadCount; t++) {
             threads[t] = new Thread(() -> {
-                for (int i = 0; i < eventsEach; i++) detector.recordEvent();
+                for (int i = 0; i < eventsEach; i++) detector.recordEvent(1.0);
             });
         }
 

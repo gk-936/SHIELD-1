@@ -14,7 +14,7 @@ public class SPRTDetector {
      * Raised to 10 (from 3) as a conservative guard until empirical baseline
      * measurement has been performed across real devices. See H-03 in fix report.
      */
-    private static final int MIN_SAMPLES_FOR_H1 = 10;
+    private static final int MIN_SAMPLES_FOR_H1 = 5;
     
     private double logLikelihoodRatio = 0.0;
     private int sampleCount = 0;
@@ -22,10 +22,11 @@ public class SPRTDetector {
     // M-02: Track reset boundary so BehaviorCorrelationEngine can exclude pre-reset events
     private long lastResetTimestamp = System.currentTimeMillis();
     private int epoch = 0;
+    private double cumulativeRisk = 0.0;
 
     // Thresholds for file modification rate
-    private static final double NORMAL_RATE = 0.1;     // H₀: 0.1 files/sec (typical idle)
-    private static final double RANSOMWARE_RATE = 15.0; // H₁: 15 files/sec (calibrated on real ransomware bursts)
+    private static final double NORMAL_RATE     = 0.0265;
+    private static final double RANSOMWARE_RATE = 0.0766;
 
     public enum SPRTState {
         CONTINUE,
@@ -37,8 +38,9 @@ public class SPRTDetector {
      * Records a single event arrival.
      * Increments log-likelihood ratio by log(λ₁/λ₀).
      */
-    public synchronized void recordEvent() {
-        logLikelihoodRatio += Math.log(RANSOMWARE_RATE / NORMAL_RATE);
+    public synchronized void recordEvent(double riskWeight) {
+        logLikelihoodRatio += riskWeight * Math.log(RANSOMWARE_RATE / NORMAL_RATE);
+        cumulativeRisk += riskWeight;
         sampleCount++;
         updateState();
         // H-03: Debug telemetry to help measure baseline on real devices
@@ -46,6 +48,7 @@ public class SPRTDetector {
             android.util.Log.d("SPRTDetector",
                 "SPRT_METRIC samples=" + sampleCount
                 + " llr=" + String.format(java.util.Locale.US, "%.4f", logLikelihoodRatio)
+                + " cri=" + String.format(java.util.Locale.US, "%.4f", riskWeight)
                 + " state=" + currentState);
         }
     }
@@ -75,7 +78,7 @@ public class SPRTDetector {
     @Deprecated
     public synchronized SPRTState addObservation(double fileModificationRate) {
         // Legacy method for compatibility - now implements correct math for 1s window
-        recordEvent(); // This is not quite right for the old API but we are moving away from it
+        recordEvent(1.0); // This is not quite right for the old API but we are moving away from it
         recordTimePassed(1.0);
         return currentState;
     }

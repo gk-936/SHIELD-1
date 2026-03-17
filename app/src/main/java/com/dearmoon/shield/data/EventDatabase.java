@@ -14,7 +14,7 @@ import java.util.List;
 public class EventDatabase extends SQLiteOpenHelper {
     private static final String TAG = "EventDatabase";
     private static final String DATABASE_NAME = "shield_events.db";
-    private static final int DATABASE_VERSION = 5;
+    private static final int DATABASE_VERSION = 6;
 
     private static EventDatabase instance;
     private final Context context;
@@ -58,6 +58,10 @@ public class EventDatabase extends SQLiteOpenHelper {
             COL_EVENT_TYPE + " TEXT NOT NULL, " +
             "operation TEXT, " +
             "file_path TEXT, " +
+            "resolved_path TEXT, " +
+            "file_uri TEXT, " +
+            "display_name TEXT, " +
+            "relative_path TEXT, " +
             "file_extension TEXT, " +
             "file_size_before INTEGER, " +
             "file_size_after INTEGER, " +
@@ -188,6 +192,16 @@ public class EventDatabase extends SQLiteOpenHelper {
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
         Log.w(TAG, "Upgrading database from version " + oldVersion + " to " + newVersion);
 
+        // v5 -> v6: add MediaStore/scoped-storage columns for file system events
+        if (oldVersion < 6) {
+            addColumnSafe(db, TABLE_FILE_SYSTEM, "resolved_path", "TEXT");
+            addColumnSafe(db, TABLE_FILE_SYSTEM, "file_uri", "TEXT");
+            addColumnSafe(db, TABLE_FILE_SYSTEM, "display_name", "TEXT");
+            addColumnSafe(db, TABLE_FILE_SYSTEM, "relative_path", "TEXT");
+            Log.i(TAG, "Migrated to v6: added file_uri/display_name/relative_path/resolved_path columns");
+            if (oldVersion == 5) return;
+        }
+
         // Non-destructive migration: add dna_profiles table for v4 -> v5 (Incident feature)
         if (oldVersion < 5) {
             db.execSQL("CREATE TABLE IF NOT EXISTS dna_profiles (" +
@@ -254,6 +268,14 @@ public class EventDatabase extends SQLiteOpenHelper {
         onCreate(db);
     }
 
+    private void addColumnSafe(SQLiteDatabase db, String table, String column, String type) {
+        // SQLite only supports ADD COLUMN without IF NOT EXISTS on many Android builds.
+        // We treat "duplicate column name" as success to keep migrations idempotent.
+        try {
+            db.execSQL("ALTER TABLE " + table + " ADD COLUMN " + column + " " + type);
+        } catch (Exception ignored) { }
+    }
+
     @Override
     public void onOpen(SQLiteDatabase db) {
         super.onOpen(db);
@@ -273,6 +295,10 @@ public class EventDatabase extends SQLiteOpenHelper {
             JSONObject json = event.toJSON();
             values.put("operation", json.optString("operation"));
             values.put("file_path", json.optString("filePath"));
+            values.put("resolved_path", json.optString("resolvedPath", null));
+            values.put("file_uri", json.optString("fileUri", null));
+            values.put("display_name", json.optString("displayName", null));
+            values.put("relative_path", json.optString("relativePath", null));
             values.put("file_extension", json.optString("fileExtension"));
             values.put("file_size_before", json.optLong("fileSizeBefore"));
             values.put("file_size_after", json.optLong("fileSizeAfter"));
@@ -374,17 +400,20 @@ public class EventDatabase extends SQLiteOpenHelper {
             // Use SQL UNION with explicit column selection for efficiency
             String query = "SELECT timestamp, 'FILE_SYSTEM' as eventType, operation, file_path, file_extension, file_size_after, " +
                     "NULL as access_type, uid as calling_uid, package_name, app_label, " +
-                    "NULL as destination_ip, NULL as destination_port, NULL as protocol, NULL as bytes_sent, NULL as bytes_received " +
+                    "NULL as destination_ip, NULL as destination_port, NULL as protocol, NULL as bytes_sent, NULL as bytes_received, " +
+                    "resolved_path, file_uri, display_name, relative_path " +
                     "FROM " + TABLE_FILE_SYSTEM +
                     " UNION ALL " +
                     "SELECT timestamp, 'HONEYFILE_ACCESS' as eventType, NULL, file_path, NULL, NULL, " +
                     "access_type, calling_uid, package_name, app_label, " +
-                    "NULL, NULL, NULL, NULL, NULL " +
+                    "NULL, NULL, NULL, NULL, NULL, " +
+                    "NULL, NULL, NULL, NULL " +
                     "FROM " + TABLE_HONEYFILE +
                     " UNION ALL " +
                     "SELECT timestamp, 'NETWORK' as eventType, NULL, NULL, NULL, NULL, " +
                     "NULL, app_uid as calling_uid, package_name, app_label, " +
-                    "destination_ip, destination_port, protocol, bytes_sent, bytes_received " +
+                    "destination_ip, destination_port, protocol, bytes_sent, bytes_received, " +
+                    "NULL, NULL, NULL, NULL " +
                     "FROM " + TABLE_NETWORK +
                     " ORDER BY timestamp DESC LIMIT " + limit;
             
@@ -429,6 +458,13 @@ public class EventDatabase extends SQLiteOpenHelper {
                     json.put("filePath", cursor.getString(3));
                     json.put("fileExtension", cursor.getString(4));
                     json.put("fileSizeAfter", cursor.getLong(5));
+                    // Optional v6 columns may not exist in older DBs / union query; guard by index
+                    if (cursor.getColumnCount() > 15) {
+                        json.put("resolvedPath", cursor.getString(15));
+                        json.put("fileUri", cursor.getString(16));
+                        json.put("displayName", cursor.getString(17));
+                        json.put("relativePath", cursor.getString(18));
+                    }
                 } else if ("HONEYFILE_ACCESS".equals(eventType)) {
                     json.put("filePath", cursor.getString(3));
                     json.put("accessType", cursor.getString(6));
@@ -480,11 +516,19 @@ public class EventDatabase extends SQLiteOpenHelper {
                         int pathIdx = cursor.getColumnIndex("file_path");
                         int extIdx = cursor.getColumnIndex("file_extension");
                         int sizeIdx = cursor.getColumnIndex("file_size_after");
+                        int resIdx = cursor.getColumnIndex("resolved_path");
+                        int uriIdx = cursor.getColumnIndex("file_uri");
+                        int nameIdx = cursor.getColumnIndex("display_name");
+                        int relIdx = cursor.getColumnIndex("relative_path");
                         
                         json.put("operation", opIdx >= 0 && !cursor.isNull(opIdx) ? cursor.getString(opIdx) : "UNKNOWN");
                         json.put("filePath", pathIdx >= 0 && !cursor.isNull(pathIdx) ? cursor.getString(pathIdx) : "Unknown");
                         json.put("fileExtension", extIdx >= 0 && !cursor.isNull(extIdx) ? cursor.getString(extIdx) : "N/A");
                         json.put("fileSizeAfter", sizeIdx >= 0 && !cursor.isNull(sizeIdx) ? cursor.getLong(sizeIdx) : 0);
+                        if (resIdx >= 0 && !cursor.isNull(resIdx)) json.put("resolvedPath", cursor.getString(resIdx));
+                        if (uriIdx >= 0 && !cursor.isNull(uriIdx)) json.put("fileUri", cursor.getString(uriIdx));
+                        if (nameIdx >= 0 && !cursor.isNull(nameIdx)) json.put("displayName", cursor.getString(nameIdx));
+                        if (relIdx >= 0 && !cursor.isNull(relIdx)) json.put("relativePath", cursor.getString(relIdx));
                     } else if ("HONEYFILE_ACCESS".equals(eventType)) {
                         int pathIdx = cursor.getColumnIndex("file_path");
                         int accessIdx = cursor.getColumnIndex("access_type");
@@ -559,6 +603,14 @@ public class EventDatabase extends SQLiteOpenHelper {
                     json.put("operation", cursor.getString(cursor.getColumnIndexOrThrow("operation")));
                     json.put("filePath", cursor.getString(cursor.getColumnIndexOrThrow("file_path")));
                     json.put("fileSizeAfter", cursor.getLong(cursor.getColumnIndexOrThrow("file_size_after")));
+                    int resIdx = cursor.getColumnIndex("resolved_path");
+                    int uriIdx = cursor.getColumnIndex("file_uri");
+                    int nameIdx = cursor.getColumnIndex("display_name");
+                    int relIdx = cursor.getColumnIndex("relative_path");
+                    if (resIdx >= 0 && !cursor.isNull(resIdx)) json.put("resolvedPath", cursor.getString(resIdx));
+                    if (uriIdx >= 0 && !cursor.isNull(uriIdx)) json.put("fileUri", cursor.getString(uriIdx));
+                    if (nameIdx >= 0 && !cursor.isNull(nameIdx)) json.put("displayName", cursor.getString(nameIdx));
+                    if (relIdx >= 0 && !cursor.isNull(relIdx)) json.put("relativePath", cursor.getString(relIdx));
                 } else if ("HONEYFILE_ACCESS".equals(eventType)) {
                     json.put("filePath", cursor.getString(cursor.getColumnIndexOrThrow("file_path")));
                     json.put("accessType", cursor.getString(cursor.getColumnIndexOrThrow("access_type")));

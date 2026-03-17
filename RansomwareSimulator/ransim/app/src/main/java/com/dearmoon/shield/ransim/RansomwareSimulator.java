@@ -62,6 +62,22 @@ public class RansomwareSimulator {
         }
     }
 
+    public void clearSandbox(File sandboxRoot, LogCallback log) {
+        if (sandboxRoot.exists()) {
+            deleteRecursive(sandboxRoot);
+            log.log("Sandbox cleared");
+        }
+    }
+
+    private void deleteRecursive(File fileOrDirectory) {
+        if (fileOrDirectory.isDirectory()) {
+            for (File child : fileOrDirectory.listFiles()) {
+                deleteRecursive(child);
+            }
+        }
+        fileOrDirectory.delete();
+    }
+
     private void createFileIfMissing(File f, String content) throws IOException {
         if (!f.exists()) {
             try (FileOutputStream fos = new FileOutputStream(f)) {
@@ -83,7 +99,9 @@ public class RansomwareSimulator {
             if (!dir.getName().endsWith(".enc") && !dir.getName().equals("RANSOM_NOTE.txt"))
                 files.add(dir);
         } else {
-            for (File f : dir.listFiles()) collectFilesRecursive(f, files);
+            File[] list = dir.listFiles();
+            if (list == null) return;
+            for (File f : list) collectFilesRecursive(f, files);
         }
     }
 

@@ -1,0 +1,1607 @@
+﻿Initialized native services in: C:\Users\gokul D\.gradle\native
+Initialized jansi services in: C:\Users\gokul D\.gradle\native
+The client will now receive all logging from the daemon (pid: 6056). The daemon log file: C:\Users\gokul D\.gradle\daemon\9.0.0\daemon-6056.out.log
+Starting 6th build in daemon [uptime: 16 mins 27.105 secs, performance: 99%, GC rate: 0.00/s, heap usage: 0% of 512 MiB, non-heap usage: 56% of 384 MiB]
+Using 12 worker leases.
+Now considering [C:\Users\gokul D\SHIELD-1\RansomwareSimulator\ransim] as hierarchies to watch
+Watching the file system is configured to be enabled if available
+File system watching is active
+Starting Build
+Settings evaluated using settings file 'C:\Users\gokul D\SHIELD-1\RansomwareSimulator\ransim\settings.gradle.kts'.
+Projects loaded. Root project using build file 'C:\Users\gokul D\SHIELD-1\RansomwareSimulator\ransim\build.gradle.kts'.
+Included projects: [root project 'SHIELD-RanSim', project ':app']
+
+> Configure project :
+Evaluating root project 'SHIELD-RanSim' using build file 'C:\Users\gokul D\SHIELD-1\RansomwareSimulator\ransim\build.gradle.kts'.
+Resolved plugin [id: 'com.android.application', version: '8.13.2', apply: false]
+Resolved plugin [id: 'org.jetbrains.kotlin.android', version: '2.0.21', apply: false]
+
+> Configure project :app
+Evaluating project ':app' using build file 'C:\Users\gokul D\SHIELD-1\RansomwareSimulator\ransim\app\build.gradle.kts'.
+Resolved plugin [id: 'com.android.application']
+Resolved plugin [id: 'org.jetbrains.kotlin.android']
+Using default execution profile
+Using Kotlin Gradle Plugin gradle85 variant
+All projects evaluated.
+Task name matched 'assembleDebug'
+Selected primary task 'assembleDebug' from project :
+Adding -Xuse-inline-scopes-numbers Kotlin compiler flag for task :app:compileDebugKotlin
+Tasks to be executed: [task ':app:preBuild', task ':app:preDebugBuild', task ':app:mergeDebugNativeDebugMetadata', task ':app:checkKotlinGradlePluginConfigurationErrors', task ':app:dataBindingMergeDependencyArtifactsDebug', task ':app:generateDebugResValues', task ':app:generateDebugResources', task ':app:mergeDebugResources', task ':app:packageDebugResources', task ':app:processDebugNavigationResources', task ':app:parseDebugLocalResources', task ':app:dataBindingGenBaseClassesDebug', task ':app:checkDebugAarMetadata', task ':app:compileDebugNavigationResources', task ':app:mapDebugSourceSetPaths', task ':app:createDebugCompatibleScreenManifests', task ':app:extractDeepLinksDebug', task ':app:processDebugMainManifest', task ':app:processDebugManifest', task ':app:processDebugManifestForPackage', task ':app:processDebugResources', task ':app:compileDebugKotlin', task ':app:javaPreCompileDebug', task ':app:compileDebugJavaWithJavac', task ':app:mergeDebugShaders', task ':app:compileDebugShaders', task ':app:generateDebugAssets', task ':app:mergeDebugAssets', task ':app:compressDebugAssets', task ':app:desugarDebugFileDependencies', task ':app:dexBuilderDebug', task ':app:mergeDebugGlobalSynthetics', task ':app:processDebugJavaRes', task ':app:mergeDebugJavaResource', task ':app:checkDebugDuplicateClasses', task ':app:mergeExtDexDebug', task ':app:mergeLibDexDebug', task ':app:mergeProjectDexDebug', task ':app:mergeDebugJniLibFolders', task ':app:mergeDebugNativeLibs', task ':app:stripDebugDebugSymbols', task ':app:validateSigningDebug', task ':app:writeDebugAppMetadata', task ':app:writeDebugSigningConfigVersions', task ':app:packageDebug', task ':app:createDebugApkListingFileRedirect', task ':app:assembleDebug']
+Tasks that were excluded: []
+Resolve mutations for :app:preBuild (Thread[Execution worker,5,main]) started.
+:app:preBuild (Thread[Execution worker,5,main]) started.
+
+> Task :app:preBuild UP-TO-DATE
+Skipping task ':app:preBuild' as it has no actions.
+Resolve mutations for :app:preDebugBuild (Thread[Execution worker,5,main]) started.
+:app:preDebugBuild (Thread[Execution worker Thread 10,5,main]) started.
+
+> Task :app:preDebugBuild UP-TO-DATE
+Skipping task ':app:preDebugBuild' as it has no actions.
+Resolve mutations for :app:mergeDebugNativeDebugMetadata (Thread[Execution worker Thread 10,5,main]) started.
+:app:mergeDebugNativeDebugMetadata (Thread[Execution worker Thread 10,5,main]) started.
+
+> Task :app:mergeDebugNativeDebugMetadata NO-SOURCE
+Skipping task ':app:mergeDebugNativeDebugMetadata' as it has no source files and no previous output files.
+Resolve mutations for :app:checkKotlinGradlePluginConfigurationErrors (Thread[Execution worker Thread 10,5,main]) started.
+:app:checkKotlinGradlePluginConfigurationErrors (Thread[Execution worker Thread 6,5,main]) started.
+
+> Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
+Skipping task ':app:checkKotlinGradlePluginConfigurationErrors' as task onlyIf 'errorDiagnostics are present' is false.
+Resolve mutations for :app:dataBindingMergeDependencyArtifactsDebug (Thread[Execution worker Thread 6,5,main]) started.
+:app:dataBindingMergeDependencyArtifactsDebug (Thread[Execution worker Thread 6,5,main]) started.
+
+> Task :app:dataBindingMergeDependencyArtifactsDebug UP-TO-DATE
+Caching disabled for task ':app:dataBindingMergeDependencyArtifactsDebug' because:
+  Build cache is disabled
+  Caching has been disabled for the task
+Skipping task ':app:dataBindingMergeDependencyArtifactsDebug' as it is up-to-date.
+Resolve mutations for :app:generateDebugResValues (Thread[Execution worker Thread 6,5,main]) started.
+:app:generateDebugResValues (Thread[Execution worker Thread 9,5,main]) started.
+
+> Task :app:generateDebugResValues UP-TO-DATE
+Caching disabled for task ':app:generateDebugResValues' because:
+  Build cache is disabled
+Skipping task ':app:generateDebugResValues' as it is up-to-date.
+Resolve mutations for :app:generateDebugResources (Thread[Execution worker Thread 9,5,main]) started.
+:app:generateDebugResources (Thread[Execution worker Thread 9,5,main]) started.
+
+> Task :app:generateDebugResources
+Caching disabled for task ':app:generateDebugResources' because:
+  Build cache is disabled
+Task ':app:generateDebugResources' is not up-to-date because:
+  Input property 'resources.$0.sourceDirectories' file C:\Users\gokul D\SHIELD-1\RansomwareSimulator\ransim\app\src\main\res\values\colors.xml has changed.
+Resolve mutations for :app:mergeDebugResources (Thread[Execution worker Thread 9,5,main]) started.
+:app:mergeDebugResources (Thread[Execution worker Thread 9,5,main]) started.
+Resolve mutations for :app:packageDebugResources (Thread[Execution worker Thread 6,5,main]) started.
+:app:packageDebugResources (Thread[Execution worker Thread 6,5,main]) started.
+
+> Task :app:packageDebugResources
+Caching disabled for task ':app:packageDebugResources' because:
+  Build cache is disabled
+Task ':app:packageDebugResources' is not up-to-date because:
+  Input property 'resourcesComputer.resources.main.sourceDirectories' file C:\Users\gokul D\SHIELD-1\RansomwareSimulator\ransim\app\src\main\res\values\colors.xml has changed.
+Resolve mutations for :app:processDebugNavigationResources (Thread[Execution worker Thread 6,5,main]) started.
+:app:processDebugNavigationResources (Thread[Execution worker Thread 6,5,main]) started.
+
+> Task :app:processDebugNavigationResources
+Caching disabled for task ':app:processDebugNavigationResources' because:
+  Build cache is disabled
+Task ':app:processDebugNavigationResources' is not up-to-date because:
+  Input property 'resources.$0.sourceDirectories' file C:\Users\gokul D\SHIELD-1\RansomwareSimulator\ransim\app\src\main\res\values\colors.xml has changed.
+Resolve mutations for :app:parseDebugLocalResources (Thread[Execution worker Thread 6,5,main]) started.
+:app:parseDebugLocalResources (Thread[Execution worker Thread 6,5,main]) started.
+Resolve mutations for :app:checkDebugAarMetadata (Thread[Execution worker Thread 4,5,main]) started.
+:app:checkDebugAarMetadata (Thread[Execution worker Thread 4,5,main]) started.
+
+> Task :app:checkDebugAarMetadata UP-TO-DATE
+Caching disabled for task ':app:checkDebugAarMetadata' because:
+  Build cache is disabled
+  Caching has been disabled for the task
+Skipping task ':app:checkDebugAarMetadata' as it is up-to-date.
+Resolve mutations for :app:compileDebugNavigationResources (Thread[Execution worker Thread 4,5,main]) started.
+:app:compileDebugNavigationResources (Thread[Execution worker Thread 4,5,main]) started.
+
+> Task :app:compileDebugNavigationResources UP-TO-DATE
+Caching disabled for task ':app:compileDebugNavigationResources' because:
+  Build cache is disabled
+Skipping task ':app:compileDebugNavigationResources' as it is up-to-date.
+Resolve mutations for :app:mapDebugSourceSetPaths (Thread[Execution worker Thread 4,5,main]) started.
+:app:mapDebugSourceSetPaths (Thread[Execution worker Thread 4,5,main]) started.
+
+> Task :app:mapDebugSourceSetPaths
+Caching disabled for task ':app:mapDebugSourceSetPaths' because:
+  Build cache is disabled
+  Caching has been disabled for the task
+Task ':app:mapDebugSourceSetPaths' is not up-to-date because:
+  Input property 'localResources' file C:\Users\gokul D\SHIELD-1\RansomwareSimulator\ransim\app\src\main\res\values\colors.xml has changed.
+Resolve mutations for :app:createDebugCompatibleScreenManifests (Thread[Execution worker Thread 7,5,main]) started.
+:app:createDebugCompatibleScreenManifests (Thread[Execution worker Thread 7,5,main]) started.
+
+> Task :app:createDebugCompatibleScreenManifests UP-TO-DATE
+Caching disabled for task ':app:createDebugCompatibleScreenManifests' because:
+  Build cache is disabled
+  Caching has been disabled for the task
+Skipping task ':app:createDebugCompatibleScreenManifests' as it is up-to-date.
+Resolve mutations for :app:extractDeepLinksDebug (Thread[Execution worker Thread 7,5,main]) started.
+:app:extractDeepLinksDebug (Thread[Execution worker Thread 7,5,main]) started.
+
+> Task :app:parseDebugLocalResources
+Caching disabled for task ':app:parseDebugLocalResources' because:
+  Build cache is disabled
+Task ':app:parseDebugLocalResources' is not up-to-date because:
+  Input property 'inputResourcesDir' file C:\Users\gokul D\SHIELD-1\RansomwareSimulator\ransim\app\build\intermediates\packaged_res\debug\packageDebugResources\values\values.xml has changed.
+
+> Task :app:extractDeepLinksDebug UP-TO-DATE
+Caching disabled for task ':app:extractDeepLinksDebug' because:
+  Build cache is disabled
+Skipping task ':app:extractDeepLinksDebug' as it is up-to-date.
+Resolve mutations for :app:processDebugMainManifest (Thread[Execution worker Thread 7,5,main]) started.
+:app:processDebugMainManifest (Thread[Execution worker Thread 7,5,main]) started.
+
+> Task :app:processDebugMainManifest UP-TO-DATE
+Caching disabled for task ':app:processDebugMainManifest' because:
+  Build cache is disabled
+Skipping task ':app:processDebugMainManifest' as it is up-to-date.
+Resolve mutations for :app:processDebugManifest (Thread[Execution worker Thread 7,5,main]) started.
+:app:processDebugManifest (Thread[Execution worker Thread 7,5,main]) started.
+
+> Task :app:processDebugManifest UP-TO-DATE
+Caching disabled for task ':app:processDebugManifest' because:
+  Build cache is disabled
+Skipping task ':app:processDebugManifest' as it is up-to-date.
+Resolve mutations for :app:processDebugManifestForPackage (Thread[Execution worker Thread 7,5,main]) started.
+:app:processDebugManifestForPackage (Thread[Execution worker Thread 7,5,main]) started.
+
+> Task :app:processDebugManifestForPackage UP-TO-DATE
+Custom actions are attached to task ':app:processDebugManifestForPackage'.
+Caching disabled for task ':app:processDebugManifestForPackage' because:
+  Build cache is disabled
+Skipping task ':app:processDebugManifestForPackage' as it is up-to-date.
+Resolve mutations for :app:javaPreCompileDebug (Thread[Execution worker Thread 7,5,main]) started.
+:app:javaPreCompileDebug (Thread[Execution worker Thread 7,5,main]) started.
+
+> Task :app:javaPreCompileDebug UP-TO-DATE
+Caching disabled for task ':app:javaPreCompileDebug' because:
+  Build cache is disabled
+Skipping task ':app:javaPreCompileDebug' as it is up-to-date.
+Resolve mutations for :app:mergeDebugShaders (Thread[Execution worker Thread 7,5,main]) started.
+:app:mergeDebugShaders (Thread[Execution worker Thread 7,5,main]) started.
+
+> Task :app:mergeDebugShaders UP-TO-DATE
+Caching disabled for task ':app:mergeDebugShaders' because:
+  Build cache is disabled
+  Simple merging task
+Skipping task ':app:mergeDebugShaders' as it is up-to-date.
+Resolve mutations for :app:compileDebugShaders (Thread[Execution worker Thread 7,5,main]) started.
+:app:compileDebugShaders (Thread[Execution worker Thread 7,5,main]) started.
+
+> Task :app:compileDebugShaders NO-SOURCE
+Skipping task ':app:compileDebugShaders' as it has no source files and no previous output files.
+Resolve mutations for :app:generateDebugAssets (Thread[Execution worker Thread 7,5,main]) started.
+:app:generateDebugAssets (Thread[Execution worker Thread 7,5,main]) started.
+
+> Task :app:generateDebugAssets UP-TO-DATE
+Skipping task ':app:generateDebugAssets' as it has no actions.
+Resolve mutations for :app:mergeDebugAssets (Thread[Execution worker Thread 7,5,main]) started.
+:app:mergeDebugAssets (Thread[Execution worker Thread 7,5,main]) started.
+
+> Task :app:mergeDebugAssets UP-TO-DATE
+Caching disabled for task ':app:mergeDebugAssets' because:
+  Build cache is disabled
+  Simple merging task
+Skipping task ':app:mergeDebugAssets' as it is up-to-date.
+Resolve mutations for :app:compressDebugAssets (Thread[Execution worker Thread 7,5,main]) started.
+:app:compressDebugAssets (Thread[Execution worker Thread 7,5,main]) started.
+
+> Task :app:compressDebugAssets UP-TO-DATE
+Caching disabled for task ':app:compressDebugAssets' because:
+  Build cache is disabled
+Skipping task ':app:compressDebugAssets' as it is up-to-date.
+Resolve mutations for :app:desugarDebugFileDependencies (Thread[Execution worker Thread 7,5,main]) started.
+:app:desugarDebugFileDependencies (Thread[Execution worker Thread 7,5,main]) started.
+
+> Task :app:desugarDebugFileDependencies UP-TO-DATE
+Caching disabled for task ':app:desugarDebugFileDependencies' because:
+  Build cache is disabled
+Skipping task ':app:desugarDebugFileDependencies' as it is up-to-date.
+Resolve mutations for :app:checkDebugDuplicateClasses (Thread[Execution worker Thread 7,5,main]) started.
+:app:checkDebugDuplicateClasses (Thread[Execution worker Thread 7,5,main]) started.
+
+> Task :app:checkDebugDuplicateClasses UP-TO-DATE
+Caching disabled for task ':app:checkDebugDuplicateClasses' because:
+  Build cache is disabled
+  Caching has been disabled for the task
+Skipping task ':app:checkDebugDuplicateClasses' as it is up-to-date.
+Resolve mutations for :app:mergeExtDexDebug (Thread[Execution worker Thread 7,5,main]) started.
+:app:mergeExtDexDebug (Thread[Execution worker Thread 7,5,main]) started.
+
+> Task :app:mergeExtDexDebug UP-TO-DATE
+Caching disabled for task ':app:mergeExtDexDebug' because:
+  Build cache is disabled
+Skipping task ':app:mergeExtDexDebug' as it is up-to-date.
+Resolve mutations for :app:mergeLibDexDebug (Thread[Execution worker Thread 7,5,main]) started.
+:app:mergeLibDexDebug (Thread[Execution worker Thread 7,5,main]) started.
+
+> Task :app:mergeLibDexDebug UP-TO-DATE
+Caching disabled for task ':app:mergeLibDexDebug' because:
+  Build cache is disabled
+Skipping task ':app:mergeLibDexDebug' as it is up-to-date.
+Resolve mutations for :app:mergeDebugJniLibFolders (Thread[Execution worker Thread 7,5,main]) started.
+:app:mergeDebugJniLibFolders (Thread[Execution worker Thread 7,5,main]) started.
+
+> Task :app:mergeDebugJniLibFolders UP-TO-DATE
+Caching disabled for task ':app:mergeDebugJniLibFolders' because:
+  Build cache is disabled
+  Simple merging task
+Skipping task ':app:mergeDebugJniLibFolders' as it is up-to-date.
+Resolve mutations for :app:mergeDebugNativeLibs (Thread[Execution worker Thread 7,5,main]) started.
+:app:mergeDebugNativeLibs (Thread[Execution worker Thread 7,5,main]) started.
+
+> Task :app:mergeDebugNativeLibs NO-SOURCE
+Skipping task ':app:mergeDebugNativeLibs' as it has no source files and no previous output files.
+Resolve mutations for :app:stripDebugDebugSymbols (Thread[Execution worker Thread 7,5,main]) started.
+:app:stripDebugDebugSymbols (Thread[Execution worker Thread 7,5,main]) started.
+
+> Task :app:stripDebugDebugSymbols NO-SOURCE
+Skipping task ':app:stripDebugDebugSymbols' as it has no source files and no previous output files.
+Resolve mutations for :app:validateSigningDebug (Thread[Execution worker Thread 7,5,main]) started.
+:app:validateSigningDebug (Thread[Execution worker Thread 7,5,main]) started.
+
+> Task :app:validateSigningDebug UP-TO-DATE
+Caching disabled for task ':app:validateSigningDebug' because:
+  Build cache is disabled
+  Caching has been disabled for the task
+Skipping task ':app:validateSigningDebug' as it is up-to-date.
+Resolve mutations for :app:writeDebugAppMetadata (Thread[Execution worker Thread 7,5,main]) started.
+:app:writeDebugAppMetadata (Thread[Execution worker Thread 7,5,main]) started.
+
+> Task :app:writeDebugAppMetadata UP-TO-DATE
+Caching disabled for task ':app:writeDebugAppMetadata' because:
+  Build cache is disabled
+  Caching has been disabled for the task
+Skipping task ':app:writeDebugAppMetadata' as it is up-to-date.
+Resolve mutations for :app:writeDebugSigningConfigVersions (Thread[Execution worker Thread 7,5,main]) started.
+:app:writeDebugSigningConfigVersions (Thread[Execution worker Thread 7,5,main]) started.
+
+> Task :app:writeDebugSigningConfigVersions UP-TO-DATE
+Caching disabled for task ':app:writeDebugSigningConfigVersions' because:
+  Build cache is disabled
+  Caching has been disabled for the task
+Skipping task ':app:writeDebugSigningConfigVersions' as it is up-to-date.
+
+> Task :app:mergeDebugResources
+Caching disabled for task ':app:mergeDebugResources' because:
+  Build cache is disabled
+Task ':app:mergeDebugResources' is not up-to-date because:
+  Input property 'resourcesComputer.resources.main.sourceDirectories' file C:\Users\gokul D\SHIELD-1\RansomwareSimulator\ransim\app\src\main\res\values\colors.xml has changed.
+Compiling XML table C:\Users\gokul D\SHIELD-1\RansomwareSimulator\ransim\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values\values.xml to C:\Users\gokul D\SHIELD-1\RansomwareSimulator\ransim\app\build\intermediates\merged_res\debug\mergeDebugResources\values_values.arsc.flat
+Resolve mutations for :app:dataBindingGenBaseClassesDebug (Thread[Execution worker Thread 9,5,main]) started.
+:app:dataBindingGenBaseClassesDebug (Thread[Execution worker Thread 9,5,main]) started.
+
+> Task :app:dataBindingGenBaseClassesDebug
+Caching disabled for task ':app:dataBindingGenBaseClassesDebug' because:
+  Build cache is disabled
+Task ':app:dataBindingGenBaseClassesDebug' is not up-to-date because:
+  Input property 'localResourcesFile' file C:\Users\gokul D\SHIELD-1\RansomwareSimulator\ransim\app\build\intermediates\local_only_symbol_list\debug\parseDebugLocalResources\R-def.txt has changed.
+The input changes require a full rebuild for incremental task ':app:dataBindingGenBaseClassesDebug'.
+Resolve mutations for :app:processDebugResources (Thread[Execution worker Thread 7,5,main]) started.
+:app:processDebugResources (Thread[Execution worker Thread 7,5,main]) started.
+
+> Task :app:processDebugResources
+Caching disabled for task ':app:processDebugResources' because:
+  Build cache is disabled
+Task ':app:processDebugResources' is not up-to-date because:
+  Task has failed previously.
+The input changes require a full rebuild for incremental task ':app:processDebugResources'.
+AAPT2 aapt2-8.13.2-14304508-windows Daemon #0: starting
+Aapt output file C:\Users\gokul D\SHIELD-1\RansomwareSimulator\ransim\app\build\intermediates\linked_resources_binary_format\debug\processDebugResources\linked-resources-binary-format-debug.ap_
+Resolve mutations for :app:compileDebugKotlin (Thread[Execution worker Thread 7,5,main]) started.
+:app:compileDebugKotlin (Thread[Execution worker Thread 7,5,main]) started.
+
+> Task :app:compileDebugKotlin NO-SOURCE
+Skipping task ':app:compileDebugKotlin' as it has no source files and no previous output files.
+Resolve mutations for :app:compileDebugJavaWithJavac (Thread[Execution worker Thread 7,5,main]) started.
+:app:compileDebugJavaWithJavac (Thread[Execution worker Thread 7,5,main]) started.
+
+> Task :app:compileDebugJavaWithJavac
+Caching disabled for AarToClassTransform: C:\Users\gokul D\.gradle\caches\9.0.0\transforms\94d355d790ad5147a141339e57b803e1\transformed\jetified-viewbinding-8.13.2.aar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for AarToClassTransform: C:\Users\gokul D\.gradle\caches\modules-2\files-2.1\com.google.android.material\material\1.12.0\e493b7ac7fc4b8ca48527e0199f9961652711ac3\material-1.12.0.aar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for AarToClassTransform: C:\Users\gokul D\.gradle\caches\9.0.0\transforms\fb5c4a777b5f6c33e0a6d0b08f4b2c2f\transformed\jetified-appcompat-resources-1.7.0.aar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for AarToClassTransform: C:\Users\gokul D\.gradle\caches\modules-2\files-2.1\androidx.appcompat\appcompat\1.7.0\d44656e67ab2123393e5f3e957ecc3641a600c7b\appcompat-1.7.0.aar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for AarToClassTransform: C:\Users\gokul D\.gradle\caches\9.0.0\transforms\3942dfb6b44224c3cec59a05e2408154\transformed\jetified-viewpager2-1.0.0.aar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for AarToClassTransform: C:\Users\gokul D\.gradle\caches\modules-2\files-2.1\androidx.fragment\fragment\1.5.4\de58ea6b5ffbf3ede9ba6919eb448e23353f1e19\fragment-1.5.4.aar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for AarToClassTransform: C:\Users\gokul D\.gradle\caches\9.0.0\transforms\9e16342663188d3191b2205a3dcfec98\transformed\jetified-activity-1.8.0.aar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for AarToClassTransform: C:\Users\gokul D\.gradle\caches\modules-2\files-2.1\androidx.drawerlayout\drawerlayout\1.1.1\1b2b049e1e88589510ddd4d93f2699b46ecd73dd\drawerlayout-1.1.1.aar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for AarToClassTransform: C:\Users\gokul D\.gradle\caches\modules-2\files-2.1\androidx.coordinatorlayout\coordinatorlayout\1.1.0\8eeb7baf75b9595d017642a460df5af3bb9fa4e1\coordinatorlayout-1.1.0.aar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for AarToClassTransform: C:\Users\gokul D\.gradle\caches\modules-2\files-2.1\androidx.dynamicanimation\dynamicanimation\1.0.0\e980497a58fb319d471f3bb78d066b926a08ba8e\dynamicanimation-1.0.0.aar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for AarToClassTransform: C:\Users\gokul D\.gradle\caches\modules-2\files-2.1\androidx.recyclerview\recyclerview\1.1.0\8b4f97752ddcbc712af46d208aebd46585cde63b\recyclerview-1.1.0.aar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for AarToClassTransform: C:\Users\gokul D\.gradle\caches\modules-2\files-2.1\androidx.transition\transition\1.5.0\747173f40c7d98cdb6890a25aa60edcbefeb9c95\transition-1.5.0.aar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for AarToClassTransform: C:\Users\gokul D\.gradle\caches\modules-2\files-2.1\androidx.vectordrawable\vectordrawable-animated\1.1.0\fcda1161354501471c30a4e077af6b5c4d4eddc6\vectordrawable-animated-1.1.0.aar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for AarToClassTransform: C:\Users\gokul D\.gradle\caches\modules-2\files-2.1\androidx.vectordrawable\vectordrawable\1.1.0\eac7a364fff534035a2a6cb17770a1288315f69f\vectordrawable-1.1.0.aar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for AarToClassTransform: C:\Users\gokul D\.gradle\caches\modules-2\files-2.1\androidx.viewpager\viewpager\1.0.0\1f90e13820f96c2fb868f9674079a551678d68b2\viewpager-1.0.0.aar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for AarToClassTransform: C:\Users\gokul D\.gradle\caches\modules-2\files-2.1\androidx.customview\customview\1.1.0\a030aaf64c5419a89f7d91a33755c4629a43471\customview-1.1.0.aar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for AarToClassTransform: C:\Users\gokul D\.gradle\caches\modules-2\files-2.1\androidx.legacy\legacy-support-core-utils\1.0.0\9b9570042115da8629519090dfeb71df75da59fc\legacy-support-core-utils-1.0.0.aar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for AarToClassTransform: C:\Users\gokul D\.gradle\caches\modules-2\files-2.1\androidx.loader\loader\1.0.0\8af8b6cec0da85c207d03e15840e0722cbc71e70\loader-1.0.0.aar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for AarToClassTransform: C:\Users\gokul D\.gradle\caches\modules-2\files-2.1\androidx.lifecycle\lifecycle-livedata\2.6.2\e7f6d9e232bf035af69c030917c1ccda8e840b57\lifecycle-livedata-2.6.2.aar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for AarToClassTransform: C:\Users\gokul D\.gradle\caches\modules-2\files-2.1\androidx.lifecycle\lifecycle-livedata-core\2.6.2\23f66885a260f0a2cd6540927ea8795484afd2da\lifecycle-livedata-core-2.6.2.aar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for AarToClassTransform: C:\Users\gokul D\.gradle\caches\modules-2\files-2.1\androidx.lifecycle\lifecycle-viewmodel\2.6.2\fa35bfdbbe0e7df1573e377cbdd15de35176141d\lifecycle-viewmodel-2.6.2.aar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for AarToClassTransform: C:\Users\gokul D\.gradle\caches\modules-2\files-2.1\androidx.lifecycle\lifecycle-runtime\2.6.2\f0ef27053faa89b3ec06c4f118cea0a15edde35b\lifecycle-runtime-2.6.2.aar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for AarToClassTransform: C:\Users\gokul D\.gradle\caches\9.0.0\transforms\650a8739d1b086ed1a1e63936aebe9ac\transformed\jetified-core-ktx-1.13.0.aar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for AarToClassTransform: C:\Users\gokul D\.gradle\caches\9.0.0\transforms\8b3381f0c11acfd859428ef0d97e8d69\transformed\jetified-lifecycle-viewmodel-savedstate-2.6.2.aar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for AarToClassTransform: C:\Users\gokul D\.gradle\caches\modules-2\files-2.1\androidx.core\core\1.13.0\ec9d4e1da0dc84ff6a644624447a99ad136de21d\core-1.13.0.aar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for AarToClassTransform: C:\Users\gokul D\.gradle\caches\9.0.0\transforms\9c49f339c262d49763e03fb792ad6c11\transformed\jetified-savedstate-1.2.1.aar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for AarToClassTransform: C:\Users\gokul D\.gradle\caches\modules-2\files-2.1\androidx.cardview\cardview\1.0.0\158dbc2e2bc502815821191b04446b8f663c1874\cardview-1.0.0.aar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for AarToClassTransform: C:\Users\gokul D\.gradle\caches\modules-2\files-2.1\androidx.versionedparcelable\versionedparcelable\1.1.1\18e18071e7715679e0593c570217edeb5ca48b9e\versionedparcelable-1.1.1.aar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for AarToClassTransform: C:\Users\gokul D\.gradle\caches\9.0.0\transforms\73910bb200c9e0d637cbc57e2b3738d7\transformed\jetified-annotation-experimental-1.4.0.aar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for AarToClassTransform: C:\Users\gokul D\.gradle\caches\modules-2\files-2.1\androidx.arch.core\core-runtime\2.2.0\39705982680d78556b679ef9d5400d4f17509b0b\core-runtime-2.2.0.aar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for AarToClassTransform: C:\Users\gokul D\.gradle\caches\modules-2\files-2.1\androidx.localbroadcastmanager\localbroadcastmanager\1.0.0\2734f31c8321e83ce6b60570d14777fc33cc2ece\localbroadcastmanager-1.0.0.aar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for AarToClassTransform: C:\Users\gokul D\.gradle\caches\modules-2\files-2.1\androidx.interpolator\interpolator\1.0.0\8a01fa254a23b9388571eb6334b03707c7d122d7\interpolator-1.0.0.aar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for AarToClassTransform: C:\Users\gokul D\.gradle\caches\modules-2\files-2.1\androidx.cursoradapter\cursoradapter\1.0.0\74014983a86b83cbce534dec4e7aa9312f5f5d82\cursoradapter-1.0.0.aar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for AarToClassTransform: C:\Users\gokul D\.gradle\caches\modules-2\files-2.1\androidx.documentfile\documentfile\1.0.0\66104345c90cd8c2fd5ad2d3aad692b280e10c32\documentfile-1.0.0.aar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for AarToClassTransform: C:\Users\gokul D\.gradle\caches\modules-2\files-2.1\androidx.constraintlayout\constraintlayout\2.2.0\646c9a918e3151b0d361c954fc2e8bfd13cb0bc3\constraintlayout-2.2.0.aar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for AarToClassTransform: C:\Users\gokul D\.gradle\caches\modules-2\files-2.1\androidx.print\print\1.0.0\7722094652c48ebe27acc94d74a55e759e4635ff\print-1.0.0.aar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for JdkImageTransform: C:\Users\gokul D\AppData\Local\Android\Sdk\platforms\android-35\core-for-system-modules.jar because:
+  Build cache is disabled
+Starting process 'command 'C:\Program Files\Java\jdk-17.0.18\bin\jlink.exe''. Working directory: C:\Users\gokul D\SHIELD-1\RansomwareSimulator\ransim\app Command: C:\Program Files\Java\jdk-17.0.18\bin\jlink.exe --version
+Successfully started process 'command 'C:\Program Files\Java\jdk-17.0.18\bin\jlink.exe''
+Starting process 'command 'C:\Program Files\Java\jdk-17.0.18\bin\javac.exe''. Working directory: C:\Users\gokul D\SHIELD-1\RansomwareSimulator\ransim\app Command: C:\Program Files\Java\jdk-17.0.18\bin\javac.exe --system=none --patch-module=java.base=C:\Users\gokul D\AppData\Local\Android\Sdk\platforms\android-35\core-for-system-modules.jar -d C:\Users\gokul D\.gradle\caches\9.0.0\transforms\d6eec119e8cbd45bb67d3c2fca14e3f9-ae5f367f-eb27-4945-b85d-bf561137066d\transformed\output\temp C:\Users\gokul D\.gradle\caches\9.0.0\transforms\d6eec119e8cbd45bb67d3c2fca14e3f9-ae5f367f-eb27-4945-b85d-bf561137066d\transformed\output\temp\module-info.java
+Successfully started process 'command 'C:\Program Files\Java\jdk-17.0.18\bin\javac.exe''
+Starting process 'command 'C:\Program Files\Java\jdk-17.0.18\bin\jmod.exe''. Working directory: C:\Users\gokul D\SHIELD-1\RansomwareSimulator\ransim\app Command: C:\Program Files\Java\jdk-17.0.18\bin\jmod.exe create --module-version 17 --target-platform LINUX-OTHER --class-path C:\Users\gokul D\.gradle\caches\9.0.0\transforms\d6eec119e8cbd45bb67d3c2fca14e3f9-ae5f367f-eb27-4945-b85d-bf561137066d\transformed\output\temp\module.jar C:\Users\gokul D\.gradle\caches\9.0.0\transforms\d6eec119e8cbd45bb67d3c2fca14e3f9-ae5f367f-eb27-4945-b85d-bf561137066d\transformed\output\temp\jmod\java.base.jmod
+Successfully started process 'command 'C:\Program Files\Java\jdk-17.0.18\bin\jmod.exe''
+Starting process 'command 'C:\Program Files\Java\jdk-17.0.18\bin\jlink.exe''. Working directory: C:\Users\gokul D\SHIELD-1\RansomwareSimulator\ransim\app Command: C:\Program Files\Java\jdk-17.0.18\bin\jlink.exe --module-path C:\Users\gokul D\.gradle\caches\9.0.0\transforms\d6eec119e8cbd45bb67d3c2fca14e3f9-ae5f367f-eb27-4945-b85d-bf561137066d\transformed\output\temp\jmod --add-modules java.base --output C:\Users\gokul D\.gradle\caches\9.0.0\transforms\d6eec119e8cbd45bb67d3c2fca14e3f9-ae5f367f-eb27-4945-b85d-bf561137066d\transformed\output\jdkImage --disable-plugin system-modules
+Successfully started process 'command 'C:\Program Files\Java\jdk-17.0.18\bin\jlink.exe''
+Custom actions are attached to task ':app:compileDebugJavaWithJavac'.
+Caching disabled for task ':app:compileDebugJavaWithJavac' because:
+  Build cache is disabled
+Task ':app:compileDebugJavaWithJavac' is not up-to-date because:
+  No history is available.
+The input changes require a full rebuild for incremental task ':app:compileDebugJavaWithJavac'.
+Compilation mode: in-process compilation
+Full recompilation is required because no incremental change information is available. This is usually caused by clean builds or changing compiler arguments.
+Compiling with toolchain 'C:\Program Files\Java\jdk-17.0.18'.
+file or directory 'C:\Users\gokul D\SHIELD-1\RansomwareSimulator\ransim\app\src\debug\java', not found
+Compiling with JDK Java compiler API.
+./gradlew : C:\Users\gokul D\SHIELD-1\Ransom
+wareSimulator\ransim\app\src\main\java\com\d
+earmoon\shield\ransim\MainActivity.java:151:
+ error: cannot find symbol
+At line:1 char:1
++ ./gradlew assembleDebug --stacktrace 
+--info > build_output_3.txt 2>&1
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: 
+    (C:\Users\gokul ...not find symbol:Str  
+  ing) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommand 
+   Error
+ 
+        return 
+ContextCompat.checkSelfPermission(this, andr
+oid.Manifest.permission.WRITE_EXTERNAL_STORA
+GE) == PackageManager.PERMISSION_GRANTED;
+                                            
+                                            
+                      ^
+  symbol:   variable PackageManager
+  location: class MainActivity
+C:\Users\gokul D\SHIELD-1\RansomwareSimulato
+r\ransim\app\src\main\java\com\dearmoon\shie
+ld\ransim\MainActivity.java:168: error: 
+cannot find symbol
+        Intent intent = new Intent(Settings.
+ACTION_MANAGE_OVERLAY_PERMISSION, 
+Uri.parse("package:" + getPackageName()));
+                                            
+                                  ^
+  symbol:   variable Uri
+  location: class MainActivity
+C:\Users\gokul D\SHIELD-1\RansomwareSimulato
+r\ransim\app\src\main\java\com\dearmoon\shie
+ld\ransim\MainActivity.java:174: error: 
+cannot find symbol
+            return 
+ContextCompat.checkSelfPermission(this, andr
+oid.Manifest.permission.POST_NOTIFICATIONS) 
+== PackageManager.PERMISSION_GRANTED;
+                                            
+                                            
+                      ^
+  symbol:   variable PackageManager
+  location: class MainActivity
+C:\Users\gokul D\SHIELD-1\RansomwareSimulato
+r\ransim\app\src\main\java\com\dearmoon\shie
+ld\ransim\MainActivity.java:215: error: 
+cannot find symbol
+        title.setTypeface(null, 
+Typeface.BOLD);
+                                ^
+  symbol:   variable Typeface
+  location: class MainActivity
+C:\Users\gokul D\SHIELD-1\RansomwareSimulato
+r\ransim\app\src\main\java\com\dearmoon\shie
+ld\ransim\MainActivity.java:253: error: 
+cannot find symbol
+        
+logPanel.setTypeface(Typeface.MONOSPACE);
+                             ^
+  symbol:   variable Typeface
+  location: class MainActivity
+C:\Users\gokul D\SHIELD-1\RansomwareSimulato
+r\ransim\app\src\main\java\com\dearmoon\shie
+ld\ransim\MainActivity.java:354: error: 
+cannot find symbol
+                try (Socket s = new 
+Socket()) {
+                     ^
+  symbol:   class Socket
+  location: class MainActivity
+C:\Users\gokul D\SHIELD-1\RansomwareSimulato
+r\ransim\app\src\main\java\com\dearmoon\shie
+ld\ransim\MainActivity.java:354: error: 
+cannot find symbol
+                try (Socket s = new 
+Socket()) {
+                                    ^
+  symbol:   class Socket
+  location: class MainActivity
+C:\Users\gokul D\SHIELD-1\RansomwareSimulato
+r\ransim\app\src\main\java\com\dearmoon\shie
+ld\ransim\MainActivity.java:355: error: 
+cannot find symbol
+                    s.connect(new 
+InetSocketAddress("127.0.0.1", port), 500);
+                                  ^
+  symbol:   class InetSocketAddress
+  location: class MainActivity
+C:\Users\gokul D\SHIELD-1\RansomwareSimulato
+r\ransim\app\src\main\java\com\dearmoon\shie
+ld\ransim\MainActivity.java:563: error: 
+cannot find symbol
+        t.setTypeface(null, Typeface.BOLD);
+                            ^
+  symbol:   variable Typeface
+  location: class MainActivity
+C:\Users\gokul D\SHIELD-1\RansomwareSimulato
+r\ransim\app\src\main\java\com\dearmoon\shie
+ld\ransim\OverlayService.java:50: error: 
+cannot find symbol
+        Notification notif = new 
+Notification.Builder(this, "ransim_overlay")
+        ^
+  symbol:   class Notification
+  location: class OverlayService
+C:\Users\gokul D\SHIELD-1\RansomwareSimulato
+r\ransim\app\src\main\java\com\dearmoon\shie
+ld\ransim\OverlayService.java:50: error: 
+package Notification does not exist
+        Notification notif = new 
+Notification.Builder(this, "ransim_overlay")
+                                            
+ ^
+C:\Users\gokul D\SHIELD-1\RansomwareSimulato
+r\ransim\app\src\main\java\com\dearmoon\shie
+ld\ransim\OverlayService.java:54: error: 
+package Notification.Action does not exist
+                .addAction(new 
+Notification.Action.Builder(
+                                            
+      ^
+C:\Users\gokul D\SHIELD-1\RansomwareSimulato
+r\ransim\app\src\main\java\com\dearmoon\shie
+ld\ransim\OverlayService.java:57: error: 
+cannot find symbol
+                        
+PendingIntent.getService(this, 1, new 
+Intent(this, 
+OverlayService.class).setAction("STOP"), 
+PendingIntent.FLAG_IMMUTABLE)
+                                            
+                                            
+                            ^
+  symbol:   variable PendingIntent
+  location: class OverlayService
+C:\Users\gokul D\SHIELD-1\RansomwareSimulato
+r\ransim\app\src\main\java\com\dearmoon\shie
+ld\ransim\OverlayService.java:57: error: 
+cannot find symbol
+                        
+PendingIntent.getService(this, 1, new 
+Intent(this, 
+OverlayService.class).setAction("STOP"), 
+PendingIntent.FLAG_IMMUTABLE)
+                        ^
+  symbol:   variable PendingIntent
+  location: class OverlayService
+C:\Users\gokul D\SHIELD-1\RansomwareSimulato
+r\ransim\app\src\main\java\com\dearmoon\shie
+ld\ransim\OverlayService.java:92: error: 
+cannot find symbol
+                input.startAnimation(android
+.view.animation.AnimationUtils.loadAnimation
+(this, android.R.anim.shake));
+                                            
+                                            
+                     ^
+  symbol:   variable shake
+  location: class anim
+C:\Users\gokul D\SHIELD-1\RansomwareSimulato
+r\ransim\app\src\main\java\com\dearmoon\shie
+ld\ransim\OverlayService.java:104: error: 
+cannot find symbol
+                PixelFormat.TRANSLUCENT);
+                ^
+  symbol:   variable PixelFormat
+  location: class OverlayService
+C:\Users\gokul D\SHIELD-1\RansomwareSimulato
+r\ransim\app\src\main\java\com\dearmoon\shie
+ld\ransim\OverlayService.java:131: error: 
+cannot find symbol
+            NotificationChannel ch = new 
+NotificationChannel("ransim_overlay", 
+"RanSim Overlay", 
+NotificationManager.IMPORTANCE_LOW);
+            ^
+  symbol:   class NotificationChannel
+  location: class OverlayService
+C:\Users\gokul D\SHIELD-1\RansomwareSimulato
+r\ransim\app\src\main\java\com\dearmoon\shie
+ld\ransim\OverlayService.java:131: error: 
+cannot find symbol
+            NotificationChannel ch = new 
+NotificationChannel("ransim_overlay", 
+"RanSim Overlay", 
+NotificationManager.IMPORTANCE_LOW);
+                                         ^
+  symbol:   class NotificationChannel
+  location: class OverlayService
+C:\Users\gokul D\SHIELD-1\RansomwareSimulato
+r\ransim\app\src\main\java\com\dearmoon\shie
+ld\ransim\OverlayService.java:131: error: 
+cannot find symbol
+            NotificationChannel ch = new 
+NotificationChannel("ransim_overlay", 
+"RanSim Overlay", 
+NotificationManager.IMPORTANCE_LOW);
+                                            
+                                            
+         ^
+  symbol:   variable NotificationManager
+  location: class OverlayService
+C:\Users\gokul D\SHIELD-1\RansomwareSimulato
+r\ransim\app\src\main\java\com\dearmoon\shie
+ld\ransim\OverlayService.java:132: error: 
+cannot find symbol
+            NotificationManager nm = 
+(NotificationManager) 
+getSystemService(NOTIFICATION_SERVICE);
+            ^
+  symbol:   class NotificationManager
+  location: class OverlayService
+C:\Users\gokul D\SHIELD-1\RansomwareSimulato
+r\ransim\app\src\main\java\com\dearmoon\shie
+ld\ransim\OverlayService.java:132: error: 
+cannot find symbol
+            NotificationManager nm = 
+(NotificationManager) 
+getSystemService(NOTIFICATION_SERVICE);
+                                      ^
+  symbol:   class NotificationManager
+  location: class OverlayService
+Note: Some input files use or override a 
+deprecated API.
+Note: Recompile with -Xlint:deprecation for 
+details.
+21 errors
+
+> Task :app:compileDebugJavaWithJavac FAILED
+AAPT2 aapt2-8.13.2-14304508-windows Daemon #0: shutdown
+
+[Incubating] Problems report is available at: file:///C:/Users/gokul%20D/SHIELD-1/RansomwareSimulator/ransim/build/reports/problems/problems-report.html
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task 
+':app:compileDebugJavaWithJavac'.
+> Compilation failed; see the compiler 
+output below.
+  Note: Recompile with -Xlint:deprecation 
+for details.
+  C:\Users\gokul D\SHIELD-1\RansomwareSimula
+tor\ransim\app\src\main\java\com\dearmoon\sh
+ield\ransim\MainActivity.java:151: error: 
+cannot find symbol
+          return 
+ContextCompat.checkSelfPermission(this, andr
+oid.Manifest.permission.WRITE_EXTERNAL_STORA
+GE) == PackageManager.PERMISSION_GRANTED;
+                                            
+                                            
+                        ^
+    symbol:   variable PackageManager
+    location: class MainActivity
+  C:\Users\gokul D\SHIELD-1\RansomwareSimula
+tor\ransim\app\src\main\java\com\dearmoon\sh
+ield\ransim\MainActivity.java:168: error: 
+cannot find symbol
+          Intent intent = new Intent(Setting
+s.ACTION_MANAGE_OVERLAY_PERMISSION, 
+Uri.parse("package:" + getPackageName()));
+                                            
+                                    ^
+    symbol:   variable Uri
+    location: class MainActivity
+  C:\Users\gokul D\SHIELD-1\RansomwareSimula
+tor\ransim\app\src\main\java\com\dearmoon\sh
+ield\ransim\MainActivity.java:174: error: 
+cannot find symbol
+              return 
+ContextCompat.checkSelfPermission(this, andr
+oid.Manifest.permission.POST_NOTIFICATIONS) 
+== PackageManager.PERMISSION_GRANTED;
+                                            
+                                            
+                        ^
+    symbol:   variable PackageManager
+    location: class MainActivity
+  C:\Users\gokul D\SHIELD-1\RansomwareSimula
+tor\ransim\app\src\main\java\com\dearmoon\sh
+ield\ransim\MainActivity.java:215: error: 
+cannot find symbol
+          title.setTypeface(null, 
+Typeface.BOLD);
+                                  ^
+    symbol:   variable Typeface
+    location: class MainActivity
+  C:\Users\gokul D\SHIELD-1\RansomwareSimula
+tor\ransim\app\src\main\java\com\dearmoon\sh
+ield\ransim\MainActivity.java:253: error: 
+cannot find symbol
+          
+logPanel.setTypeface(Typeface.MONOSPACE);
+                               ^
+    symbol:   variable Typeface
+    location: class MainActivity
+  C:\Users\gokul D\SHIELD-1\RansomwareSimula
+tor\ransim\app\src\main\java\com\dearmoon\sh
+ield\ransim\MainActivity.java:354: error: 
+cannot find symbol
+                  try (Socket s = new 
+Socket()) {
+                       ^
+    symbol:   class Socket
+    location: class MainActivity
+  C:\Users\gokul D\SHIELD-1\RansomwareSimula
+tor\ransim\app\src\main\java\com\dearmoon\sh
+ield\ransim\MainActivity.java:354: error: 
+cannot find symbol
+                  try (Socket s = new 
+Socket()) {
+                                      ^
+    symbol:   class Socket
+    location: class MainActivity
+  C:\Users\gokul D\SHIELD-1\RansomwareSimula
+tor\ransim\app\src\main\java\com\dearmoon\sh
+ield\ransim\MainActivity.java:355: error: 
+cannot find symbol
+                      s.connect(new 
+InetSocketAddress("127.0.0.1", port), 500);
+                                    ^
+    symbol:   class InetSocketAddress
+    location: class MainActivity
+  C:\Users\gokul D\SHIELD-1\RansomwareSimula
+tor\ransim\app\src\main\java\com\dearmoon\sh
+ield\ransim\MainActivity.java:563: error: 
+cannot find symbol
+          t.setTypeface(null, 
+Typeface.BOLD);
+                              ^
+    symbol:   variable Typeface
+    location: class MainActivity
+  C:\Users\gokul D\SHIELD-1\RansomwareSimula
+tor\ransim\app\src\main\java\com\dearmoon\sh
+ield\ransim\OverlayService.java:50: error: 
+cannot find symbol
+          Notification notif = new 
+Notification.Builder(this, "ransim_overlay")
+          ^
+    symbol:   class Notification
+    location: class OverlayService
+  C:\Users\gokul D\SHIELD-1\RansomwareSimula
+tor\ransim\app\src\main\java\com\dearmoon\sh
+ield\ransim\OverlayService.java:57: error: 
+cannot find symbol
+                          
+PendingIntent.getService(this, 1, new 
+Intent(this, 
+OverlayService.class).setAction("STOP"), 
+PendingIntent.FLAG_IMMUTABLE)
+                                            
+                                            
+                              ^
+    symbol:   variable PendingIntent
+    location: class OverlayService
+  C:\Users\gokul D\SHIELD-1\RansomwareSimula
+tor\ransim\app\src\main\java\com\dearmoon\sh
+ield\ransim\OverlayService.java:57: error: 
+cannot find symbol
+                          
+PendingIntent.getService(this, 1, new 
+Intent(this, 
+OverlayService.class).setAction("STOP"), 
+PendingIntent.FLAG_IMMUTABLE)
+                          ^
+    symbol:   variable PendingIntent
+    location: class OverlayService
+  C:\Users\gokul D\SHIELD-1\RansomwareSimula
+tor\ransim\app\src\main\java\com\dearmoon\sh
+ield\ransim\OverlayService.java:92: error: 
+cannot find symbol
+                  input.startAnimation(andro
+id.view.animation.AnimationUtils.loadAnimati
+on(this, android.R.anim.shake));
+                                            
+                                            
+                       ^
+    symbol:   variable shake
+    location: class anim
+  C:\Users\gokul D\SHIELD-1\RansomwareSimula
+tor\ransim\app\src\main\java\com\dearmoon\sh
+ield\ransim\OverlayService.java:104: error: 
+cannot find symbol
+                  PixelFormat.TRANSLUCENT);
+                  ^
+    symbol:   variable PixelFormat
+    location: class OverlayService
+  C:\Users\gokul D\SHIELD-1\RansomwareSimula
+tor\ransim\app\src\main\java\com\dearmoon\sh
+ield\ransim\OverlayService.java:131: error: 
+cannot find symbol
+              NotificationChannel ch = new 
+NotificationChannel("ransim_overlay", 
+"RanSim Overlay", 
+NotificationManager.IMPORTANCE_LOW);
+              ^
+    symbol:   class NotificationChannel
+    location: class OverlayService
+  C:\Users\gokul D\SHIELD-1\RansomwareSimula
+tor\ransim\app\src\main\java\com\dearmoon\sh
+ield\ransim\OverlayService.java:131: error: 
+cannot find symbol
+              NotificationChannel ch = new 
+NotificationChannel("ransim_overlay", 
+"RanSim Overlay", 
+NotificationManager.IMPORTANCE_LOW);
+                                           ^
+    symbol:   class NotificationChannel
+    location: class OverlayService
+  C:\Users\gokul D\SHIELD-1\RansomwareSimula
+tor\ransim\app\src\main\java\com\dearmoon\sh
+ield\ransim\OverlayService.java:131: error: 
+cannot find symbol
+              NotificationChannel ch = new 
+NotificationChannel("ransim_overlay", 
+"RanSim Overlay", 
+NotificationManager.IMPORTANCE_LOW);
+                                            
+                                            
+           ^
+    symbol:   variable NotificationManager
+    location: class OverlayService
+  C:\Users\gokul D\SHIELD-1\RansomwareSimula
+tor\ransim\app\src\main\java\com\dearmoon\sh
+ield\ransim\OverlayService.java:132: error: 
+cannot find symbol
+              NotificationManager nm = 
+(NotificationManager) 
+getSystemService(NOTIFICATION_SERVICE);
+              ^
+    symbol:   class NotificationManager
+    location: class OverlayService
+  C:\Users\gokul D\SHIELD-1\RansomwareSimula
+tor\ransim\app\src\main\java\com\dearmoon\sh
+ield\ransim\OverlayService.java:132: error: 
+cannot find symbol
+              NotificationManager nm = 
+(NotificationManager) 
+getSystemService(NOTIFICATION_SERVICE);
+                                        ^
+    symbol:   class NotificationManager
+    location: class OverlayService
+  Note: Some input files use or override a 
+deprecated API.
+  C:\Users\gokul D\SHIELD-1\RansomwareSimula
+tor\ransim\app\src\main\java\com\dearmoon\sh
+ield\ransim\OverlayService.java:50: error: 
+package Notification does not exist
+          Notification notif = new 
+Notification.Builder(this, "ransim_overlay")
+                                            
+   ^
+  C:\Users\gokul D\SHIELD-1\RansomwareSimula
+tor\ransim\app\src\main\java\com\dearmoon\sh
+ield\ransim\OverlayService.java:54: error: 
+package Notification.Action does not exist
+                  .addAction(new 
+Notification.Action.Builder(
+                                            
+        ^
+  21 errors
+
+* Try:
+> Check your code and dependencies to fix 
+the compilation error(s)
+> Run with --scan to generate a Build Scan 
+(Powered by Develocity).
+
+* Exception is:
+org.gradle.api.tasks.TaskExecutionException:
+ Execution failed for task 
+':app:compileDebugJavaWithJavac'.
+	at org.gradle.api.internal.tasks.execution.
+ExecuteActionsTaskExecuter.lambda$executeIfV
+alid$1(ExecuteActionsTaskExecuter.java:135)
+	at org.gradle.internal.Try$Failure.ifSucces
+sfulOrElse(Try.java:288)
+	at org.gradle.api.internal.tasks.execution.
+ExecuteActionsTaskExecuter.executeIfValid(Ex
+ecuteActionsTaskExecuter.java:133)
+	at org.gradle.api.internal.tasks.execution.
+ExecuteActionsTaskExecuter.execute(ExecuteAc
+tionsTaskExecuter.java:121)
+	at org.gradle.api.internal.tasks.execution.
+ProblemsTaskPathTrackingTaskExecuter.execute
+(ProblemsTaskPathTrackingTaskExecuter.java:4
+1)
+	at org.gradle.api.internal.tasks.execution.
+FinalizePropertiesTaskExecuter.execute(Final
+izePropertiesTaskExecuter.java:46)
+	at org.gradle.api.internal.tasks.execution.
+ResolveTaskExecutionModeExecuter.execute(Res
+olveTaskExecutionModeExecuter.java:51)
+	at org.gradle.api.internal.tasks.execution.
+SkipTaskWithNoActionsExecuter.execute(SkipTa
+skWithNoActionsExecuter.java:57)
+	at org.gradle.api.internal.tasks.execution.
+SkipOnlyIfTaskExecuter.execute(SkipOnlyIfTas
+kExecuter.java:74)
+	at org.gradle.api.internal.tasks.execution.
+CatchExceptionTaskExecuter.execute(CatchExce
+ptionTaskExecuter.java:36)
+	at org.gradle.api.internal.tasks.execution.
+EventFiringTaskExecuter$1.executeTask(EventF
+iringTaskExecuter.java:77)
+	at org.gradle.api.internal.tasks.execution.
+EventFiringTaskExecuter$1.call(EventFiringTa
+skExecuter.java:55)
+	at org.gradle.api.internal.tasks.execution.
+EventFiringTaskExecuter$1.call(EventFiringTa
+skExecuter.java:52)
+	at org.gradle.internal.operations.DefaultBu
+ildOperationRunner$CallableBuildOperationWor
+ker.execute(DefaultBuildOperationRunner.java
+:209)
+	at org.gradle.internal.operations.DefaultBu
+ildOperationRunner$CallableBuildOperationWor
+ker.execute(DefaultBuildOperationRunner.java
+:204)
+	at org.gradle.internal.operations.DefaultBu
+ildOperationRunner$2.execute(DefaultBuildOpe
+rationRunner.java:66)
+	at org.gradle.internal.operations.DefaultBu
+ildOperationRunner$2.execute(DefaultBuildOpe
+rationRunner.java:59)
+	at org.gradle.internal.operations.DefaultBu
+ildOperationRunner.execute(DefaultBuildOpera
+tionRunner.java:166)
+	at org.gradle.internal.operations.DefaultBu
+ildOperationRunner.execute(DefaultBuildOpera
+tionRunner.java:59)
+	at org.gradle.internal.operations.DefaultBu
+ildOperationRunner.call(DefaultBuildOperatio
+nRunner.java:53)
+	at org.gradle.api.internal.tasks.execution.
+EventFiringTaskExecuter.execute(EventFiringT
+askExecuter.java:52)
+	at org.gradle.execution.plan.LocalTaskNodeE
+xecutor.execute(LocalTaskNodeExecutor.java:4
+5)
+	at org.gradle.execution.taskgraph.DefaultTa
+skExecutionGraph$InvokeNodeExecutorsAction.e
+xecute(DefaultTaskExecutionGraph.java:347)
+	at org.gradle.execution.taskgraph.DefaultTa
+skExecutionGraph$InvokeNodeExecutorsAction.e
+xecute(DefaultTaskExecutionGraph.java:334)
+	at org.gradle.execution.taskgraph.DefaultTa
+skExecutionGraph$BuildOperationAwareExecutio
+nAction.lambda$execute$0(DefaultTaskExecutio
+nGraph.java:330)
+	at org.gradle.internal.operations.CurrentBu
+ildOperationRef.with(CurrentBuildOperationRe
+f.java:84)
+	at org.gradle.execution.taskgraph.DefaultTa
+skExecutionGraph$BuildOperationAwareExecutio
+nAction.execute(DefaultTaskExecutionGraph.ja
+va:330)
+	at org.gradle.execution.taskgraph.DefaultTa
+skExecutionGraph$BuildOperationAwareExecutio
+nAction.execute(DefaultTaskExecutionGraph.ja
+va:319)
+	at org.gradle.execution.plan.DefaultPlanExe
+cutor$ExecutorWorker.execute(DefaultPlanExec
+utor.java:459)
+	at org.gradle.execution.plan.DefaultPlanExe
+cutor$ExecutorWorker.run(DefaultPlanExecutor
+.java:376)
+	at org.gradle.internal.concurrent.ExecutorP
+olicy$CatchAndRecordFailures.onExecute(Execu
+torPolicy.java:64)
+	at org.gradle.internal.concurrent.AbstractM
+anagedExecutor$1.run(AbstractManagedExecutor
+.java:47)
+Caused by: org.gradle.api.internal.tasks.com
+pile.CompilationFailedException: 
+Compilation failed; see the compiler output 
+below.
+Note: Recompile with -Xlint:deprecation for 
+details.
+C:\Users\gokul D\SHIELD-1\RansomwareSimulato
+r\ransim\app\src\main\java\com\dearmoon\shie
+ld\ransim\MainActivity.java:151: error: 
+cannot find symbol
+        return 
+ContextCompat.checkSelfPermission(this, andr
+oid.Manifest.permission.WRITE_EXTERNAL_STORA
+GE) == PackageManager.PERMISSION_GRANTED;
+                                            
+                                            
+                      ^
+  symbol:   variable PackageManager
+  location: class MainActivity
+C:\Users\gokul D\SHIELD-1\RansomwareSimulato
+r\ransim\app\src\main\java\com\dearmoon\shie
+ld\ransim\MainActivity.java:168: error: 
+cannot find symbol
+        Intent intent = new Intent(Settings.
+ACTION_MANAGE_OVERLAY_PERMISSION, 
+Uri.parse("package:" + getPackageName()));
+                                            
+                                  ^
+  symbol:   variable Uri
+  location: class MainActivity
+C:\Users\gokul D\SHIELD-1\RansomwareSimulato
+r\ransim\app\src\main\java\com\dearmoon\shie
+ld\ransim\MainActivity.java:174: error: 
+cannot find symbol
+            return 
+ContextCompat.checkSelfPermission(this, andr
+oid.Manifest.permission.POST_NOTIFICATIONS) 
+== PackageManager.PERMISSION_GRANTED;
+                                            
+                                            
+                      ^
+  symbol:   variable PackageManager
+  location: class MainActivity
+C:\Users\gokul D\SHIELD-1\RansomwareSimulato
+r\ransim\app\src\main\java\com\dearmoon\shie
+ld\ransim\MainActivity.java:215: error: 
+cannot find symbol
+        title.setTypeface(null, 
+Typeface.BOLD);
+                                ^
+  symbol:   variable Typeface
+  location: class MainActivity
+C:\Users\gokul D\SHIELD-1\RansomwareSimulato
+r\ransim\app\src\main\java\com\dearmoon\shie
+ld\ransim\MainActivity.java:253: error: 
+cannot find symbol
+        
+logPanel.setTypeface(Typeface.MONOSPACE);
+                             ^
+  symbol:   variable Typeface
+  location: class MainActivity
+C:\Users\gokul D\SHIELD-1\RansomwareSimulato
+r\ransim\app\src\main\java\com\dearmoon\shie
+ld\ransim\MainActivity.java:354: error: 
+cannot find symbol
+                try (Socket s = new 
+Socket()) {
+                     ^
+  symbol:   class Socket
+  location: class MainActivity
+C:\Users\gokul D\SHIELD-1\RansomwareSimulato
+r\ransim\app\src\main\java\com\dearmoon\shie
+ld\ransim\MainActivity.java:354: error: 
+cannot find symbol
+                try (Socket s = new 
+Socket()) {
+                                    ^
+  symbol:   class Socket
+  location: class MainActivity
+C:\Users\gokul D\SHIELD-1\RansomwareSimulato
+r\ransim\app\src\main\java\com\dearmoon\shie
+ld\ransim\MainActivity.java:355: error: 
+cannot find symbol
+                    s.connect(new 
+InetSocketAddress("127.0.0.1", port), 500);
+                                  ^
+  symbol:   class InetSocketAddress
+  location: class MainActivity
+C:\Users\gokul D\SHIELD-1\RansomwareSimulato
+r\ransim\app\src\main\java\com\dearmoon\shie
+ld\ransim\MainActivity.java:563: error: 
+cannot find symbol
+        t.setTypeface(null, Typeface.BOLD);
+                            ^
+  symbol:   variable Typeface
+  location: class MainActivity
+C:\Users\gokul D\SHIELD-1\RansomwareSimulato
+r\ransim\app\src\main\java\com\dearmoon\shie
+ld\ransim\OverlayService.java:50: error: 
+cannot find symbol
+        Notification notif = new 
+Notification.Builder(this, "ransim_overlay")
+        ^
+  symbol:   class Notification
+  location: class OverlayService
+C:\Users\gokul D\SHIELD-1\RansomwareSimulato
+r\ransim\app\src\main\java\com\dearmoon\shie
+ld\ransim\OverlayService.java:57: error: 
+cannot find symbol
+                        
+PendingIntent.getService(this, 1, new 
+Intent(this, 
+OverlayService.class).setAction("STOP"), 
+PendingIntent.FLAG_IMMUTABLE)
+                                            
+                                            
+                            ^
+  symbol:   variable PendingIntent
+  location: class OverlayService
+C:\Users\gokul D\SHIELD-1\RansomwareSimulato
+r\ransim\app\src\main\java\com\dearmoon\shie
+ld\ransim\OverlayService.java:57: error: 
+cannot find symbol
+                        
+PendingIntent.getService(this, 1, new 
+Intent(this, 
+OverlayService.class).setAction("STOP"), 
+PendingIntent.FLAG_IMMUTABLE)
+                        ^
+  symbol:   variable PendingIntent
+  location: class OverlayService
+C:\Users\gokul D\SHIELD-1\RansomwareSimulato
+r\ransim\app\src\main\java\com\dearmoon\shie
+ld\ransim\OverlayService.java:92: error: 
+cannot find symbol
+                input.startAnimation(android
+.view.animation.AnimationUtils.loadAnimation
+(this, android.R.anim.shake));
+                                            
+                                            
+                     ^
+  symbol:   variable shake
+  location: class anim
+C:\Users\gokul D\SHIELD-1\RansomwareSimulato
+r\ransim\app\src\main\java\com\dearmoon\shie
+ld\ransim\OverlayService.java:104: error: 
+cannot find symbol
+                PixelFormat.TRANSLUCENT);
+                ^
+  symbol:   variable PixelFormat
+  location: class OverlayService
+C:\Users\gokul D\SHIELD-1\RansomwareSimulato
+r\ransim\app\src\main\java\com\dearmoon\shie
+ld\ransim\OverlayService.java:131: error: 
+cannot find symbol
+            NotificationChannel ch = new 
+NotificationChannel("ransim_overlay", 
+"RanSim Overlay", 
+NotificationManager.IMPORTANCE_LOW);
+            ^
+  symbol:   class NotificationChannel
+  location: class OverlayService
+C:\Users\gokul D\SHIELD-1\RansomwareSimulato
+r\ransim\app\src\main\java\com\dearmoon\shie
+ld\ransim\OverlayService.java:131: error: 
+cannot find symbol
+            NotificationChannel ch = new 
+NotificationChannel("ransim_overlay", 
+"RanSim Overlay", 
+NotificationManager.IMPORTANCE_LOW);
+                                         ^
+  symbol:   class NotificationChannel
+  location: class OverlayService
+C:\Users\gokul D\SHIELD-1\RansomwareSimulato
+r\ransim\app\src\main\java\com\dearmoon\shie
+ld\ransim\OverlayService.java:131: error: 
+cannot find symbol
+            NotificationChannel ch = new 
+NotificationChannel("ransim_overlay", 
+"RanSim Overlay", 
+NotificationManager.IMPORTANCE_LOW);
+                                            
+                                            
+         ^
+  symbol:   variable NotificationManager
+  location: class OverlayService
+C:\Users\gokul D\SHIELD-1\RansomwareSimulato
+r\ransim\app\src\main\java\com\dearmoon\shie
+ld\ransim\OverlayService.java:132: error: 
+cannot find symbol
+            NotificationManager nm = 
+(NotificationManager) 
+getSystemService(NOTIFICATION_SERVICE);
+            ^
+  symbol:   class NotificationManager
+  location: class OverlayService
+C:\Users\gokul D\SHIELD-1\RansomwareSimulato
+r\ransim\app\src\main\java\com\dearmoon\shie
+ld\ransim\OverlayService.java:132: error: 
+cannot find symbol
+            NotificationManager nm = 
+(NotificationManager) 
+getSystemService(NOTIFICATION_SERVICE);
+                                      ^
+  symbol:   class NotificationManager
+  location: class OverlayService
+Note: Some input files use or override a 
+deprecated API.
+C:\Users\gokul D\SHIELD-1\RansomwareSimulato
+r\ransim\app\src\main\java\com\dearmoon\shie
+ld\ransim\OverlayService.java:50: error: 
+package Notification does not exist
+        Notification notif = new 
+Notification.Builder(this, "ransim_overlay")
+                                            
+ ^
+C:\Users\gokul D\SHIELD-1\RansomwareSimulato
+r\ransim\app\src\main\java\com\dearmoon\shie
+ld\ransim\OverlayService.java:54: error: 
+package Notification.Action does not exist
+                .addAction(new 
+Notification.Action.Builder(
+                                            
+      ^
+21 errors
+	at org.gradle.api.internal.tasks.compile.Jd
+kJavaCompiler.execute(JdkJavaCompiler.java:8
+9)
+	at org.gradle.api.internal.tasks.compile.Jd
+kJavaCompiler.execute(JdkJavaCompiler.java:5
+0)
+	at org.gradle.api.internal.tasks.compile.No
+rmalizingJavaCompiler.delegateAndHandleError
+s(NormalizingJavaCompiler.java:98)
+	at org.gradle.api.internal.tasks.compile.No
+rmalizingJavaCompiler.execute(NormalizingJav
+aCompiler.java:52)
+	at org.gradle.api.internal.tasks.compile.No
+rmalizingJavaCompiler.execute(NormalizingJav
+aCompiler.java:38)
+	at org.gradle.api.internal.tasks.compile.An
+notationProcessorDiscoveringCompiler.execute
+(AnnotationProcessorDiscoveringCompiler.java
+:52)
+	at org.gradle.api.internal.tasks.compile.An
+notationProcessorDiscoveringCompiler.execute
+(AnnotationProcessorDiscoveringCompiler.java
+:38)
+	at org.gradle.api.internal.tasks.compile.Mo
+duleApplicationNameWritingCompiler.execute(M
+oduleApplicationNameWritingCompiler.java:46)
+	at org.gradle.api.internal.tasks.compile.Mo
+duleApplicationNameWritingCompiler.execute(M
+oduleApplicationNameWritingCompiler.java:36)
+	at org.gradle.jvm.toolchain.internal.Defaul
+tToolchainJavaCompiler.execute(DefaultToolch
+ainJavaCompiler.java:57)
+	at org.gradle.api.tasks.compile.JavaCompile
+.lambda$createToolchainCompiler$3(JavaCompil
+e.java:206)
+	at org.gradle.api.internal.tasks.compile.Cl
+eaningJavaCompiler.execute(CleaningJavaCompi
+ler.java:53)
+	at org.gradle.api.internal.tasks.compile.in
+cremental.IncrementalCompilerFactory.lambda$
+createRebuildAllCompiler$0(IncrementalCompil
+erFactory.java:55)
+	at org.gradle.api.internal.tasks.compile.in
+cremental.SelectiveCompiler.execute(Selectiv
+eCompiler.java:70)
+	at org.gradle.api.internal.tasks.compile.in
+cremental.SelectiveCompiler.execute(Selectiv
+eCompiler.java:44)
+	at org.gradle.api.internal.tasks.compile.in
+cremental.IncrementalResultStoringCompiler.e
+xecute(IncrementalResultStoringCompiler.java
+:66)
+	at org.gradle.api.internal.tasks.compile.in
+cremental.IncrementalResultStoringCompiler.e
+xecute(IncrementalResultStoringCompiler.java
+:52)
+	at org.gradle.api.internal.tasks.compile.Co
+mpileJavaBuildOperationReportingCompiler$1.c
+all(CompileJavaBuildOperationReportingCompil
+er.java:64)
+	at org.gradle.api.internal.tasks.compile.Co
+mpileJavaBuildOperationReportingCompiler$1.c
+all(CompileJavaBuildOperationReportingCompil
+er.java:48)
+	at org.gradle.internal.operations.DefaultBu
+ildOperationRunner$CallableBuildOperationWor
+ker.execute(DefaultBuildOperationRunner.java
+:209)
+	at org.gradle.internal.operations.DefaultBu
+ildOperationRunner$CallableBuildOperationWor
+ker.execute(DefaultBuildOperationRunner.java
+:204)
+	at org.gradle.internal.operations.DefaultBu
+ildOperationRunner$2.execute(DefaultBuildOpe
+rationRunner.java:66)
+	at org.gradle.internal.operations.DefaultBu
+ildOperationRunner$2.execute(DefaultBuildOpe
+rationRunner.java:59)
+	at org.gradle.internal.operations.DefaultBu
+ildOperationRunner.execute(DefaultBuildOpera
+tionRunner.java:166)
+	at org.gradle.internal.operations.DefaultBu
+ildOperationRunner.execute(DefaultBuildOpera
+tionRunner.java:59)
+	at org.gradle.internal.operations.DefaultBu
+ildOperationRunner.call(DefaultBuildOperatio
+nRunner.java:53)
+	at org.gradle.api.internal.tasks.compile.Co
+mpileJavaBuildOperationReportingCompiler.exe
+cute(CompileJavaBuildOperationReportingCompi
+ler.java:48)
+	at org.gradle.api.tasks.compile.JavaCompile
+.performCompilation(JavaCompile.java:224)
+	at org.gradle.api.tasks.compile.JavaCompile
+.performIncrementalCompilation(JavaCompile.j
+ava:165)
+	at org.gradle.api.tasks.compile.JavaCompile
+.compile(JavaCompile.java:150)
+	at org.gradle.internal.reflect.JavaMethod.i
+nvoke(JavaMethod.java:125)
+	at org.gradle.api.internal.project.taskfact
+ory.IncrementalTaskAction.doExecute(Incremen
+talTaskAction.java:45)
+	at org.gradle.api.internal.project.taskfact
+ory.StandardTaskAction.execute(StandardTaskA
+ction.java:51)
+	at org.gradle.api.internal.project.taskfact
+ory.IncrementalTaskAction.execute(Incrementa
+lTaskAction.java:26)
+	at org.gradle.api.internal.project.taskfact
+ory.StandardTaskAction.execute(StandardTaskA
+ction.java:29)
+	at org.gradle.api.internal.tasks.execution.
+TaskExecution$3.run(TaskExecution.java:252)
+	at org.gradle.internal.operations.DefaultBu
+ildOperationRunner$1.execute(DefaultBuildOpe
+rationRunner.java:29)
+	at org.gradle.internal.operations.DefaultBu
+ildOperationRunner$1.execute(DefaultBuildOpe
+rationRunner.java:26)
+	at org.gradle.internal.operations.DefaultBu
+ildOperationRunner$2.execute(DefaultBuildOpe
+rationRunner.java:66)
+	at org.gradle.internal.operations.DefaultBu
+ildOperationRunner$2.execute(DefaultBuildOpe
+rationRunner.java:59)
+	at org.gradle.internal.operations.DefaultBu
+ildOperationRunner.execute(DefaultBuildOpera
+tionRunner.java:166)
+	at org.gradle.internal.operations.DefaultBu
+ildOperationRunner.execute(DefaultBuildOpera
+tionRunner.java:59)
+	at org.gradle.internal.operations.DefaultBu
+ildOperationRunner.run(DefaultBuildOperation
+Runner.java:47)
+	at org.gradle.api.internal.tasks.execution.
+TaskExecution.executeAction(TaskExecution.ja
+va:237)
+	at org.gradle.api.internal.tasks.execution.
+TaskExecution.executeActions(TaskExecution.j
+ava:220)
+	at org.gradle.api.internal.tasks.execution.
+TaskExecution.executeWithPreviousOutputFiles
+(TaskExecution.java:203)
+	at org.gradle.api.internal.tasks.execution.
+TaskExecution.execute(TaskExecution.java:170
+)
+	at org.gradle.internal.execution.steps.Exec
+uteStep.executeInternal(ExecuteStep.java:105
+)
+	at org.gradle.internal.execution.steps.Exec
+uteStep.access$000(ExecuteStep.java:44)
+	at org.gradle.internal.execution.steps.Exec
+uteStep$1.call(ExecuteStep.java:59)
+	at org.gradle.internal.execution.steps.Exec
+uteStep$1.call(ExecuteStep.java:56)
+	at org.gradle.internal.operations.DefaultBu
+ildOperationRunner$CallableBuildOperationWor
+ker.execute(DefaultBuildOperationRunner.java
+:209)
+	at org.gradle.internal.operations.DefaultBu
+ildOperationRunner$CallableBuildOperationWor
+ker.execute(DefaultBuildOperationRunner.java
+:204)
+	at org.gradle.internal.operations.DefaultBu
+ildOperationRunner$2.execute(DefaultBuildOpe
+rationRunner.java:66)
+	at org.gradle.internal.operations.DefaultBu
+ildOperationRunner$2.execute(DefaultBuildOpe
+rationRunner.java:59)
+	at org.gradle.internal.operations.DefaultBu
+ildOperationRunner.execute(DefaultBuildOpera
+tionRunner.java:166)
+	at org.gradle.internal.operations.DefaultBu
+ildOperationRunner.execute(DefaultBuildOpera
+tionRunner.java:59)
+	at org.gradle.internal.operations.DefaultBu
+ildOperationRunner.call(DefaultBuildOperatio
+nRunner.java:53)
+	at org.gradle.internal.execution.steps.Exec
+uteStep.execute(ExecuteStep.java:56)
+	at org.gradle.internal.execution.steps.Exec
+uteStep.execute(ExecuteStep.java:44)
+	at org.gradle.internal.execution.steps.Canc
+elExecutionStep.execute(CancelExecutionStep.
+java:42)
+	at org.gradle.internal.execution.steps.Time
+outStep.executeWithoutTimeout(TimeoutStep.ja
+va:75)
+	at org.gradle.internal.execution.steps.Time
+outStep.execute(TimeoutStep.java:55)
+	at org.gradle.internal.execution.steps.PreC
+reateOutputParentsStep.execute(PreCreateOutp
+utParentsStep.java:50)
+	at org.gradle.internal.execution.steps.PreC
+reateOutputParentsStep.execute(PreCreateOutp
+utParentsStep.java:28)
+	at org.gradle.internal.execution.steps.Remo
+vePreviousOutputsStep.execute(RemovePrevious
+OutputsStep.java:68)
+	at org.gradle.internal.execution.steps.Remo
+vePreviousOutputsStep.execute(RemovePrevious
+OutputsStep.java:38)
+	at org.gradle.internal.execution.steps.Broa
+dcastChangingOutputsStep.execute(BroadcastCh
+angingOutputsStep.java:61)
+	at org.gradle.internal.execution.steps.Broa
+dcastChangingOutputsStep.execute(BroadcastCh
+angingOutputsStep.java:26)
+	at org.gradle.internal.execution.steps.Capt
+ureOutputsAfterExecutionStep.execute(Capture
+OutputsAfterExecutionStep.java:69)
+	at org.gradle.internal.execution.steps.Capt
+ureOutputsAfterExecutionStep.execute(Capture
+OutputsAfterExecutionStep.java:46)
+	at org.gradle.internal.execution.steps.Reso
+lveInputChangesStep.execute(ResolveInputChan
+gesStep.java:39)
+	at org.gradle.internal.execution.steps.Reso
+lveInputChangesStep.execute(ResolveInputChan
+gesStep.java:28)
+	at org.gradle.internal.execution.steps.Buil
+dCacheStep.executeWithoutCache(BuildCacheSte
+p.java:189)
+	at org.gradle.internal.execution.steps.Buil
+dCacheStep.lambda$execute$1(BuildCacheStep.j
+ava:75)
+	at org.gradle.internal.Either$Right.fold(Ei
+ther.java:176)
+	at org.gradle.internal.execution.caching.Ca
+chingState.fold(CachingState.java:62)
+	at org.gradle.internal.execution.steps.Buil
+dCacheStep.execute(BuildCacheStep.java:73)
+	at org.gradle.internal.execution.steps.Buil
+dCacheStep.execute(BuildCacheStep.java:48)
+30 actionable tasks: 9 executed, 21 up-to-date
+Watched directory hierarchies: [C:\Users\gokul D\SHIELD-1\RansomwareSimulator\ransim]
+	at org.gradle.internal.execution.steps.Stor
+eExecutionStateStep.execute(StoreExecutionSt
+ateStep.java:46)
+	at org.gradle.internal.execution.steps.Stor
+eExecutionStateStep.execute(StoreExecutionSt
+ateStep.java:35)
+	at org.gradle.internal.execution.steps.Skip
+UpToDateStep.executeBecause(SkipUpToDateStep
+.java:75)
+	at org.gradle.internal.execution.steps.Skip
+UpToDateStep.lambda$execute$2(SkipUpToDateSt
+ep.java:53)
+	at org.gradle.internal.execution.steps.Skip
+UpToDateStep.execute(SkipUpToDateStep.java:5
+3)
+	at org.gradle.internal.execution.steps.Skip
+UpToDateStep.execute(SkipUpToDateStep.java:3
+5)
+	at org.gradle.internal.execution.steps.lega
+cy.MarkSnapshottingInputsFinishedStep.execut
+e(MarkSnapshottingInputsFinishedStep.java:37
+)
+	at org.gradle.internal.execution.steps.lega
+cy.MarkSnapshottingInputsFinishedStep.execut
+e(MarkSnapshottingInputsFinishedStep.java:27
+)
+	at org.gradle.internal.execution.steps.Reso
+lveIncrementalCachingStateStep.executeDelega
+te(ResolveIncrementalCachingStateStep.java:4
+9)
+	at org.gradle.internal.execution.steps.Reso
+lveIncrementalCachingStateStep.executeDelega
+te(ResolveIncrementalCachingStateStep.java:2
+7)
+	at org.gradle.internal.execution.steps.Abst
+ractResolveCachingStateStep.execute(Abstract
+ResolveCachingStateStep.java:71)
+	at org.gradle.internal.execution.steps.Abst
+ractResolveCachingStateStep.execute(Abstract
+ResolveCachingStateStep.java:39)
+	at org.gradle.internal.execution.steps.Reso
+lveChangesStep.execute(ResolveChangesStep.ja
+va:64)
+	at org.gradle.internal.execution.steps.Reso
+lveChangesStep.execute(ResolveChangesStep.ja
+va:35)
+	at org.gradle.internal.execution.steps.Vali
+dateStep.execute(ValidateStep.java:62)
+	at org.gradle.internal.execution.steps.Vali
+dateStep.execute(ValidateStep.java:40)
+	at org.gradle.internal.execution.steps.Abst
+ractCaptureStateBeforeExecutionStep.execute(
+AbstractCaptureStateBeforeExecutionStep.java
+:76)
+	at org.gradle.internal.execution.steps.Abst
+ractCaptureStateBeforeExecutionStep.execute(
+AbstractCaptureStateBeforeExecutionStep.java
+:45)
+	at org.gradle.internal.execution.steps.Abst
+ractSkipEmptyWorkStep.executeWithNonEmptySou
+rces(AbstractSkipEmptyWorkStep.java:136)
+	at org.gradle.internal.execution.steps.Abst
+ractSkipEmptyWorkStep.execute(AbstractSkipEm
+ptyWorkStep.java:66)
+	at org.gradle.internal.execution.steps.Abst
+ractSkipEmptyWorkStep.execute(AbstractSkipEm
+ptyWorkStep.java:38)
+	at org.gradle.internal.execution.steps.lega
+cy.MarkSnapshottingInputsStartedStep.execute
+(MarkSnapshottingInputsStartedStep.java:38)
+	at org.gradle.internal.execution.steps.Load
+PreviousExecutionStateStep.execute(LoadPrevi
+ousExecutionStateStep.java:36)
+	at org.gradle.internal.execution.steps.Load
+PreviousExecutionStateStep.execute(LoadPrevi
+ousExecutionStateStep.java:23)
+	at org.gradle.internal.execution.steps.Hand
+leStaleOutputsStep.execute(HandleStaleOutput
+sStep.java:75)
+	at org.gradle.internal.execution.steps.Hand
+leStaleOutputsStep.execute(HandleStaleOutput
+sStep.java:41)
+	at org.gradle.internal.execution.steps.Assi
+gnMutableWorkspaceStep.lambda$execute$0(Assi
+gnMutableWorkspaceStep.java:35)
+	at org.gradle.api.internal.tasks.execution.
+TaskExecution$4.withWorkspace(TaskExecution.
+java:297)
+	at org.gradle.internal.execution.steps.Assi
+gnMutableWorkspaceStep.execute(AssignMutable
+WorkspaceStep.java:31)
+	at org.gradle.internal.execution.steps.Assi
+gnMutableWorkspaceStep.execute(AssignMutable
+WorkspaceStep.java:22)
+	at org.gradle.internal.execution.steps.Choo
+sePipelineStep.execute(ChoosePipelineStep.ja
+va:40)
+	at org.gradle.internal.execution.steps.Choo
+sePipelineStep.execute(ChoosePipelineStep.ja
+va:23)
+	at org.gradle.internal.execution.steps.Exec
+uteWorkBuildOperationFiringStep.lambda$execu
+te$2(ExecuteWorkBuildOperationFiringStep.jav
+a:67)
+	at org.gradle.internal.execution.steps.Exec
+uteWorkBuildOperationFiringStep.execute(Exec
+uteWorkBuildOperationFiringStep.java:67)
+	at org.gradle.internal.execution.steps.Exec
+uteWorkBuildOperationFiringStep.execute(Exec
+uteWorkBuildOperationFiringStep.java:39)
+	at org.gradle.internal.execution.steps.Iden
+tityCacheStep.execute(IdentityCacheStep.java
+:46)
+	at org.gradle.internal.execution.steps.Iden
+tityCacheStep.execute(IdentityCacheStep.java
+:34)
+	at org.gradle.internal.execution.steps.Iden
+tifyStep.execute(IdentifyStep.java:47)
+	at org.gradle.internal.execution.steps.Iden
+tifyStep.execute(IdentifyStep.java:34)
+	at org.gradle.internal.execution.impl.Defau
+ltExecutionEngine$1.execute(DefaultExecution
+Engine.java:64)
+	at org.gradle.api.internal.tasks.execution.
+ExecuteActionsTaskExecuter.executeIfValid(Ex
+ecuteActionsTaskExecuter.java:132)
+	... 29 more
+
+
+BUILD FAILED in 20s

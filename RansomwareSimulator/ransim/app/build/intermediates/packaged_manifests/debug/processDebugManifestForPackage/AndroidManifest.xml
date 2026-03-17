@@ -35,9 +35,8 @@
         android:appComponentFactory="androidx.core.app.CoreComponentFactory"
         android:debuggable="true"
         android:extractNativeLibs="false"
-        android:icon="@mipmap/ic_launcher"
+        android:icon="@android:mipmap/sym_def_app_icon"
         android:label="SHIELD RanSim"
-        android:testOnly="true"
         android:theme="@style/Theme.RanSim.Dark" >
         <activity
             android:name="com.dearmoon.shield.ransim.MainActivity"

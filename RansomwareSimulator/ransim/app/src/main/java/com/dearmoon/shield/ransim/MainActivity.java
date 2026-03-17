@@ -24,6 +24,9 @@ package com.dearmoon.shield.ransim;
 
 import android.app.*;
 import android.content.*;
+import android.content.pm.PackageManager;
+import android.graphics.Typeface;
+import android.net.Uri;
 import android.os.*;
 import android.provider.Settings;
 import android.util.Log;
@@ -36,6 +39,8 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import com.google.android.material.snackbar.Snackbar;
 import java.io.*;
+import java.net.InetSocketAddress;
+import java.net.Socket;
 import java.util.*;
 import java.util.concurrent.*;
 
@@ -45,7 +50,7 @@ public class MainActivity extends AppCompatActivity {
     private static final int REQ_OVERLAY = 1002;
     private static final int REQ_POST_NOTIF = 1003;
 
-    private LinearLayout rootLayout;
+    private ViewGroup rootLayout;
     private Button startButton;
     private Button grantStorageButton, grantOverlayButton, grantNotifButton;
     private TextView storageStatus, overlayStatus, notifStatus;
@@ -64,12 +69,31 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        rootLayout = (LinearLayout) findViewById(android.R.id.content);
-        LinearLayout mainLayout = (LinearLayout) ((ViewGroup) rootLayout.getChildAt(0));
+        rootLayout = (ViewGroup) findViewById(android.R.id.content);
+        LinearLayout mainLayout = (LinearLayout) findViewById(R.id.main_content_root);
 
-        // Add permissions checklist UI
-        addPermissionChecklist(mainLayout);
-        updatePermissionStatus();
+        Log.d(TAG, "onCreate: rootLayout=" + rootLayout + ", mainLayout=" + mainLayout);
+
+        if (mainLayout == null) {
+            Log.e(TAG, "CRITICAL ERROR: main_content_root NOT FOUND in activity_main.xml");
+            // Fallback to child(0) if ID search fails
+            if (rootLayout != null && rootLayout.getChildCount() > 0) {
+                View firstChild = rootLayout.getChildAt(0);
+                if (firstChild instanceof LinearLayout) {
+                    mainLayout = (LinearLayout) firstChild;
+                    Log.d(TAG, "Fallback: Using first child as mainLayout");
+                }
+            }
+        }
+
+        if (mainLayout != null) {
+            // Add permissions checklist UI
+            addPermissionChecklist(mainLayout);
+            updatePermissionStatus();
+        } else {
+            Log.e(TAG, "CRITICAL ERROR: Could not initialize UI. rootLayout children: " + 
+                (rootLayout != null ? rootLayout.getChildCount() : "rootLayout is NULL"));
+        }
     }
 
     private void addPermissionChecklist(LinearLayout parent) {
@@ -244,8 +268,14 @@ public class MainActivity extends AppCompatActivity {
         stopAllButton.setBackgroundColor(getResources().getColor(R.color.red));
         stopAllButton.setTextColor(getResources().getColor(R.color.white));
         stopAllButton.setTextSize(18);
-        stopAllButton.setOnClickListener(v -> log("STOP ALL pressed (not implemented yet)"));
+        stopAllButton.setOnClickListener(v -> stopAll());
         main.addView(stopAllButton);
+
+        // RESET button
+        Button resetBtn = new Button(this);
+        resetBtn.setText("♻️ RESET ENVIRONMENT");
+        resetBtn.setOnClickListener(v -> resetEnvironment());
+        main.addView(resetBtn);
 
         // Log panel
         logPanel = new TextView(this);
@@ -442,6 +472,14 @@ public class MainActivity extends AppCompatActivity {
         statusBar.setText("IDLE");
     }
 
+    private void resetEnvironment() {
+        log("Resetting environment...");
+        stopAll();
+        simulator.clearSandbox(new File(SANDBOX_ROOT), this::log);
+        simulator.seedTestFiles(new File(SANDBOX_ROOT), this::log);
+        Toast.makeText(this, "Environment Reset Complete", Toast.LENGTH_SHORT).show();
+    }
+
     // --- SHIELD detection listener ---
     private BroadcastReceiver shieldReceiver = new BroadcastReceiver() {
         @Override
@@ -581,11 +619,15 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void log(String msg) {
-        if (logBuffer.size() >= MAX_LOG_LINES) logBuffer.removeFirst();
-        logBuffer.add(msg);
-        StringBuilder sb = new StringBuilder();
-        for (String line : logBuffer) sb.append(line).append("\n");
-        logPanel.setText(sb.toString());
+        runOnUiThread(() -> {
+            if (logBuffer.size() >= MAX_LOG_LINES) logBuffer.removeFirst();
+            logBuffer.add(msg);
+            StringBuilder sb = new StringBuilder();
+            for (String line : logBuffer) sb.append(line).append("\n");
+            if (logPanel != null) {
+                logPanel.setText(sb.toString());
+            }
+        });
         Log.d(TAG, msg);
     }
 }

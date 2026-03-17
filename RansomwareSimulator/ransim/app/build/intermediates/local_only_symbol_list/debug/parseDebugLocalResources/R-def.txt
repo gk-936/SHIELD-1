@@ -1,5 +1,6 @@
 R_DEF: Internal format may change without notice
 local
+color black
 color dark_bg
 color dark_red
 color green
@@ -7,6 +8,7 @@ color orange
 color red
 color white
 color yellow
+id main_content_root
 id password
 id passwordInput
 id statusBar

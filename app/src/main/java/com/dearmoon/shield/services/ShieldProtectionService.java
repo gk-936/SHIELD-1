@@ -24,6 +24,7 @@ import com.dearmoon.shield.detection.UnifiedDetectionEngine;
 import com.dearmoon.shield.modea.ModeAService;
 import com.dearmoon.shield.security.ConfigAuditChecker;
 import com.dearmoon.shield.security.DependencyIntegrityChecker;
+import com.dearmoon.shield.security.OverlayPermissionAuditor;
 import com.dearmoon.shield.security.SecurityUtils;
 import com.dearmoon.shield.security.integrity.IntegrityLogger;
 import com.dearmoon.shield.security.integrity.IntegrityResult;
@@ -176,6 +177,15 @@ public class ShieldProtectionService extends Service {
             addIfExists(dirs, new File(externalStorage, "Download"));
             addIfExists(dirs, new File(externalStorage, "Pictures"));
             addIfExists(dirs, new File(externalStorage, "DCIM"));
+
+            // Add RanSim sandbox explicitly — do not remove the Android/ skip
+            File ransimSandbox = new File(externalStorage, 
+                "Android/data/com.dearmoon.shield.ransim/shield_ransim_sandbox"
+            );
+            if (ransimSandbox.exists()) {
+                dirs.add(ransimSandbox.getAbsolutePath());
+                Log.i(TAG, "Explicitly adding RanSim sandbox to monitored paths");
+            }
         }
 
         return dirs.toArray(new String[0]);
@@ -280,31 +290,16 @@ public class ShieldProtectionService extends Service {
         IntegrityResult integrityResult = IntegrityResult.CLEAN; // Force CLEAN for testing
         // --- End Integrity Check ---
 
-        // --- M2: Supply Chain Integrity Check (background thread) --- DISABLED FOR TESTING
-        // --- M8: Security Misconfiguration Audit   (background thread) --- DISABLED FOR TESTING
-        /*
+        // --- Installed-app overlay audit (locker prevention) ---
+        // This is intentionally lightweight and runs in the background.
         final android.content.Context svcCtx = this;
         new Thread(() -> {
             try {
-                DependencyIntegrityChecker.Finding supplyChainResult =
-                        DependencyIntegrityChecker.check(svcCtx);
-                Log.i(TAG, "Supply-chain check: " + supplyChainResult.name());
+                OverlayPermissionAuditor.auditInstalledApps(svcCtx);
             } catch (Exception e) {
-                Log.e(TAG, "DependencyIntegrityChecker failed", e);
+                Log.e(TAG, "OverlayPermissionAuditor failed", e);
             }
-            try {
-                java.util.List<ConfigAuditChecker.ConfigFinding> auditFindings =
-                        ConfigAuditChecker.audit(svcCtx);
-                long failCount = auditFindings.stream()
-                        .filter(f -> f.severity == ConfigAuditChecker.Severity.FAIL)
-                        .count();
-                Log.i(TAG, "Config audit complete: " + auditFindings.size()
-                        + " findings, " + failCount + " FAIL");
-            } catch (Exception e) {
-                Log.e(TAG, "ConfigAuditChecker failed", e);
-            }
-        }, "shield-audit").start();
-        */
+        }, "shield-overlay-audit").start();
 
         Log.i(TAG, "ShieldProtectionService started (integrity=DISABLED_FOR_TESTING)");
         return START_STICKY;

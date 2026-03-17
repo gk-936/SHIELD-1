@@ -35,5 +35,5 @@ public class DetectionResult {
     }
 
     public int getConfidenceScore() { return confidenceScore; }
-    public boolean isHighRisk() { return confidenceScore >= 70; }
+    public boolean isHighRisk() { return confidenceScore >= 43; }
 }

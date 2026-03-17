@@ -19,11 +19,12 @@ public class CorrelationResult extends TelemetryEvent {
     private final int behaviorScore;
     private final int fileEventCount;
     private final int networkEventCount;
+    private final double criContribution;
     private final int honeyfileEventCount;
     private final int lockerEventCount;
     
     public CorrelationResult(String filePath, String packageName, int uid, 
-                            int behaviorScore, int fileCount, int networkCount,
+                            int behaviorScore, double criContribution, int fileCount, int networkCount,
                             int honeyfileCount, int lockerCount) {
         super("BEHAVIOR_CORRELATION");
         this.filePath = filePath;
@@ -32,6 +33,7 @@ public class CorrelationResult extends TelemetryEvent {
         this.behaviorScore = behaviorScore;
         this.fileEventCount = fileCount;
         this.networkEventCount = networkCount;
+        this.criContribution = criContribution;
         this.honeyfileEventCount = honeyfileCount;
         this.lockerEventCount = lockerCount;
     }
@@ -43,6 +45,7 @@ public class CorrelationResult extends TelemetryEvent {
         json.put("packageName", packageName);
         json.put("uid", uid);
         json.put("behaviorScore", behaviorScore);
+        json.put("criContribution", criContribution);
         json.put("fileEventCount", fileEventCount);
         json.put("networkEventCount", networkEventCount);
         json.put("honeyfileEventCount", honeyfileEventCount);
@@ -65,6 +68,10 @@ public class CorrelationResult extends TelemetryEvent {
     
     public int getBehaviorScore() {
         return behaviorScore;
+    }
+
+    public double getCriContribution() {
+        return criContribution;
     }
 
     public String getPackageName() {

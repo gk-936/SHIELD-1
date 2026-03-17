@@ -32,6 +32,14 @@ public class BehaviorCorrelationEngine {
     private static final String TAG = "BehaviorCorrelation";
     private static final long CORRELATION_WINDOW_MS = 5000; // 5-second window
     
+    // CRI Weights from shield_thresholds.json / cohen's d analysis
+    private static final double WEIGHT_FCHMOD = 0.818;
+    private static final double WEIGHT_UNLINK = 0.567;
+    private static final double WEIGHT_CREATE_WRITE = 0.542;
+    private static final double WEIGHT_CHMOD = 0.514;
+    private static final double WEIGHT_FSYNC = 0.514;
+    private static final double WEIGHT_NETWORK = 0.545;
+
     private final EventDatabase database;
     private final PackageAttributor attributor;
     private final Map<Integer, BehaviorProfile> uidProfiles = new ConcurrentHashMap<>();
@@ -72,6 +80,9 @@ public class BehaviorCorrelationEngine {
             lockerEvents.size(),
             fileUid
         );
+
+        // Calculate CRI (Composite Ransomware Indicator) for SPRT input
+        double criContribution = calculateCriContribution(filePath, networkEvents.size());
         
         // Get package name (REUSE attribution)
         String packageName = attributor.getPackageForUid(fileUid);
@@ -82,6 +93,7 @@ public class BehaviorCorrelationEngine {
             packageName,
             fileUid,
             behaviorScore,
+            criContribution,
             fileEvents.size(),
             networkEvents.size(),
             honeyfileEvents.size(),
@@ -121,6 +133,25 @@ public class BehaviorCorrelationEngine {
         }
         
         return Math.min(score, 30); // Cap at 30 points
+    }
+
+    /**
+     * Calculate CRI contribution for the current event.
+     * Normalized based on Cohen's d weights from calibration.
+     */
+    private double calculateCriContribution(String filePath, int networkCount) {
+        double cri = 0.01; // Base noise floor
+        
+        // Map common operations (inferred from file extension or database check)
+        // Since FileObserver only gives MODIFY/CREATE, we use frequency and 
+        // network correlation as primary signals.
+        if (networkCount > 0) cri += WEIGHT_NETWORK;
+        
+        // Operation-specific bumps (requires future deeper syscall integration)
+        // For now, assume every monitored write is a potential CREATE_WRITE
+        cri += WEIGHT_CREATE_WRITE * 0.1; // scale to prevent single-event overflow
+        
+        return cri;
     }
     
     // REUSE: Query existing database tables with efficiency fixes

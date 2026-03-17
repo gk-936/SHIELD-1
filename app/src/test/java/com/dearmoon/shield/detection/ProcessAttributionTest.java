@@ -20,13 +20,11 @@ import static org.junit.Assert.*;
 public class ProcessAttributionTest {
 
     // Copy of production regexes from UnifiedDetectionEngine (any change fails these tests)
-    private static final java.util.regex.Pattern PRIVATE_PATH_1 =
-            java.util.regex.Pattern.compile("^/data/data/([a-zA-Z][a-zA-Z0-9_.]+)/");
-    private static final java.util.regex.Pattern PRIVATE_PATH_2 =
-            java.util.regex.Pattern.compile("^/data/user/\\d+/([a-zA-Z][a-zA-Z0-9_.]+)/");
+    private static final java.util.regex.Pattern PRIVATE_PATH =
+            java.util.regex.Pattern.compile("^/data/(?:data|user/\\d+)/([a-zA-Z][a-zA-Z0-9_.]+)(?:/|$)");
     private static final java.util.regex.Pattern SHARED_PATH =
             java.util.regex.Pattern.compile(
-                "(?:/storage/emulated/\\d+|/sdcard)/Android/(?:data|obb)/([a-zA-Z][a-zA-Z0-9_.]+)/");
+                "(?:/storage/emulated/\\d+|/sdcard|/storage/[^/]+|/data/media/\\d+)/Android/(?:data|obb)/([a-zA-Z][a-zA-Z0-9_.]+)(?:/|$)");
 
     // =========================================================================
     // 1. /data/data/<pkg>/ — Strategy 1
@@ -42,6 +40,13 @@ public class ProcessAttributionTest {
     public void strategy1_nestedPath_extractsPackage() {
         assertEquals("org.example.app",
                 extractPrivate("/data/data/org.example.app/cache/sub/dir/file.dat"));
+    }
+
+    @Test
+    public void strategy1_noTrailingSlash_extractsPackage() {
+        // Updated regex supports end of string or trailing slash
+        assertEquals("com.evil.malware",
+                extractPrivate("/data/data/com.evil.malware"));
     }
 
     @Test
@@ -69,19 +74,19 @@ public class ProcessAttributionTest {
     @Test
     public void strategy1_multiUser_userId0_extractsPackage() {
         assertEquals("com.target.app",
-                extractPrivateMultiUser("/data/user/0/com.target.app/files/data.enc"));
+                extractPrivate("/data/user/0/com.target.app/files/data.enc"));
     }
 
     @Test
     public void strategy1_multiUser_userId10_extractsPackage() {
         assertEquals("com.target.app",
-                extractPrivateMultiUser("/data/user/10/com.target.app/databases/db"));
+                extractPrivate("/data/user/10/com.target.app/databases/db"));
     }
 
     @Test
     public void strategy1_workProfile_userId999_extractsPackage() {
         assertEquals("com.corp.app",
-                extractPrivateMultiUser("/data/user/999/com.corp.app/cache/f.tmp"));
+                extractPrivate("/data/user/999/com.corp.app/cache/f.tmp"));
     }
 
     // =========================================================================
@@ -113,6 +118,18 @@ public class ProcessAttributionTest {
     }
 
     @Test
+    public void strategy2_externalSdCard_extractsPackage() {
+        assertEquals("com.map.app",
+                extractShared("/storage/ABCD-1234/Android/data/com.map.app/cache/map.tile"));
+    }
+
+    @Test
+    public void strategy2_dataMedia_extractsPackage() {
+        assertEquals("com.android.providers.media",
+                extractShared("/data/media/0/Android/data/com.android.providers.media/files/x"));
+    }
+
+    @Test
     public void strategy2_rootSdcardFile_returnsNull() {
         // /sdcard/RANSOM_NOTE.txt has no Android/data/<pkg> segment
         assertNull(extractShared("/sdcard/RANSOM_NOTE.txt"));
@@ -125,10 +142,7 @@ public class ProcessAttributionTest {
 
     @Test
     public void nullPath_doesNotThrow_returnsNull() {
-        // Production code guards: if (filePath == null) return -1
-        // Our helpers should also return null gracefully
         assertNull(extractPrivate(null));
-        assertNull(extractPrivateMultiUser(null));
         assertNull(extractShared(null));
     }
 
@@ -143,9 +157,9 @@ public class ProcessAttributionTest {
     // =========================================================================
 
     @Test
-    public void almostPrivatePath_withoutTrailingSlash_isNotMatched() {
-        // "/data/data/com.app" without trailing "/" — regex requires "/"
-        assertNull(extractPrivate("/data/data/com.app"));
+    public void almostPrivatePath_withoutTrailingSlash_isMatchedIfEndOfLine() {
+        // Updated regex supports end of string or trailing slash
+        assertEquals("com.app", extractPrivate("/data/data/com.app"));
     }
 
     @Test
@@ -165,14 +179,7 @@ public class ProcessAttributionTest {
 
     private String extractPrivate(String path) {
         if (path == null) return null;
-        java.util.regex.Matcher m = PRIVATE_PATH_1.matcher(path);
-        if (m.find()) return m.group(1);
-        return null;
-    }
-
-    private String extractPrivateMultiUser(String path) {
-        if (path == null) return null;
-        java.util.regex.Matcher m = PRIVATE_PATH_2.matcher(path);
+        java.util.regex.Matcher m = PRIVATE_PATH.matcher(path);
         if (m.find()) return m.group(1);
         return null;
     }

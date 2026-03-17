@@ -21,7 +21,7 @@
 
     <application
         android:allowBackup="false"
-        android:icon="@mipmap/ic_launcher"
+        android:icon="@android:mipmap/sym_def_app_icon"
         android:label="SHIELD RanSim"
         android:theme="@style/Theme.RanSim.Dark">
 

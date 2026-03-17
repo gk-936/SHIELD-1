@@ -4,6 +4,7 @@ import android.content.Context;
 import android.database.ContentObserver;
 import android.database.Cursor;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import android.provider.MediaStore;
@@ -63,59 +64,95 @@ public class MediaStoreCollector extends ContentObserver {
             String filePath = null;
             try {
                 String[] projection = {
+                        // DATA is unreliable (often null) on Android 10+ due to scoped storage.
+                        // Keep it for legacy devices / media providers that still expose it.
                         MediaStore.Files.FileColumns.DATA,
+                        MediaStore.MediaColumns.DISPLAY_NAME,
+                        MediaStore.MediaColumns.RELATIVE_PATH,
                         MediaStore.Files.FileColumns.SIZE
                 };
 
-                Cursor cursor = context.getContentResolver().query(
-                        uri, projection, null, null, null);
+                long reportedSize = -1L;
+                String displayName = null;
+                String relativePath = null;
 
-                if (cursor != null && cursor.moveToFirst()) {
-                    int pathIndex = cursor.getColumnIndex(MediaStore.Files.FileColumns.DATA);
-                    int sizeIndex = cursor.getColumnIndex(MediaStore.Files.FileColumns.SIZE);
+                try (Cursor cursor = context.getContentResolver().query(uri, projection, null, null, null)) {
+                    if (cursor != null && cursor.moveToFirst()) {
+                        int dataIdx = cursor.getColumnIndex(MediaStore.Files.FileColumns.DATA);
+                        int nameIdx = cursor.getColumnIndex(MediaStore.MediaColumns.DISPLAY_NAME);
+                        int relIdx = cursor.getColumnIndex(MediaStore.MediaColumns.RELATIVE_PATH);
+                        int sizeIdx = cursor.getColumnIndex(MediaStore.Files.FileColumns.SIZE);
 
-                    if (pathIndex >= 0 && sizeIndex >= 0) {
-                        filePath = cursor.getString(pathIndex);
-                        long size = cursor.getLong(sizeIndex);
-                        cursor.close();
-
-                        File file = new File(filePath);
-                        boolean fileExists = file.exists();
-                        String operation;
-                        long actualSize = fileExists ? file.length() : size;
-                        
-                        if (!fileExists || filePath.contains("/.trashed-") || filePath.contains("\\.trashed-")) {
-                            operation = "DELETED";
-                        } else if (filePath.endsWith(".zip") || filePath.endsWith(".rar") || 
-                                   filePath.endsWith(".7z") || filePath.endsWith(".tar") ||
-                                   filePath.endsWith(".gz") || filePath.endsWith(".bz2")) {
-                            operation = "COMPRESSED";
-                        } else {
-                            operation = "MODIFY";
-                        }
-
-                        Log.d(TAG, "File check: " + filePath + " exists=" + fileExists + " op=" + operation);
-
-                        String key = filePath + "|" + operation;
-                        long now = System.currentTimeMillis();
-                        Long lastTime = lastEventMap.get(key);
-
-                        if (lastTime == null || (now - lastTime > DEBOUNCE_DELAY_MS)) {
-                            lastEventMap.put(key, now);
-                            FileSystemEvent event = new FileSystemEvent(filePath, operation, actualSize, actualSize);
-                            storage.store(event);
-                            Log.i(TAG, "Logged: " + operation + " - " + filePath + " (" + actualSize + " bytes)");
-                            
-                            if (operation.equals("MODIFY") && detectionEngine != null) {
-                                detectionEngine.processFileEvent(event);
-                                Log.i(TAG, "Sent to detection engine: " + filePath);
-                            }
-                        }
-                    } else {
-                        cursor.close();
+                        if (dataIdx >= 0) filePath = cursor.getString(dataIdx);
+                        if (nameIdx >= 0) displayName = cursor.getString(nameIdx);
+                        if (relIdx >= 0) relativePath = cursor.getString(relIdx);
+                        if (sizeIdx >= 0) reportedSize = cursor.getLong(sizeIdx);
                     }
+                }
+
+                // Build a best-effort identifier for the file that remains meaningful under
+                // scoped storage. Prefer a human-readable "relative/path + name" when possible,
+                // otherwise fall back to the Uri string (always resolvable).
+                String identifier = null;
+                if (filePath != null && !filePath.isEmpty()) {
+                    identifier = filePath;
+                } else if (displayName != null && !displayName.isEmpty()) {
+                    String rel = (relativePath != null) ? relativePath : "";
+                    identifier = rel + displayName;
                 } else {
-                    if (cursor != null) cursor.close();
+                    identifier = uri.toString();
+                }
+
+                boolean fileExists = false;
+                long actualSize = Math.max(0L, reportedSize);
+                if (filePath != null && !filePath.isEmpty()) {
+                    File file = new File(filePath);
+                    fileExists = file.exists();
+                    if (fileExists) actualSize = file.length();
+                } else {
+                    // With only a content Uri, existence checks via File() are meaningless.
+                    // Treat "unknown path" entries as potentially existing.
+                    fileExists = true;
+                }
+
+                String operation;
+                if (!fileExists) {
+                    operation = "DELETED";
+                } else if (identifier.contains("/.trashed-") || identifier.contains("\\.trashed-")) {
+                    operation = "DELETED";
+                } else if (identifier.endsWith(".zip") || identifier.endsWith(".rar") ||
+                        identifier.endsWith(".7z") || identifier.endsWith(".tar") ||
+                        identifier.endsWith(".gz") || identifier.endsWith(".bz2")) {
+                    operation = "COMPRESSED";
+                } else {
+                    operation = "MODIFY";
+                }
+
+                Log.d(TAG, "MediaStore event: id=" + identifier + " filePath=" + filePath
+                        + " api=" + Build.VERSION.SDK_INT + " op=" + operation + " size=" + actualSize);
+
+                String key = identifier + "|" + operation;
+                long now = System.currentTimeMillis();
+                Long lastTime = lastEventMap.get(key);
+
+                if (lastTime == null || (now - lastTime > DEBOUNCE_DELAY_MS)) {
+                    lastEventMap.put(key, now);
+                    FileSystemEvent event = new FileSystemEvent(identifier, operation, actualSize, actualSize);
+                    event.setFileUri(uri.toString());
+                    event.setDisplayName(displayName);
+                    event.setRelativePath(relativePath);
+                    if (filePath != null && !filePath.isEmpty()) {
+                        event.setResolvedPath(filePath);
+                    } else {
+                        event.setResolvedPath(null);
+                    }
+                    storage.store(event);
+                    Log.i(TAG, "Logged: " + operation + " - " + identifier + " (" + actualSize + " bytes)");
+
+                    if (operation.equals("MODIFY") && detectionEngine != null) {
+                        detectionEngine.processFileEvent(event);
+                        Log.i(TAG, "Sent to detection engine: " + identifier);
+                    }
                 }
             } catch (Exception e) {
                 Log.e(TAG, "Error processing change", e);
