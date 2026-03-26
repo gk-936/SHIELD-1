@@ -1,5 +1,6 @@
 package com.dearmoon.shield.collectors;
 
+import android.content.Context;
 import android.os.FileObserver;
 import android.util.Log;
 import androidx.annotation.Nullable;
@@ -21,7 +22,7 @@ public class FileSystemCollector extends FileObserver {
     private SnapshotManager snapshotManager;
     private ShieldStats shieldStats;   // optional — set via setShieldStats()
 
-    // LRU cache with max 1000 entries to prevent memory leak
+    // LRU cache 1000 entries
     private final Map<String, Long> lastEventMap = new LinkedHashMap<String, Long>(100, 0.75f, true) {
         @Override
         protected boolean removeEldestEntry(Map.Entry<String, Long> eldest) {
@@ -29,19 +30,37 @@ public class FileSystemCollector extends FileObserver {
         }
     };
     private static final long DEBOUNCE_DELAY_MS = 500;
-    // App's private data directory (for self-exclusion)
-    private static String buildAppDataPath() {
-        File d = android.os.Environment.getDataDirectory();
-        return (d != null ? d.getAbsolutePath() : "") + "/data/com.dearmoon.shield";
-    }
-    private final String appDataDir = buildAppDataPath();
-    private final String[] selfExcludeDirs = new String[] { appDataDir, appDataDir + "/databases", appDataDir + "/files", appDataDir + "/logs" };
+    // Internal path self-exclusion
+    private final String[] selfExcludeDirs;
+
+    // Reserved SHIELD extensions
+    private static final String[] SHIELD_EXTENSIONS = { ".key", ".enc" };
 
     public FileSystemCollector(String path, TelemetryStorage storage) {
         super(path, CREATE | MODIFY | CLOSE_WRITE | DELETE | ALL_EVENTS);
         this.monitoredPath = path;
         this.storage = storage;
+        this.selfExcludeDirs = new String[0]; // No context: no exclusion
+        Log.d(TAG, "FileSystemCollector created (no ctx) for: " + path);
+    }
+
+    public FileSystemCollector(String path, TelemetryStorage storage, Context context) {
+        super(path, CREATE | MODIFY | CLOSE_WRITE | DELETE | ALL_EVENTS);
+        this.monitoredPath = path;
+        this.storage = storage;
+        this.selfExcludeDirs = buildSelfExcludeDirs(context);
         Log.d(TAG, "FileSystemCollector created for: " + path);
+    }
+
+    private static String[] buildSelfExcludeDirs(Context ctx) {
+        // Runtime files path
+        // ctx.getDatabaseDir() → /data/user/0/<pkg>/databases
+        String filesDir = ctx.getFilesDir().getAbsolutePath();
+        String dbDir    = ctx.getDatabasePath("").getParent();
+        String dataDir  = ctx.getFilesDir().getParentFile().getAbsolutePath();
+        // Also include the legacy /data/data/ symlink just in case
+        String legacyDataDir = "/data/data/" + ctx.getPackageName();
+        return new String[] { filesDir, dbDir, dataDir, legacyDataDir };
     }
 
     public void setDetectionEngine(UnifiedDetectionEngine engine) {
@@ -52,7 +71,7 @@ public class FileSystemCollector extends FileObserver {
         this.snapshotManager = manager;
     }
 
-    /** Replace the default per-instance EventMerger with the application-scoped shared one. */
+    // Shared event merger
     public void setEventMerger(com.dearmoon.shield.data.EventMerger merger) {
         this.eventMerger = merger;
     }
@@ -66,28 +85,37 @@ public class FileSystemCollector extends FileObserver {
         if (path == null)
             return;
 
-        // Efficiently ignore common events that don't need processing
+        // Ignore common events
         if ((event & (OPEN | ACCESS | CLOSE_NOWRITE)) != 0) {
             return;
         }
 
         String fullPath = monitoredPath + File.separator + path;
 
-        // Exclude app's own process: logs, db, internal files
+        // Exclude internal paths
         for (String excludeDir : selfExcludeDirs) {
-            if (fullPath.startsWith(excludeDir)) {
-                Log.d(TAG, "Ignoring self-generated event: " + fullPath);
+            if (excludeDir != null && !excludeDir.isEmpty() && fullPath.startsWith(excludeDir)) {
+                Log.d(TAG, "Ignoring self-generated event (path match): " + fullPath);
                 return;
             }
         }
 
-        // Logical fix: Handle multi-flag events
+        // Block SHIELD extensions
+        String lowerPath = fullPath.toLowerCase();
+        for (String ext : SHIELD_EXTENSIONS) {
+            if (lowerPath.endsWith(ext)) {
+                Log.d(TAG, "Ignoring SHIELD backup extension (" + ext + "): " + fullPath);
+                return;
+            }
+        }
+
+        // Handle multi-flag events
         boolean isCloseWrite = (event & CLOSE_WRITE) != 0;
         boolean isDelete = (event & DELETE) != 0;
         boolean isCreate = (event & CREATE) != 0;
         boolean isMove = (event & MOVED_TO) != 0;
 
-        // 1. Logic for Logging (User Request: "deleted, modified or compressed")
+        // File logging logic
         boolean shouldLog = false;
         String logOperation = "UNKNOWN";
 
@@ -119,7 +147,7 @@ public class FileSystemCollector extends FileObserver {
             }
         }
 
-        // 2. Logic for Detection Engine - forward CLOSE_WRITE as MODIFY for analysis
+        // Forward to engine
         if (detectionEngine != null && isCloseWrite) {
             File file = new File(fullPath);
             long size = file.exists() ? file.length() : 0;
@@ -128,7 +156,7 @@ public class FileSystemCollector extends FileObserver {
             Log.d(TAG, "Forwarded to detection engine: MODIFY - " + fullPath);
         }
 
-        // 3. Logic for Snapshot Manager - track all file changes
+        // Track snapshot changes
         if (snapshotManager != null) {
             if (isCloseWrite || isDelete) {
                 snapshotManager.trackFileChange(fullPath);

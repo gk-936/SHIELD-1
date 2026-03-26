@@ -37,6 +37,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import com.google.android.material.button.MaterialButton;
 import com.google.android.material.snackbar.Snackbar;
 import java.io.*;
 import java.net.InetSocketAddress;
@@ -50,17 +51,11 @@ public class MainActivity extends AppCompatActivity {
     private static final int REQ_OVERLAY = 1002;
     private static final int REQ_POST_NOTIF = 1003;
 
-    private ViewGroup rootLayout;
-    private Button startButton;
-    private Button grantStorageButton, grantOverlayButton, grantNotifButton;
-    private TextView storageStatus, overlayStatus, notifStatus;
+    private ViewGroup permissionContainer, scenarioContainer;
+    private View permissionCard, scenarioHeader, btnStopAll;
+    private Button btnGrantStorage, btnGrantOverlay, btnGrantNotif;
+    private TextView storageStatus, overlayStatus, notifStatus, statusBar, logPanel;
 
-    // Main UI elements
-    private LinearLayout scenarioLayout;
-    private TextView statusBar;
-    private Button stopAllButton;
-    private TextView logPanel;
-    private int logLines = 0;
     private final int MAX_LOG_LINES = 50;
     private final LinkedList<String> logBuffer = new LinkedList<>();
 
@@ -69,87 +64,65 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        rootLayout = (ViewGroup) findViewById(android.R.id.content);
-        LinearLayout mainLayout = (LinearLayout) findViewById(R.id.main_content_root);
+        // Bind Views
+        permissionCard = findViewById(R.id.permission_card);
+        permissionContainer = findViewById(R.id.permission_container);
+        scenarioHeader = findViewById(R.id.scenario_header);
+        scenarioContainer = findViewById(R.id.scenario_container);
+        statusBar = findViewById(R.id.status_bar);
+        logPanel = findViewById(R.id.log_panel);
+        btnStopAll = findViewById(R.id.btn_stop_all);
 
-        Log.d(TAG, "onCreate: rootLayout=" + rootLayout + ", mainLayout=" + mainLayout);
+        findViewById(R.id.btn_reset).setOnClickListener(v -> resetEnvironment());
+        btnStopAll.setOnClickListener(v -> stopAll());
 
-        if (mainLayout == null) {
-            Log.e(TAG, "CRITICAL ERROR: main_content_root NOT FOUND in activity_main.xml");
-            // Fallback to child(0) if ID search fails
-            if (rootLayout != null && rootLayout.getChildCount() > 0) {
-                View firstChild = rootLayout.getChildAt(0);
-                if (firstChild instanceof LinearLayout) {
-                    mainLayout = (LinearLayout) firstChild;
-                    Log.d(TAG, "Fallback: Using first child as mainLayout");
-                }
-            }
-        }
-
-        if (mainLayout != null) {
-            // Add permissions checklist UI
-            addPermissionChecklist(mainLayout);
-            updatePermissionStatus();
-        } else {
-            Log.e(TAG, "CRITICAL ERROR: Could not initialize UI. rootLayout children: " + 
-                (rootLayout != null ? rootLayout.getChildCount() : "rootLayout is NULL"));
-        }
+        setupPermissionRows();
+        updatePermissionStatus();
     }
 
-    private void addPermissionChecklist(LinearLayout parent) {
-        // Checklist title
-        TextView checklistTitle = new TextView(this);
-        checklistTitle.setText("Permissions required:");
-        checklistTitle.setTextColor(getResources().getColor(R.color.white));
-        checklistTitle.setTextSize(18);
-        checklistTitle.setPadding(0, 32, 0, 8);
-        parent.addView(checklistTitle);
+    private void setupPermissionRows() {
+        // We reuse the container but make the rows pretty
+        permissionContainer.removeAllViews();
+        
+        TextView title = new TextView(this);
+        title.setText("Safety Checklist");
+        title.setTextColor(getResources().getColor(R.color.text_primary));
+        title.setTextSize(18);
+        title.setTypeface(null, Typeface.BOLD);
+        title.setPadding(0, 0, 0, 16);
+        permissionContainer.addView(title);
 
-        // Storage
-        LinearLayout storageRow = new LinearLayout(this);
-        storageRow.setOrientation(LinearLayout.HORIZONTAL);
-        storageStatus = new TextView(this);
-        storageStatus.setText("Checking...");
-        storageStatus.setTextColor(getResources().getColor(R.color.white));
-        grantStorageButton = new Button(this);
-        grantStorageButton.setText("Grant");
-        grantStorageButton.setOnClickListener(v -> requestManageStorage());
-        storageRow.addView(storageStatus);
-        storageRow.addView(grantStorageButton);
-        parent.addView(storageRow);
+        storageStatus = addPermissionRow("Storage Access", v -> requestManageStorage());
+        overlayStatus = addPermissionRow("Overlay Permission", v -> requestOverlayPermission());
+        notifStatus = addPermissionRow("Notification Access", v -> requestNotifPermission());
+    }
 
-        // Overlay
-        LinearLayout overlayRow = new LinearLayout(this);
-        overlayRow.setOrientation(LinearLayout.HORIZONTAL);
-        overlayStatus = new TextView(this);
-        overlayStatus.setText("Checking...");
-        overlayStatus.setTextColor(getResources().getColor(R.color.white));
-        grantOverlayButton = new Button(this);
-        grantOverlayButton.setText("Grant");
-        grantOverlayButton.setOnClickListener(v -> requestOverlayPermission());
-        overlayRow.addView(overlayStatus);
-        overlayRow.addView(grantOverlayButton);
-        parent.addView(overlayRow);
+    private TextView addPermissionRow(String label, View.OnClickListener listener) {
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setPadding(0, 8, 0, 8);
 
-        // Notifications
-        LinearLayout notifRow = new LinearLayout(this);
-        notifRow.setOrientation(LinearLayout.HORIZONTAL);
-        notifStatus = new TextView(this);
-        notifStatus.setText("Checking...");
-        notifStatus.setTextColor(getResources().getColor(R.color.white));
-        grantNotifButton = new Button(this);
-        grantNotifButton.setText("Grant");
-        grantNotifButton.setOnClickListener(v -> requestNotifPermission());
-        notifRow.addView(notifStatus);
-        notifRow.addView(grantNotifButton);
-        parent.addView(notifRow);
+        TextView name = new TextView(this);
+        name.setText(label);
+        name.setTextColor(getResources().getColor(R.color.text_secondary));
+        name.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        
+        TextView status = new TextView(this);
+        status.setText("CHECKING");
+        status.setPadding(16, 0, 16, 0);
+        
+        MaterialButton btn = new MaterialButton(this, null, com.google.android.material.R.attr.borderlessButtonStyle);
+        btn.setText("GRANT");
+        btn.setTextColor(getResources().getColor(R.color.primary));
+        btn.setOnClickListener(listener);
 
-        // Start button
-        startButton = new Button(this);
-        startButton.setText("All permissions granted — START");
-        startButton.setEnabled(false);
-        startButton.setOnClickListener(v -> onAllPermissionsGranted());
-        parent.addView(startButton);
+        row.addView(name);
+        row.addView(status);
+        row.addView(btn);
+        permissionContainer.addView(row);
+        
+        return status;
     }
 
     private void updatePermissionStatus() {
@@ -157,15 +130,62 @@ public class MainActivity extends AppCompatActivity {
         boolean overlayGranted = hasOverlayPermission();
         boolean notifGranted = hasNotifPermission();
 
-        storageStatus.setText(storageGranted ? "✅ Granted" : "❌ Missing");
-        overlayStatus.setText(overlayGranted ? "✅ Granted" : "❌ Missing");
-        notifStatus.setText(notifGranted ? "✅ Granted" : "❌ Missing");
+        updateStatusText(storageStatus, storageGranted);
+        updateStatusText(overlayStatus, overlayGranted);
+        updateStatusText(notifStatus, notifGranted);
 
-        grantStorageButton.setEnabled(!storageGranted);
-        grantOverlayButton.setEnabled(!overlayGranted);
-        grantNotifButton.setEnabled(!notifGranted);
+        if (storageGranted && overlayGranted && notifGranted) {
+            permissionCard.setVisibility(View.GONE);
+            scenarioHeader.setVisibility(View.VISIBLE);
+            scenarioContainer.setVisibility(View.VISIBLE);
+            if (scenarioContainer.getChildCount() == 0) addScenarioCards();
+        } else {
+            permissionCard.setVisibility(View.VISIBLE);
+            scenarioHeader.setVisibility(View.GONE);
+            scenarioContainer.setVisibility(View.GONE);
+        }
+    }
 
-        startButton.setEnabled(storageGranted && overlayGranted && notifGranted);
+    private void updateStatusText(TextView tv, boolean granted) {
+        tv.setText(granted ? "READY" : "MISSING");
+        tv.setTextColor(getResources().getColor(granted ? R.color.accent_green : R.color.accent_red));
+        ViewGroup parent = (ViewGroup) tv.getParent();
+        parent.getChildAt(parent.getChildCount() - 1).setEnabled(!granted);
+    }
+
+    private void addScenarioCards() {
+        scenarioContainer.removeAllViews();
+        
+        addScenario(
+                "Crypto Ransomware",
+                "Encrypts sandbox files using XOR. Mimics SOVA/Cerber patterns.",
+                v -> startCryptoScenario()
+        );
+        addScenario(
+                "Locker UI",
+                "Simulates a full-screen block. Test password: 1234.",
+                v -> startLockerScenario()
+        );
+        addScenario(
+                "Full Hybrid Attack",
+                "Lock + Encryption + C2. The most aggressive chain.",
+                v -> startHybridScenario()
+        );
+        addScenario(
+                "Evasive Reconnaissance",
+                "Slow scans followed by rapid encryption. Tests SPRT thresholds.",
+                v -> startReconScenario()
+        );
+    }
+
+    private void addScenario(String title, String desc, View.OnClickListener listener) {
+        View card = getLayoutInflater().inflate(R.layout.item_scenario, scenarioContainer, false);
+        ((TextView) card.findViewById(R.id.scenario_title)).setText(title);
+        ((TextView) card.findViewById(R.id.scenario_description)).setText(desc);
+        Button btn = card.findViewById(R.id.scenario_button);
+        btn.setText("LAUNCH TEST");
+        btn.setOnClickListener(listener);
+        scenarioContainer.addView(card);
     }
 
     private boolean hasManageStorage() {
@@ -218,144 +238,33 @@ public class MainActivity extends AppCompatActivity {
         updatePermissionStatus();
     }
 
-    private void onAllPermissionsGranted() {
-        Toast.makeText(this, "All permissions granted!", Toast.LENGTH_SHORT).show();
-        showMainScenarioUI();
-    }
-
-    private void showMainScenarioUI() {
-        rootLayout.removeAllViews();
-        LinearLayout main = new LinearLayout(this);
-        main.setOrientation(LinearLayout.VERTICAL);
-        main.setBackgroundColor(getResources().getColor(R.color.dark_bg));
-        main.setPadding(16, 16, 16, 16);
-
-        // Header
-        TextView title = new TextView(this);
-        title.setText("SHIELD RanSim");
-        title.setTextColor(getResources().getColor(R.color.red));
-        title.setTextSize(28);
-        title.setGravity(Gravity.CENTER);
-        title.setTypeface(null, Typeface.BOLD);
-        main.addView(title);
-
-        TextView subtitle = new TextView(this);
-        subtitle.setText("Ransomware Behaviour Simulator — Security Research Only");
-        subtitle.setTextColor(getResources().getColor(R.color.white));
-        subtitle.setTextSize(14);
-        subtitle.setGravity(Gravity.CENTER);
-        main.addView(subtitle);
-
-        // Status bar
-        statusBar = new TextView(this);
-        statusBar.setText("IDLE");
-        statusBar.setTextColor(getResources().getColor(R.color.yellow));
-        statusBar.setTextSize(16);
-        statusBar.setGravity(Gravity.CENTER);
-        statusBar.setPadding(0, 8, 0, 8);
-        main.addView(statusBar);
-
-        // Scenario cards
-        scenarioLayout = new LinearLayout(this);
-        scenarioLayout.setOrientation(LinearLayout.VERTICAL);
-        scenarioLayout.setPadding(0, 16, 0, 16);
-        addScenarioCards();
-        main.addView(scenarioLayout);
-
-        // STOP ALL button
-        stopAllButton = new Button(this);
-        stopAllButton.setText("⏹ STOP ALL & RESTORE");
-        stopAllButton.setBackgroundColor(getResources().getColor(R.color.red));
-        stopAllButton.setTextColor(getResources().getColor(R.color.white));
-        stopAllButton.setTextSize(18);
-        stopAllButton.setOnClickListener(v -> stopAll());
-        main.addView(stopAllButton);
-
-        // RESET button
-        Button resetBtn = new Button(this);
-        resetBtn.setText("♻️ RESET ENVIRONMENT");
-        resetBtn.setOnClickListener(v -> resetEnvironment());
-        main.addView(resetBtn);
-
-        // Log panel
-        logPanel = new TextView(this);
-        logPanel.setTextColor(getResources().getColor(R.color.white));
-        logPanel.setTypeface(Typeface.MONOSPACE);
-        logPanel.setTextSize(12);
-        logPanel.setMaxLines(MAX_LOG_LINES);
-        logPanel.setVerticalScrollBarEnabled(true);
-        logPanel.setPadding(0, 16, 0, 0);
-        main.addView(logPanel);
-
-        rootLayout.addView(main);
-        log("Main scenario UI loaded");
-    }
-
-    private void addScenarioCards() {
-        scenarioLayout.removeAllViews();
-        // Card 1: Crypto Ransomware
-        scenarioLayout.addView(makeScenarioCard(
-                "CRYPTO RANSOMWARE",
-                "Encrypts test files at ~5 files/sec using XOR cipher.\nMimics SOVA v5 / Cerber file encryption behaviour.\nTargets: sandbox/documents/, sandbox/photos/, sandbox/notes/",
-                getResources().getColor(R.color.orange),
-                "▶ START CRYPTO",
-                v -> startCryptoScenario()
-        ));
-        // Card 2: Locker Ransomware
-        scenarioLayout.addView(makeScenarioCard(
-                "LOCKER RANSOMWARE",
-                "Displays full-screen overlay simulating a screen locker.\nMimics Android/Koler, Svpeng locker behaviour.\nPassword is always visible on screen. Press STOP to exit.",
-                getResources().getColor(R.color.red),
-                "▶ START LOCKER",
-                v -> startLockerScenario()
-        ));
-        // Card 3: Hybrid Attack
-        scenarioLayout.addView(makeScenarioCard(
-                "HYBRID ATTACK",
-                "Simultaneous encryption + screen lock + C2 simulation.\nMimics SOVA full attack chain. Most aggressive scenario.\nTests all SHIELD detection layers at once.",
-                getResources().getColor(R.color.dark_red),
-                "▶ START HYBRID",
-                v -> startHybridScenario()
-        ));
-        // Card 4: Recon → Encrypt
-        scenarioLayout.addView(makeScenarioCard(
-                "RECON → ENCRYPT",
-                "30 seconds of slow file reconnaissance, then rapid encryption.\nTests SHIELD's SPRT threshold transition.\nWatch SHIELD's score climb from ~10 to 130.",
-                getResources().getColor(R.color.yellow),
-                "▶ START RECON",
-                v -> startReconScenario()
-        ));
-    }
-
     // --- Locker Ransomware Scenario ---
     private void startLockerScenario() {
-        log("Starting LOCKER RANSOMWARE scenario");
-        statusBar.setText("RUNNING: LOCKER RANSOMWARE");
+        log("Starting LOCKER scenario...");
+        statusBar.setText("STATUS: RUNNING (LOCKER)");
+        btnStopAll.setVisibility(View.VISIBLE);
         simState.reset();
         simState.activeScenario = SimulationState.Scenario.LOCKER;
         simState.isRunning = true;
         Intent svc = new Intent(this, OverlayService.class);
         ContextCompat.startForegroundService(this, svc);
-        // Send broadcast
         sendBroadcast(new Intent("com.dearmoon.shield.ransim.LOCKER_ACTIVE"));
     }
 
     // --- Hybrid Attack Scenario ---
     private void startHybridScenario() {
-        log("Starting HYBRID ATTACK scenario");
-        statusBar.setText("RUNNING: HYBRID ATTACK");
+        log("Starting HYBRID attack...");
+        statusBar.setText("STATUS: RUNNING (HYBRID)");
+        btnStopAll.setVisibility(View.VISIBLE);
         simState.reset();
         simState.activeScenario = SimulationState.Scenario.HYBRID;
         simState.isRunning = true;
         simState.startTimeMs = System.currentTimeMillis();
-        // Setup phase
-        simulator.seedTestFiles(new File(SANDBOX_ROOT), this::log);
-        // Thread A: Encryption (100ms delay)
+        simulator.seedTestFiles(getSandboxRoot(), this::log);
+        
         Thread encryptThread = new Thread(() -> {
             try {
-                List<File> files = simulator.collectTargetFiles(new File(SANDBOX_ROOT));
-                simState.filesTotal = files.size();
-                simState.filesEncrypted = 0;
+                List<File> files = simulator.collectTargetFiles(getSandboxRoot());
                 for (File f : files) {
                     if (!simState.isRunning) break;
                     if (!validatePath(f)) continue;
@@ -364,29 +273,22 @@ public class MainActivity extends AppCompatActivity {
                     File encFile = new File(f.getAbsolutePath() + ".enc");
                     simulator.xorEncryptToFile(orig, encFile);
                     f.delete();
-                    simState.filesEncrypted++;
-                    runOnUiThread(() -> log("SIM_FILE_ENCRYPTED path=" + encFile.getName() + " size=" + orig.length));
+                    runOnUiThread(() -> log("ENCRYPTED: " + encFile.getName()));
                     Thread.sleep(100);
                 }
-                File ransomNote = new File(SANDBOX_ROOT, "RANSOM_NOTE.txt");
-                simulator.writeRansomNote(ransomNote);
-            } catch (Exception e) { log("[ERROR] " + e.getMessage()); }
+                simulator.writeRansomNote(new File(getSandboxRoot(), "RANSOM_NOTE.txt"));
+            } catch (Exception e) { log("[ERR] " + e.getMessage()); }
         });
         simState.activeThreads.add(encryptThread);
         encryptThread.start();
-        // Thread B: Locker overlay (after 3s)
-        new Handler(Looper.getMainLooper()).postDelayed(() -> startLockerScenario(), 3000);
-        // Thread C: C2 simulation (every 2s for 30s)
+        
+        new Handler(Looper.getMainLooper()).postDelayed(this::startLockerScenario, 2000);
+        
         Thread c2Thread = new Thread(() -> {
             int[] ports = {4444, 6666, 8888};
             for (int port : ports) {
                 if (!simState.isRunning) break;
-                try (Socket s = new Socket()) {
-                    s.connect(new InetSocketAddress("127.0.0.1", port), 500);
-                    log("SIM_C2_ATTEMPT port=" + port + " result=connected");
-                } catch (IOException e) {
-                    log("SIM_C2_ATTEMPT port=" + port + " result=refused");
-                }
+                simulator.simulateC2(this::log);
                 try { Thread.sleep(2000); } catch (InterruptedException ignored) {}
             }
         });
@@ -397,28 +299,25 @@ public class MainActivity extends AppCompatActivity {
 
     // --- Recon → Encrypt Scenario ---
     private void startReconScenario() {
-        log("Starting RECON → ENCRYPT scenario");
-        statusBar.setText("RUNNING: RECON → ENCRYPT");
+        log("Starting RECON scan...");
+        statusBar.setText("STATUS: SCANNING FILES");
+        btnStopAll.setVisibility(View.VISIBLE);
         simState.reset();
         simState.activeScenario = SimulationState.Scenario.RECON;
         simState.isRunning = true;
-        simState.startTimeMs = System.currentTimeMillis();
-        simulator.seedTestFiles(new File(SANDBOX_ROOT), this::log);
+        simulator.seedTestFiles(getSandboxRoot(), this::log);
+        
         Thread reconThread = new Thread(() -> {
             try {
-                List<File> files = simulator.collectTargetFiles(new File(SANDBOX_ROOT));
-                int found = 0;
+                List<File> files = simulator.collectTargetFiles(getSandboxRoot());
                 for (File f : files) {
                     if (!simState.isRunning) break;
-                    boolean readable = f.canRead();
-                    log("SIM_RECON_FILE: " + f.getName() + " size=" + f.length() + " readable=" + readable);
-                    found++;
+                    log("READ: " + f.getName());
                     Thread.sleep(500);
                 }
-                log("SIM_RECON_COMPLETE: found " + found + " files, starting encryption in 5s");
-                runOnUiThread(() -> statusBar.setText("Reconnaissance complete — preparing encryption..."));
-                Thread.sleep(5000);
-                // Start encryption (150ms delay)
+                log("RECON COMPLETE. Starting encryption...");
+                runOnUiThread(() -> statusBar.setText("STATUS: RAPID ENCRYPTION"));
+                Thread.sleep(2000);
                 for (File f : files) {
                     if (!simState.isRunning) break;
                     if (!validatePath(f)) continue;
@@ -427,30 +326,26 @@ public class MainActivity extends AppCompatActivity {
                     File encFile = new File(f.getAbsolutePath() + ".enc");
                     simulator.xorEncryptToFile(orig, encFile);
                     f.delete();
-                    simState.filesEncrypted++;
-                    runOnUiThread(() -> log("SIM_FILE_ENCRYPTED path=" + encFile.getName() + " size=" + orig.length));
+                    runOnUiThread(() -> log("ENCRYPTED: " + encFile.getName()));
                     Thread.sleep(150);
                 }
-                File ransomNote = new File(SANDBOX_ROOT, "RANSOM_NOTE.txt");
-                simulator.writeRansomNote(ransomNote);
-            } catch (Exception e) { log("[ERROR] " + e.getMessage()); }
+                simulator.writeRansomNote(new File(getSandboxRoot(), "RANSOM_NOTE.txt"));
+            } catch (Exception e) { log("[ERR] " + e.getMessage()); }
         });
         simState.activeThreads.add(reconThread);
         reconThread.start();
     }
 
-    // --- STOP/RESTORE logic ---
+    // --- STOP/RESTORE ---
     private void stopAll() {
-        log("STOP ALL & RESTORE triggered");
+        log("Stopping tests & restoring sandbox...");
         simState.isRunning = false;
         for (Thread t : simState.activeThreads) t.interrupt();
         simState.activeThreads.clear();
-        // Stop overlay
         stopService(new Intent(this, OverlayService.class));
-        // Release wakelock if held
+        
         if (simState.wakeLock != null && simState.wakeLock.isHeld()) simState.wakeLock.release();
-        simState.wakeLock = null;
-        // Restore files
+        
         for (Map.Entry<String, byte[]> entry : simState.originalFiles.entrySet()) {
             try {
                 File orig = new File(entry.getKey());
@@ -458,42 +353,36 @@ public class MainActivity extends AppCompatActivity {
                 try (FileOutputStream fos = new FileOutputStream(orig)) {
                     fos.write(entry.getValue());
                 }
-                File enc = new File(orig.getAbsolutePath() + ".enc");
-                if (enc.exists()) enc.delete();
-            } catch (Exception e) { log("[ERROR] Restore: " + e.getMessage()); }
+                new File(orig.getAbsolutePath() + ".enc").delete();
+            } catch (Exception e) { log("[ERR] Restore: " + e.getMessage()); }
         }
-        // Delete ransom note
-        File ransomNote = new File(SANDBOX_ROOT, "RANSOM_NOTE.txt");
-        if (ransomNote.exists()) ransomNote.delete();
+        new File(getSandboxRoot(), "RANSOM_NOTE.txt").delete();
         simState.reset();
-        log("SHIELD_RANSIM: CLEANUP_COMPLETE all files restored");
+        log("Cleanup finished. System restored.");
         sendBroadcast(new Intent("com.dearmoon.shield.ransim.CLEANUP_COMPLETE"));
-        runOnUiThread(() -> Toast.makeText(this, "✅ All files restored", Toast.LENGTH_SHORT).show());
-        statusBar.setText("IDLE");
+        runOnUiThread(() -> {
+            statusBar.setText("STATUS: IDLE");
+            btnStopAll.setVisibility(View.GONE);
+            Toast.makeText(this, "✅ Cleaned & Restored", Toast.LENGTH_SHORT).show();
+        });
     }
 
     private void resetEnvironment() {
-        log("Resetting environment...");
+        log("Resetting sandbox...");
         stopAll();
-        simulator.clearSandbox(new File(SANDBOX_ROOT), this::log);
-        simulator.seedTestFiles(new File(SANDBOX_ROOT), this::log);
-        Toast.makeText(this, "Environment Reset Complete", Toast.LENGTH_SHORT).show();
+        simulator.clearSandbox(getSandboxRoot(), this::log);
+        simulator.seedTestFiles(getSandboxRoot(), this::log);
+        Toast.makeText(this, "Environment Reset", Toast.LENGTH_SHORT).show();
     }
 
-    // --- SHIELD detection listener ---
     private BroadcastReceiver shieldReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
             if ("com.dearmoon.shield.HIGH_RISK_ALERT".equals(action)) {
-                log("✅ SHIELD DETECTED! Score: " + intent.getIntExtra("score", 0));
-                statusBar.setText("✅ SHIELD DETECTED!");
-                // Stop simulation after 3s
-                new Handler(Looper.getMainLooper()).postDelayed(() -> stopAll(), 3000);
-            } else if ("com.dearmoon.shield.EMERGENCY_MODE".equals(action)) {
-                log("EMERGENCY MODE triggered by SHIELD");
-            } else if ("com.dearmoon.shield.RESTORE_COMPLETE".equals(action)) {
-                log("SHIELD restore complete");
+                log("⚠️ SHIELD DETECTED ATTACK!");
+                statusBar.setText("⚠️ ATTACK BLOCKED BY SHIELD");
+                new Handler(Looper.getMainLooper()).postDelayed(MainActivity.this::stopAll, 2000);
             }
         }
     };
@@ -506,6 +395,7 @@ public class MainActivity extends AppCompatActivity {
         f.addAction("com.dearmoon.shield.EMERGENCY_MODE");
         f.addAction("com.dearmoon.shield.RESTORE_COMPLETE");
         registerReceiver(shieldReceiver, f);
+        updatePermissionStatus();
     }
 
     @Override
@@ -514,59 +404,47 @@ public class MainActivity extends AppCompatActivity {
         unregisterReceiver(shieldReceiver);
     }
 
-    // STOP button handler
-    // (replace log in STOP ALL button with stopAll call)
-    //
-    // In showMainScenarioUI():
-    // stopAllButton.setOnClickListener(v -> stopAll());
-
-    // --- Crypto Ransomware Scenario ---
-    private static final String SANDBOX_ROOT = "/sdcard/Android/data/com.dearmoon.shield.ransim/shield_ransim_sandbox/";
+    private File getSandboxRoot() {
+        File root = new File(getExternalFilesDir(null), "shield_ransim_sandbox");
+        if (!root.exists()) {
+            boolean created = root.mkdirs();
+            if (!created) log("[WRN] Failed to create sandbox root directory");
+        }
+        return root;
+    }
     private SimulationState simState = new SimulationState();
     private RansomwareSimulator simulator = new RansomwareSimulator();
 
     private void startCryptoScenario() {
-        log("Starting CRYPTO RANSOMWARE scenario");
-        statusBar.setText("RUNNING: CRYPTO RANSOMWARE");
+        log("Launching CRYPTO scenario...");
+        statusBar.setText("STATUS: RUNNING (CRYPTO)");
+        btnStopAll.setVisibility(View.VISIBLE);
         simState.reset();
         simState.activeScenario = SimulationState.Scenario.CRYPTO;
         simState.isRunning = true;
-        simState.startTimeMs = System.currentTimeMillis();
-        // Seed files if needed
-        runOnUiThread(() -> log("Seeding test files..."));
-        simulator.seedTestFiles(new File(SANDBOX_ROOT), this::log);
-        // Start encryption thread
+        simulator.seedTestFiles(getSandboxRoot(), this::log);
+        
         Thread encryptThread = new Thread(() -> {
             try {
-                List<File> files = simulator.collectTargetFiles(new File(SANDBOX_ROOT));
-                simState.filesTotal = files.size();
-                simState.filesEncrypted = 0;
+                List<File> files = simulator.collectTargetFiles(getSandboxRoot());
                 for (File f : files) {
                     if (!simState.isRunning) break;
-                    if (!validatePath(f)) {
-                        log("[ERROR] File outside sandbox: " + f.getAbsolutePath());
-                        continue;
-                    }
+                    if (!validatePath(f)) continue;
                     byte[] orig = simulator.readFileBytes(f);
                     simState.originalFiles.put(f.getCanonicalPath(), orig);
                     File encFile = new File(f.getAbsolutePath() + ".enc");
                     simulator.xorEncryptToFile(orig, encFile);
                     f.delete();
-                    simState.filesEncrypted++;
-                    runOnUiThread(() -> log("SIM_FILE_ENCRYPTED path=" + encFile.getName() + " size=" + orig.length));
+                    runOnUiThread(() -> log("ENCRYPTED: " + encFile.getName()));
                     Thread.sleep(200);
                 }
-                // Drop ransom note
-                File ransomNote = new File(SANDBOX_ROOT, "RANSOM_NOTE.txt");
-                simulator.writeRansomNote(ransomNote);
-                // Simulate C2
+                simulator.writeRansomNote(new File(getSandboxRoot(), "RANSOM_NOTE.txt"));
                 simulator.simulateC2(this::log);
-                // Broadcast complete
-                sendBroadcast(new Intent("com.dearmoon.shield.ransim.CRYPTO_COMPLETE"));
-                runOnUiThread(() -> statusBar.setText("STOPPED"));
-            } catch (Exception e) {
-                log("[ERROR] " + e.getMessage());
-            }
+                runOnUiThread(() -> {
+                    statusBar.setText("STATUS: COMPLETED");
+                    btnStopAll.setVisibility(View.GONE);
+                });
+            } catch (Exception e) { log("[ERR] " + e.getMessage()); }
         });
         simState.activeThreads.add(encryptThread);
         encryptThread.start();
@@ -575,58 +453,17 @@ public class MainActivity extends AppCompatActivity {
     private boolean validatePath(File f) {
         try {
             String canon = f.getCanonicalPath();
-            if (!canon.startsWith(SANDBOX_ROOT)) {
-                Log.e(TAG, "[SECURITY] File outside sandbox: " + canon);
-                throw new IllegalArgumentException("File outside sandbox: " + canon);
-            }
-            return true;
-        } catch (IOException e) {
-            Log.e(TAG, "[SECURITY] Path validation failed: " + e.getMessage());
-            return false;
-        }
-    }
-
-    private CardView makeScenarioCard(String title, String desc, int accentColor, String buttonText, View.OnClickListener onClick) {
-        CardView card = new CardView(this);
-        card.setCardBackgroundColor(accentColor);
-        card.setRadius(16);
-        card.setUseCompatPadding(true);
-        LinearLayout layout = new LinearLayout(this);
-        layout.setOrientation(LinearLayout.VERTICAL);
-        layout.setPadding(24, 24, 24, 24);
-        TextView t = new TextView(this);
-        t.setText(title);
-        t.setTextColor(getResources().getColor(R.color.white));
-        t.setTextSize(20);
-        t.setTypeface(null, Typeface.BOLD);
-        layout.addView(t);
-        TextView d = new TextView(this);
-        d.setText(desc);
-        d.setTextColor(getResources().getColor(R.color.white));
-        d.setTextSize(14);
-        d.setPadding(0, 8, 0, 8);
-        layout.addView(d);
-        Button b = new Button(this);
-        b.setText(buttonText);
-        b.setOnClickListener(onClick);
-        layout.addView(b);
-        card.addView(layout);
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-        lp.setMargins(0, 0, 0, 24);
-        card.setLayoutParams(lp);
-        return card;
+            return canon.startsWith(getSandboxRoot().getAbsolutePath());
+        } catch (IOException e) { return false; }
     }
 
     private void log(String msg) {
         runOnUiThread(() -> {
             if (logBuffer.size() >= MAX_LOG_LINES) logBuffer.removeFirst();
-            logBuffer.add(msg);
+            logBuffer.add("> " + msg);
             StringBuilder sb = new StringBuilder();
             for (String line : logBuffer) sb.append(line).append("\n");
-            if (logPanel != null) {
-                logPanel.setText(sb.toString());
-            }
+            if (logPanel != null) logPanel.setText(sb.toString());
         });
         Log.d(TAG, msg);
     }

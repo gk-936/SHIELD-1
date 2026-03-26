@@ -10,14 +10,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/**
- * Pseudo-Kernel Detection Layer: Package Attributor
- * 
- * REUSE STRATEGY:
- * - Uses existing UID fields from NetworkEvent, HoneyfileEvent
- * - Adds PackageManager lookup (missing functionality)
- * - Caches results for performance
- */
+// Package Attributor layer
 public class PackageAttributor {
     private static final String TAG = "PackageAttributor";
     private final Context context;
@@ -40,9 +33,7 @@ public class PackageAttributor {
         this.packageManager = context.getPackageManager();
     }
     
-    /**
-     * Get package name and app label for UID
-     */
+    // Get UID app info
     public AppInfo getAppInfoForUid(int uid) {
         if (uid < 0) return new AppInfo("unknown", "System/Unknown");
         if (uid == 0) return new AppInfo("root", "Root/Kernel");
@@ -50,7 +41,7 @@ public class PackageAttributor {
         if (uid == 1000) return new AppInfo("android", "System Server");
         if (uid < 2000) return new AppInfo("system_process", "OS Process (" + uid + ")");
 
-        // Check cache first
+        // Check UID cache
         if (uidCache.containsKey(uid)) {
             return uidCache.get(uid);
         }
@@ -81,7 +72,7 @@ public class PackageAttributor {
         }
         
         AppInfo info = new AppInfo(packageName, appLabel);
-        // Cache result
+        // Cache UID info
         uidCache.put(uid, info);
         Log.d(TAG, "UID " + uid + " → " + packageName + " (" + appLabel + ")");
         
@@ -93,10 +84,7 @@ public class PackageAttributor {
         return getAppInfoForUid(uid).packageName;
     }
     
-    /**
-     * Resolve the UID of the process that modified a specific file path.
-     * Includes caching and multi-strategy resolution.
-     */
+    // Resolve path UID
     public int resolveUidFromPath(String filePath) {
         if (filePath == null || filePath.isEmpty()) return -1;
         
@@ -113,7 +101,7 @@ public class PackageAttributor {
             uid = getUidForPackage(pkg);
         }
 
-        // Strategy 2: Shared storage
+        // Shared storage strategy
         if (uid == -1) {
             pkg = extractPackageFromSharedStoragePath(filePath);
             if (pkg != null) {
@@ -121,13 +109,15 @@ public class PackageAttributor {
             }
         }
 
-        // Strategy 3: Foreground heuristic
+        // Foreground heuristic strategy
         if (uid == -1) {
             uid = getForegroundUid();
         }
 
         if (uid != -1) {
             pathUidCache.put(filePath, uid);
+        } else {
+            Log.w(TAG, "Attribution failed for path: " + filePath);
         }
         return uid;
     }
@@ -149,11 +139,16 @@ public class PackageAttributor {
     }
 
     private String extractPackageFromSharedStoragePath(String filePath) {
-        // Broad shared storage pattern: handles /sdcard, /storage/emulated/N, /storage/XXXX-XXXX, /data/media/N
+        // Shared path pattern
+        // Standard Android directories
         Matcher m = Pattern.compile(
             "(?:/storage/emulated/\\d+|/sdcard|/storage/[^/]+|/data/media/\\d+)/Android/(?:data|obb)/([a-zA-Z][a-zA-Z0-9_.]+)(?:/|$)"
         ).matcher(filePath);
-        if (m.find()) return m.group(1);
+        if (m.find()) {
+            String pkg = m.group(1);
+            Log.d(TAG, "Extracted package '" + pkg + "' from shared path: " + filePath);
+            return pkg;
+        }
         return null;
     }
 
@@ -177,9 +172,7 @@ public class PackageAttributor {
         return -1;
     }
 
-    /**
-     * Clear cache (call periodically to avoid memory leak)
-     */
+    // Clear attribution cache
     public void clearCache() {
         uidCache.clear();
         pathUidCache.clear();

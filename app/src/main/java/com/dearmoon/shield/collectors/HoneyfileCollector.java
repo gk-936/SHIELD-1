@@ -39,36 +39,90 @@ public class HoneyfileCollector {
 
     public void createHoneyfiles(Context context, String[] directories) {
         final int HONEYFILE_COUNT = 6;
+        SharedPreferences prefs = context.getSharedPreferences("ShieldHoneyfiles", Context.MODE_PRIVATE);
 
         for (String dir : directories) {
             File directory = new File(dir);
             if (!directory.exists()) continue;
 
             for (int i = 0; i < HONEYFILE_COUNT; i++) {
-                // L-03: Use device-fingerprint-derived name instead of static predictable names
                 String name = generateHoneyfileName(dir, i);
                 File honeyfile = new File(directory, name);
-                try (FileWriter writer = new FileWriter(honeyfile)) {
-                    writer.write("SHIELD HONEYFILE - DO NOT ACCESS\n");
-                    writer.write("This is a decoy file for ransomware detection.\n");
-                    honeyfiles.add(honeyfile);
-                    
-                    // Make readable to trigger access attempts
-                    honeyfile.setReadable(true, false);
-                    honeyfile.setWritable(true, false);
-                    
-                    HoneyfileObserver observer = new HoneyfileObserver(honeyfile.getAbsolutePath());
-                    observer.startWatching();
-                    observers.add(observer);
-                    
-                    Log.d(TAG, "Created honeyfile: " + honeyfile.getAbsolutePath());
-                } catch (Exception e) {
-                    Log.e(TAG, "Failed to create honeyfile", e);
-                }
+                deploySingleHoneyfile(honeyfile, prefs);
             }
         }
         
         Log.i(TAG, "Honeyfile creation complete. Grace period: " + CREATION_GRACE_PERIOD_MS + "ms");
+    }
+
+    private void deploySingleHoneyfile(File honeyfile, SharedPreferences prefs) {
+        try (FileWriter writer = new FileWriter(honeyfile)) {
+            writer.write("SHIELD HONEYFILE - DO NOT ACCESS\n");
+            writer.write("This is a decoy file for ransomware detection.\n");
+            
+            honeyfile.setReadable(true, false);
+            honeyfile.setWritable(true, false);
+            
+            String originalHash = calculateFileHash(honeyfile);
+            if (prefs != null && originalHash != null) {
+                prefs.edit().putString("hash_" + honeyfile.getAbsolutePath(), originalHash).apply();
+            }
+            
+            // Avoid duplicate observers
+            boolean alreadyObserved = false;
+            for (HoneyfileObserver o : observers) {
+                if (o.getFilePath().equals(honeyfile.getAbsolutePath())) {
+                    alreadyObserved = true;
+                    break;
+                }
+            }
+            
+            if (!alreadyObserved) {
+                HoneyfileObserver observer = new HoneyfileObserver(honeyfile.getAbsolutePath());
+                observer.startWatching();
+                observers.add(observer);
+            }
+            
+            if (!honeyfiles.contains(honeyfile)) {
+                honeyfiles.add(honeyfile);
+            }
+            
+            Log.d(TAG, "Deployed honeyfile: " + honeyfile.getAbsolutePath() + " (Hash: " + originalHash + ")");
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to deploy honeyfile: " + honeyfile.getAbsolutePath(), e);
+        }
+    }
+
+    public void verifyAndRedeploy(Context context, String[] directories) {
+        Log.i(TAG, "Watchdog: Starting periodic honeyfile integrity check...");
+        SharedPreferences prefs = context.getSharedPreferences("ShieldHoneyfiles", Context.MODE_PRIVATE);
+        
+        for (String dir : directories) {
+            File directory = new File(dir);
+            if (!directory.exists()) continue;
+
+            for (int i = 0; i < 6; i++) {
+                String name = generateHoneyfileName(dir, i);
+                File honeyfile = new File(directory, name);
+                
+                if (!honeyfile.exists()) {
+                    Log.w(TAG, "Watchdog: Honeyfile MISSING! Redeploying: " + honeyfile.getAbsolutePath());
+                    deploySingleHoneyfile(honeyfile, prefs);
+                } else {
+                    // Check integrity of existing file
+                    String currentHash = calculateFileHash(honeyfile);
+                    String originalHash = prefs.getString("hash_" + honeyfile.getAbsolutePath(), null);
+                    
+                    if (currentHash != null && !currentHash.equals(originalHash)) {
+                        Log.e(TAG, "Watchdog: Honeyfile TAMPERED! [Content Mismatch] " + honeyfile.getAbsolutePath());
+                        // Secondary trigger if observer missed it
+                        if (detectionEngine != null) {
+                            detectionEngine.triggerHoneyfileKill(honeyfile.getAbsolutePath(), -1);
+                        }
+                    }
+                }
+            }
+        }
     }
 
     public void stopWatching() {
@@ -91,8 +145,29 @@ public class HoneyfileCollector {
         Log.i(TAG, "Cleared " + deletedCount + " honeyfiles");
     }
 
-    // L-03: Derive an unpredictable but stable honeyfile name by hashing device + app
-    // fingerprint. Names are stored in SharedPreferences so they survive process restarts.
+    // Generate stable hash
+    // Persist name preferences
+    private String calculateFileHash(File file) {
+        if (!file.exists()) return null;
+        try (java.io.InputStream is = new java.io.FileInputStream(file)) {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] buffer = new byte[8192];
+            int read;
+            while ((read = is.read(buffer)) != -1) {
+                digest.update(buffer, 0, read);
+            }
+            byte[] hash = digest.digest();
+            StringBuilder hex = new StringBuilder();
+            for (byte b : hash) {
+                hex.append(String.format("%02x", b));
+            }
+            return hex.toString();
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to calculate hash for: " + file.getAbsolutePath(), e);
+            return null;
+        }
+    }
+
     private String generateHoneyfileName(String dir, int index) {
         String key = "honeyfile_" + dir.hashCode() + "_" + index;
         SharedPreferences prefs = context.getSharedPreferences("ShieldHoneyfiles", Context.MODE_PRIVATE);
@@ -122,29 +197,32 @@ public class HoneyfileCollector {
 
     private class HoneyfileObserver extends FileObserver {
         private final String filePath;
-        // L-02: Per-file creation time so each observer has its own grace window
+        // Per-file grace window
         private final long fileCreationTime;
 
         HoneyfileObserver(String path) {
-            super(path, OPEN | MODIFY | DELETE | CLOSE_WRITE);
+            super(path, MODIFY | DELETE | CLOSE_WRITE);
             this.filePath = path;
             this.fileCreationTime = new File(path).lastModified();
         }
 
+        public String getFilePath() {
+            return filePath;
+        }
+
         @Override
         public void onEvent(int event, @Nullable String path) {
-            if (event == OPEN || event == MODIFY || event == DELETE || event == CLOSE_WRITE) {
+            if (event == MODIFY || event == DELETE || event == CLOSE_WRITE) {
                 String accessType = getAccessType(event);
 
-                // L-02: Use per-file creation time so one file's grace period doesn't
-                // mask alerts on other honeyfiles created at different times
+                // Check individual grace
                 long timeSinceCreation = System.currentTimeMillis() - fileCreationTime;
                 if (timeSinceCreation < CREATION_GRACE_PERIOD_MS) {
                     Log.d(TAG, "Skipping honeyfile event during grace period: " + filePath + " (" + timeSinceCreation + "ms since creation)");
                     return;
                 }
                 
-                // ALL other access is suspicious - log it
+                // Log suspicious access
                 int callingUid = android.os.Binder.getCallingUid(); // For informational purposes only
                 HoneyfileEvent honeyEvent = new HoneyfileEvent(
                     filePath, accessType, callingUid, "uid:" + callingUid
@@ -152,8 +230,20 @@ public class HoneyfileCollector {
                 storage.store(honeyEvent);
                 Log.w(TAG, "⚠️ HONEYFILE TRAP TRIGGERED: " + filePath + " (" + accessType + ") by UID " + callingUid);
 
-                // EMERGENCY KILL: Honeyfile access bypassed SPRT/Entropy requirements
+                // Immediate honeyfile kill (Verified by Hash if modified/written)
                 if (detectionEngine != null) {
+                    if (event == MODIFY || event == CLOSE_WRITE) {
+                        // RE-VERIFY HASH
+                        String currentHash = calculateFileHash(new File(filePath));
+                        SharedPreferences prefs = context.getSharedPreferences("ShieldHoneyfiles", Context.MODE_PRIVATE);
+                        String originalHash = prefs.getString("hash_" + filePath, null);
+                        
+                        if (currentHash != null && currentHash.equals(originalHash)) {
+                            Log.d(TAG, "Honeyfile access detected but content HAS NOT changed (Hash match) - Skipping alert");
+                            return; 
+                        }
+                        Log.w(TAG, "Honeyfile content CHANGED! (Old: " + originalHash + ", New: " + currentHash + ")");
+                    }
                     detectionEngine.triggerHoneyfileKill(filePath, callingUid);
                 }
             }

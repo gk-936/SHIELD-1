@@ -4,14 +4,7 @@ import com.dearmoon.shield.data.TelemetryEvent;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-/**
- * Pseudo-Kernel Detection Layer: Correlation Result
- * 
- * REUSE STRATEGY:
- * - Extends existing TelemetryEvent base class
- * - Compatible with existing TelemetryStorage routing
- * - Stores in existing EventDatabase (new table)
- */
+// Correlation result model
 public class CorrelationResult extends TelemetryEvent {
     private final String filePath;
     private final String packageName;
@@ -54,10 +47,8 @@ public class CorrelationResult extends TelemetryEvent {
         return json;
     }
     
-    /**
-     * Generate syscall pattern summary
-     * REUSES: SyscallMapper for abstraction
-     */
+    // Syscall pattern summary
+    // Uses SyscallMapper abstraction
     private String getSyscallPattern() {
         StringBuilder pattern = new StringBuilder();
         if (fileEventCount > 0) pattern.append("sys_write(").append(fileEventCount).append(") ");

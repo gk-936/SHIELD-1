@@ -8,17 +8,8 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.util.List;
 
-/**
- * RestoreEngine – v2
- *
- * Handles secure restoration of backed-up files:
- *   • Detects whether a backup file is AES-GCM encrypted (metadata.encryptedKey != null)
- *     and decrypts it transparently before writing to the target path.
- *   • Falls back to plain copy for legacy (pre-v2) non-encrypted backups.
- *   • Decrypts the stored backup_path column via BackupEncryptionManager.
- *   • GCM authentication automatically raises an exception if the ciphertext was
- *     tampered with, so an attacker cannot silently inject a malicious payload.
- */
+// RestoreEngine v2
+// Secure file restoration
 public class RestoreEngine {
 
     private static final String TAG = "RestoreEngine";
@@ -27,14 +18,14 @@ public class RestoreEngine {
     private final SnapshotDatabase        database;
     private final BackupEncryptionManager encManager;   // may be null for legacy calls
 
-    // ── Constructors ──────────────────────────────────────────────────────────
+    // Constructors
 
-    /** Legacy constructor – used by RecoveryActivity.  Creates its own enc manager. */
+    // Legacy constructor
     public RestoreEngine(Context context) {
         this(context, new BackupEncryptionManager(context));
     }
 
-    /** Preferred constructor – shares the enc manager from SnapshotManager. */
+    // Preferred constructor
     public RestoreEngine(Context context, BackupEncryptionManager encManager) {
         this.context    = context;
         this.database   = SnapshotDatabase.getInstance(context);
@@ -55,12 +46,12 @@ public class RestoreEngine {
             return result;
         }
 
-        // 1. Restore all files that were backed up before the attack window started
+        // Restore pre-attack files
         long attackStartTime = database.getAttackWindowStartTime(attackId);
         List<FileMetadata> allBackedUp = database.getAllBackedUpFiles();
         int restoreCandidates = 0;
         for (FileMetadata metadata : allBackedUp) {
-            // Only restore files that existed before the attack
+            // Check pre-attack existence
             if (metadata.lastModified <= attackStartTime) {
                 restoreCandidates++;
                 try {
@@ -78,7 +69,7 @@ public class RestoreEngine {
             }
         }
 
-        // 2. Validation: check for missing files that should have been restored
+        // Post-restore validation
         int missingCount = 0;
         for (FileMetadata metadata : allBackedUp) {
             if (metadata.lastModified <= attackStartTime) {
@@ -108,7 +99,7 @@ public class RestoreEngine {
             return RestoreAction.SKIPPED;
         }
 
-        // ── Decrypt the stored backup_path column (Feature 3) ──────────────
+        // Decrypt backup path
         String realBackupPath = metadata.backupPath;
         if (encManager != null) {
             try {
@@ -126,7 +117,7 @@ public class RestoreEngine {
 
         File targetFile = new File(metadata.filePath);
 
-        // ── Check if target file still needs restoring ─────────────────────
+        // Check restoration need
         if (targetFile.exists()) {
             String currentHash = calculateQuickHash(targetFile);
             if (currentHash.equals(metadata.sha256Hash)) {
@@ -140,14 +131,14 @@ public class RestoreEngine {
 
         targetFile.getParentFile().mkdirs();
 
-        // ── Decrypt (v2) or plain copy (v1 legacy) ─────────────────────────
+        // Decrypt or copy
         boolean encrypted = metadata.encryptedKey != null && encManager != null;
         if (encrypted) {
-            // AES-256-GCM decryption – GCM tag check ensures ciphertext integrity
+            // AES-GCM decryption
             encManager.decryptFile(backupFile, targetFile, metadata.encryptedKey);
             Log.i(TAG, "Decrypted & restored: " + metadata.filePath);
         } else {
-            // Legacy plaintext backup
+            // Plaintext legacy backup
             copyFile(backupFile, targetFile);
             Log.i(TAG, "Copied (plaintext backup): " + metadata.filePath);
         }

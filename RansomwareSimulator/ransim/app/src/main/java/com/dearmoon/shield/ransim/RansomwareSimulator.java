@@ -40,7 +40,9 @@ public class RansomwareSimulator {
         File docs = new File(sandboxRoot, "documents");
         File photos = new File(sandboxRoot, "photos");
         File notes = new File(sandboxRoot, "notes");
-        docs.mkdirs(); photos.mkdirs(); notes.mkdirs();
+        if (!docs.exists() && !docs.mkdirs()) log.log("[ERR] Failed to create documents dir");
+        if (!photos.exists() && !photos.mkdirs()) log.log("[ERR] Failed to create photos dir");
+        if (!notes.exists() && !notes.mkdirs()) log.log("[ERR] Failed to create notes dir");
         try {
             createFileIfMissing(new File(docs, "report_q1.txt"),
                 "Q1 2024 Business Report\nExecutive Summary\nThis report covers the financial performance of the organization\nfor the first quarter of 2024. Revenue increased by 12% compared\nto the same period last year, driven primarily by expansion into\nnew markets in Southeast Asia.\n\nKey Metrics\nTotal Revenue: $2,847,000\nOperating Expenses: $1,923,000  \nNet Profit: $924,000\nEmployee Count: 147\n\nOutlook\nThe board has approved a budget increase of 15% for Q2 to support\nthe planned product launch scheduled for May 2024.");

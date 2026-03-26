@@ -10,17 +10,7 @@ import java.security.MessageDigest;
 public class SecurityUtils {
     private static final String TAG = "SecurityUtils";
     
-    // SECURITY FIX: Expected signature hash for production builds
-    // This should be set to your actual release signature hash
-    // To get your hash: adb shell pm list packages -f com.dearmoon.shield
-    // Then: keytool -printcert -jarfile app.apk
-    /**
-     * C-03: Release APK signature hash (SHA-256).
-     * CRITICAL: Must be set to the actual release cert hash before shipping.
-     * Generate with: keytool -printcert -jarfile app-release.apk | grep "SHA-256"
-     * Then convert to lowercase hex string without colons.
-     * Keep null only for debug builds; release builds will fail if null.
-     */
+    // Release signature hash
     private static String EXPECTED_SIGNATURE_HASH = "bd09700d069d3f4f29ae9396857df178403c298cae52644b4dbb91c60eac4a76";
 
     public static boolean checkSecurity(Context context) {
@@ -59,7 +49,7 @@ public class SecurityUtils {
     }
 
     private static boolean isEmulator() {
-        // Robust check for null Build fields (can happen in test environments)
+        // Check Build fields
         String fingerprint = Build.FINGERPRINT != null ? Build.FINGERPRINT : "";
         String model = Build.MODEL != null ? Build.MODEL : "";
 
@@ -68,24 +58,14 @@ public class SecurityUtils {
                 || model.contains("Android SDK");
     }
 
-    /**
-     * Public wrapper for isRooted() — allows other components to check root status.
-     * Used by MainActivity to determine which protection mode(s) to start.
-     */
+    // Public root check
     public static boolean isDeviceRooted() {
         return isRooted();
     }
 
-    /**
-     * SECURITY FIX: Improved root detection
-     * Checks for:
-     * 1. Traditional su binaries in common paths
-     * 2. Modern root tools (Magisk, KernelSU)
-     * 3. su in PATH environment variable
-     * 4. Test-keys build (indicates custom ROM)
-     */
+    // Root detection logic
     private static boolean isRooted() {
-        // Check traditional su paths
+        // Check su paths
         String[] suPaths = {
             "/system/app/Superuser.apk",
             "/system/xbin/su",
@@ -118,7 +98,7 @@ public class SecurityUtils {
             }
         }
         
-        // Check PATH for su
+        // Check PATH su
         String path = System.getenv("PATH");
         if (path != null) {
             for (String dir : path.split(":")) {
@@ -130,7 +110,7 @@ public class SecurityUtils {
             }
         }
         
-        // Check for test-keys (custom ROM indicator)
+        // Check test-keys
         String buildTags = Build.TAGS;
         if (buildTags != null && buildTags.contains("test-keys")) {
             Log.w(TAG, "Test-keys build detected (custom ROM)");
@@ -149,27 +129,13 @@ public class SecurityUtils {
         }
     }
 
-    /**
-     * Verify the APK's signing certificate against {@link #EXPECTED_SIGNATURE_HASH}.
-     *
-     * <p>The hash is the <em>hex-encoded SHA-256 of the raw DER-encoded certificate</em>,
-     * identical to the value shown by:
-     * <pre>
-     *   keytool -printcert -jarfile release.apk | grep "SHA256:"
-     * </pre>
-     * or by checking logcat for {@code "Cert SHA-256:"} on first launch in
-     * development mode (when {@code EXPECTED_SIGNATURE_HASH} is {@code null}).
-     *
-     * <p>On API 28+ the newer {@code GET_SIGNING_CERTIFICATES} /
-     * {@link android.content.pm.SigningInfo} API is used to avoid the JAR-signature
-     * spoofing vulnerability present in the legacy {@code GET_SIGNATURES} flag.
-     */
+    // Verify APK signature
     public static boolean verifySignature(Context context) {
         try {
             android.content.pm.Signature cert;
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                // API 28+: use SigningInfo to avoid JAR-signature spoofing bug.
+                // API 28+ SigningInfo
                 android.content.pm.PackageInfo info = context.getPackageManager()
                         .getPackageInfo(context.getPackageName(),
                                 android.content.pm.PackageManager.GET_SIGNING_CERTIFICATES);
@@ -187,7 +153,7 @@ public class SecurityUtils {
                 }
                 cert = certs[0];
             } else {
-                // API 24–27: legacy path.
+                // Legacy API path
                 @SuppressWarnings("deprecation")
                 android.content.pm.PackageInfo info = context.getPackageManager()
                         .getPackageInfo(context.getPackageName(),
@@ -200,8 +166,7 @@ public class SecurityUtils {
                 cert = sigs[0];
             }
 
-            // SHA-256 of the DER-encoded certificate bytes — cryptographically
-            // strong and identical to what keytool/apksigner report.
+            // Certificate SHA-256 digest
             MessageDigest md = MessageDigest.getInstance("SHA-256");
             byte[] digest = md.digest(cert.toByteArray());
             StringBuilder sb = new StringBuilder(digest.length * 2);
@@ -214,13 +179,12 @@ public class SecurityUtils {
                 boolean isDebug = (context.getApplicationInfo().flags
                         & android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0;
                 if (isDebug) {
-                    // Dev mode — log the hash so it can be copied into the constant before release.
+                    // Dev mode log
                     Log.w(TAG, "EXPECTED_SIGNATURE_HASH not set — signature check skipped (dev mode). "
                             + "Set SecurityUtils.EXPECTED_SIGNATURE_HASH to: " + actualHash);
                     return true;
                 } else {
-                    // Release build with no expected hash set — fail closed to prevent
-                    // tampered APKs from bypassing this check in production.
+                    // Release build failure
                     Log.e(TAG, "EXPECTED_SIGNATURE_HASH is null in a release build — "
                             + "set it before shipping. Actual hash: " + actualHash);
                     return false;

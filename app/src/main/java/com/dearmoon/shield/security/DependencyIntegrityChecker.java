@@ -21,47 +21,21 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * M2 — Inadequate Supply Chain Security
- *
- * <p>Performs two complementary supply-chain checks on every service start:
- *
- * <ol>
- *   <li><strong>Certificate pinning:</strong> Computes the SHA-256 digest of the first signing
- *       certificate in the APK and compares it against a known-good baseline stored in
- *       {@link android.content.SharedPreferences} on the first clean run. If the certificate
- *       changes (i.e., the APK was re-signed by a different party), a {@code CERT_CHANGED}
- *       finding is emitted. On the very first run the current certificate hash is enrolled as the
- *       baseline — subsequent runs validate against it.
- *   <li><strong>Native library hash pinning:</strong> Computes the SHA-256 digest of every
- *       {@code .so} file in the application's {@code lib/} directory and records a baseline of all
- *       hashes on the first clean run. On subsequent runs the current hashes are compared to the
- *       stored baseline. Any native library that is added, removed, or whose bytes have changed
- *       after installation generates a {@code NATIVE_LIB_TAMPERED} finding.
- * </ol>
- *
- * <p>All findings are written to the {@code config_audit_events} table in the existing
- * {@link EventDatabase} singleton so they appear in the unified log viewer alongside other
- * telemetry. A broadcast with action {@code com.dearmoon.shield.SUPPLY_CHAIN_ALERT} is sent
- * whenever a critical finding is detected.
- *
- * <p>This class is non-instantiable (static API only). Call {@link #check(Context)} once per
- * service start.
- */
+// Supply chain integrity audit
 public final class DependencyIntegrityChecker {
 
     private static final String TAG = "DependencyIntegrityChecker";
 
-    // SharedPreferences file that holds the persisted baseline
+    // Baseline storage prefs
     private static final String PREFS_FILE = "shield_supply_chain";
     private static final String KEY_CERT_HASH = "cert_hash_baseline";
     private static final String KEY_LIB_PREFIX = "lib_hash_";
 
-    // Broadcast action emitted on critical findings
+    // Critical alert broadcast
     public static final String ACTION_SUPPLY_CHAIN_ALERT = "com.dearmoon.shield.SUPPLY_CHAIN_ALERT";
     public static final String EXTRA_FINDING = "finding";
 
-    /** Possible outcome of the supply-chain check. */
+    // Audit finding types
     public enum Finding {
         /** All checks passed — certificate and libraries match the stored baseline. */
         CLEAN,
@@ -77,9 +51,7 @@ public final class DependencyIntegrityChecker {
 
     private DependencyIntegrityChecker() { /* non-instantiable */ }
 
-    // -------------------------------------------------------------------------
-    // Public API
-    // -------------------------------------------------------------------------
+    // Public audit API
 
     /**
      * Runs the full supply-chain check and logs the result to {@link EventDatabase}.
@@ -111,9 +83,7 @@ public final class DependencyIntegrityChecker {
         return worst;
     }
 
-    // -------------------------------------------------------------------------
     // Certificate baseline check
-    // -------------------------------------------------------------------------
 
     private static Finding checkSigningCertificate(Context ctx) {
         try {
@@ -148,10 +118,7 @@ public final class DependencyIntegrityChecker {
         }
     }
 
-    /**
-     * Returns the Base64-encoded SHA-256 of the first signing certificate, or {@code null} on
-     * error.
-     */
+    // Compute cert hash
     private static String computeCertHash(Context ctx) {
         try {
             PackageManager pm = ctx.getPackageManager();
@@ -183,9 +150,7 @@ public final class DependencyIntegrityChecker {
         }
     }
 
-    // -------------------------------------------------------------------------
-    // Native library baseline check
-    // -------------------------------------------------------------------------
+    // Native library check
 
     private static Finding checkNativeLibraries(Context ctx) {
         try {
@@ -266,10 +231,7 @@ public final class DependencyIntegrityChecker {
         }
     }
 
-    /**
-     * Returns a map of {@code filename -> SHA-256 Base64} for all {@code .so} files directly
-     * inside {@code dir}. Returns {@code null} if the directory cannot be read.
-     */
+    // Hash library directory
     private static Map<String, String> hashDirectory(File dir) {
         File[] files = dir.listFiles((d, name) -> name.endsWith(".so"));
         if (files == null) return null;
@@ -284,7 +246,7 @@ public final class DependencyIntegrityChecker {
         return result;
     }
 
-    /** Returns the Base64-encoded SHA-256 of {@code file}, or {@code null} on error. */
+    // Hash single file
     private static String hashFile(File file) {
         try {
             MessageDigest md = MessageDigest.getInstance("SHA-256");
@@ -302,9 +264,7 @@ public final class DependencyIntegrityChecker {
         }
     }
 
-    // -------------------------------------------------------------------------
-    // Helpers
-    // -------------------------------------------------------------------------
+    // Audit helper methods
 
     private static Finding worstOf(Finding a, Finding b) {
         int[] severity = new int[Finding.values().length];

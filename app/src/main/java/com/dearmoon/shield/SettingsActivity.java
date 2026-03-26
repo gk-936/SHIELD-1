@@ -2,6 +2,7 @@ package com.dearmoon.shield;
 
 import android.Manifest;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.os.Build;
@@ -12,6 +13,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
+import com.dearmoon.shield.data.EventDatabase;
 import com.dearmoon.shield.testing.TestActivity;
 import java.io.File;
 
@@ -80,6 +82,9 @@ public class SettingsActivity extends AppCompatActivity {
         findViewById(R.id.btnFeatures).setOnClickListener(v -> 
             startActivity(new Intent(this, com.dearmoon.shield.features.FeaturesActivity.class)));
 
+        // Clear All Data
+        findViewById(R.id.btnClearAllData).setOnClickListener(v -> clearAllData());
+
         // Permission list container elements
         android.view.View permissionListContainer = findViewById(R.id.permissionListContainer);
         android.view.View permissionToggleArea = findViewById(R.id.permissionToggleArea);
@@ -107,6 +112,43 @@ public class SettingsActivity extends AppCompatActivity {
         });
     }
 
+    private void clearAllData() {
+        new android.app.AlertDialog.Builder(this)
+                .setTitle("Clear All Data")
+                .setMessage("This will permanently delete all events, detection results, snapshots, whitelist, and dashboard stats. This cannot be undone. Continue?")
+                .setPositiveButton("Clear All", (dialog, which) -> {
+                    // 1. Wipe event + detection DB
+                    EventDatabase.getInstance(this).clearAllEvents();
+
+                    // 2. Delete snapshot DB file
+                    File snapshotDb = getDatabasePath("shield_snapshots.db");
+                    if (snapshotDb.exists()) snapshotDb.delete();
+                    File snapshotDbShm = getDatabasePath("shield_snapshots.db-shm");
+                    if (snapshotDbShm.exists()) snapshotDbShm.delete();
+                    File snapshotDbWal = getDatabasePath("shield_snapshots.db-wal");
+                    if (snapshotDbWal.exists()) snapshotDbWal.delete();
+
+                    // 3. Clear whitelist SharedPreferences
+                    SharedPreferences wlPrefs = getSharedPreferences("shield_whitelist", MODE_PRIVATE);
+                    wlPrefs.edit().clear().apply();
+
+                    // 4. Reset dashboard stats (attacks found, files scanned, threats)
+                    // Also clear the seeded_v1 flag so ShieldStats re-seeds to 0 on next launch.
+                    SharedPreferences statsPrefs = getSharedPreferences("ShieldStats", MODE_PRIVATE);
+                    statsPrefs.edit().clear().apply();
+
+                    // 5. Delete legacy telemetry file if present
+                    new File(getFilesDir(), "modeb_telemetry.json").delete();
+
+                    // 6. Delete all honeyfiles (both static and dynamic)
+                    deleteAllHoneyfiles();
+
+                    Toast.makeText(this, "All SHIELD data cleared", Toast.LENGTH_SHORT).show();
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
     private void clearHoneyfiles() {
         new android.app.AlertDialog.Builder(this)
                 .setTitle("Clear Honeyfiles")
@@ -120,27 +162,40 @@ public class SettingsActivity extends AppCompatActivity {
     }
 
     private int deleteAllHoneyfiles() {
-        String[] honeyfileNames = {
-                "IMPORTANT_BACKUP.txt",
-                "PRIVATE_KEYS.dat",
-                "CREDENTIALS.txt",
-                "SECURE_VAULT.bin",
-                "FINANCIAL_DATA.xlsx",
-                "PASSWORDS.txt"
-        };
-        String[] directories = getMonitoredDirectories();
         int deletedCount = 0;
+        String[] directories = getMonitoredDirectories();
+
+        // 1. Delete legacy static honeyfiles
+        String[] legacyNames = {
+                "IMPORTANT_BACKUP.txt", "PRIVATE_KEYS.dat", "CREDENTIALS.txt",
+                "SECURE_VAULT.bin", "FINANCIAL_DATA.xlsx", "PASSWORDS.txt"
+        };
         for (String dir : directories) {
             File directory = new File(dir);
-            if (!directory.exists())
-                continue;
-            for (String name : honeyfileNames) {
+            if (!directory.exists()) continue;
+            for (String name : legacyNames) {
                 File honeyfile = new File(directory, name);
-                if (honeyfile.exists() && honeyfile.delete()) {
-                    deletedCount++;
+                if (honeyfile.exists() && honeyfile.delete()) deletedCount++;
+            }
+        }
+
+        // 2. Delete dynamic hashed honeyfiles
+        SharedPreferences prefs = getSharedPreferences("ShieldHoneyfiles", MODE_PRIVATE);
+        java.util.Collection<?> dynamicNames = prefs.getAll().values();
+        for (String dir : directories) {
+            File directory = new File(dir);
+            if (!directory.exists()) continue;
+            for (Object nameObj : dynamicNames) {
+                if (nameObj instanceof String) {
+                    File honeyfile = new File(directory, (String) nameObj);
+                    if (honeyfile.exists() && honeyfile.delete()) deletedCount++;
                 }
             }
         }
+        
+        // Clear the preferences so new dynamic names are generated next time
+        prefs.edit().clear().apply();
+
         return deletedCount;
     }
 

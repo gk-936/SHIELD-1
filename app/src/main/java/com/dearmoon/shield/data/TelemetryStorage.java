@@ -22,7 +22,7 @@ public class TelemetryStorage {
         try {
             Log.d(TAG, "EVENT GENERATED: " + event.getEventType());
 
-            // Enrich event with app metadata if UID is available
+            // Enrich event data
             if (event.getUid() > 0) {
                 com.dearmoon.shield.detection.PackageAttributor.AppInfo info =
                     attributor.getAppInfoForUid(event.getUid());
@@ -48,7 +48,7 @@ public class TelemetryStorage {
                 Log.w(TAG, "Unknown event type: " + event.getClass().getSimpleName());
             }
 
-            // Notify UI of new data
+            // Notify UI update
             Intent intent = new Intent("com.dearmoon.shield.DATA_UPDATED");
             context.sendBroadcast(intent);
 
@@ -63,7 +63,7 @@ public class TelemetryStorage {
 
     @Deprecated
     public File getLogFile() {
-        // Legacy method for compatibility
+        // Legacy compatibility method
         return new File(context.getFilesDir(), "modeb_telemetry.json");
     }
 }

@@ -15,10 +15,16 @@ import android.content.Intent;
 import android.net.Uri;
 import android.provider.Settings;
 import androidx.core.app.NotificationCompat;
+import com.dearmoon.shield.utils.PathNormalizer;
 import java.io.File;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 import com.dearmoon.shield.detection.PackageAttributor;
 import com.dearmoon.shield.security.PersistenceAuditor;
@@ -30,7 +36,6 @@ public class UnifiedDetectionEngine {
     private final EventDatabase database;
     private final EntropyAnalyzer entropyAnalyzer;
     private final KLDivergenceCalculator klCalculator;
-    private final SPRTDetector sprtDetector;
     private final BehaviorCorrelationEngine correlationEngine;
     private final WhitelistManager whitelistManager;
     private com.dearmoon.shield.snapshot.SnapshotManager snapshotManager;
@@ -40,9 +45,16 @@ public class UnifiedDetectionEngine {
     private final HandlerThread detectionThread;
     private final Handler detectionHandler;
     private final Executor killExecutor;
+    // Kill synchronization set
+    private final Set<String> killInProgress = ConcurrentHashMap.newKeySet();
 
-    private final ConcurrentLinkedQueue<Long> recentModifications = new ConcurrentLinkedQueue<>();
-    private long lastEventTimestamp = 0;
+    private static class AppDetectionContext {
+        final SPRTDetector sprtDetector = new SPRTDetector();
+        final ConcurrentLinkedQueue<Long> recentModifications = new ConcurrentLinkedQueue<>();
+        long lastEventTimestamp = System.currentTimeMillis();
+    }
+
+    private final Map<Integer, AppDetectionContext> appContexts = new ConcurrentHashMap<>();
     private static final long TIME_WINDOW_MS = 1000; // 1 second window
 
     public UnifiedDetectionEngine(Context context) {
@@ -60,28 +72,28 @@ public class UnifiedDetectionEngine {
         this.database = EventDatabase.getInstance(context);
         this.entropyAnalyzer = new EntropyAnalyzer();
         this.klCalculator = new KLDivergenceCalculator();
-        this.sprtDetector = new SPRTDetector();
         this.correlationEngine = new BehaviorCorrelationEngine(context);
         this.whitelistManager = new WhitelistManager(context);
         this.snapshotManager = snapshotManager;
-        this.killExecutor = executor != null ? executor : Executors.newSingleThreadExecutor(r -> new Thread(r, "KillSequenceThread"));
+        // Bounded kill executor
+        this.killExecutor = executor != null ? executor : new ThreadPoolExecutor(
+                1, 2,      // core=1, max=2 threads
+                5L, TimeUnit.SECONDS,
+                new LinkedBlockingQueue<>(4),  // Max 4 pending ops
+                r -> new Thread(r, "KillSequenceThread"),
+                new ThreadPoolExecutor.DiscardOldestPolicy() // Drop oldest pending kill
+        );
 
         this.attributor = new PackageAttributor(context);
 
         detectionThread = new HandlerThread("DetectionThread");
         detectionThread.start();
         detectionHandler = new Handler(detectionThread.getLooper());
-
-        // Initialise lastEventTimestamp to now so the SPRT's first call to
-        // recordTimePassed() receives a real inter-event delta rather than being
-        // skipped by the `lastEventTimestamp > 0` guard.  Without this, the very
-        // first MODIFY event fires recordEvent() alone, pushing the log-likelihood
-        // ratio above the ACCEPT_H1 boundary on event #1 every session.
-        lastEventTimestamp = System.currentTimeMillis();
     }
 
-    public void setSnapshotManager(com.dearmoon.shield.snapshot.SnapshotManager manager) {
-        this.snapshotManager = manager;
+    private AppDetectionContext getOrCreateContext(int uid) {
+        int targetUid = (uid <= 0) ? 0 : uid;
+        return appContexts.computeIfAbsent(targetUid, k -> new AppDetectionContext());
     }
 
     public void processFileEvent(FileSystemEvent event) {
@@ -91,23 +103,23 @@ public class UnifiedDetectionEngine {
     private void analyzeFileEvent(FileSystemEvent event) {
         try {
             String operation = event.getOperation();
-            String filePath = event.getFilePath();
+            String rawPath = event.getFilePath();
+            String filePath = PathNormalizer.normalize(rawPath);
 
             Log.d(TAG, "Analyzing file event: " + operation + " on " + filePath);
 
-            // Resolve the UID of the process that modified this file.
-            // PRIORITY:
-            //   1. Kernel-provided UID (Mode A): If eBPF telemetry is active, the UID is
-            //      captured directly from the syscall. This is 100% accurate.
-            //   2. Path-based attribution (Fallback): Parse /data/data/<pkg>/ etc.
-            //   3. Foreground-process heuristic (Fallback): Correlate with current activities.
+            // Resolve process UID
             int attributedUid = event.getUid();
             if (attributedUid == -1) {
                 attributedUid = attributor.resolveUidFromPath(filePath);
             }
+
+            // Get app-specific context
+            AppDetectionContext appCtx = getOrCreateContext(attributedUid);
+
             CorrelationResult correlation = correlationEngine.correlateFileEvent(
                 filePath, event.getTimestamp(), attributedUid,
-                sprtDetector.getLastResetTimestamp());  // M-02: bound file query by SPRT reset
+                appCtx.sprtDetector.getLastResetTimestamp());
             String suspectPackageName = correlation.getPackageName();
 
             // Check Whitelist
@@ -116,9 +128,7 @@ public class UnifiedDetectionEngine {
                 return;
             }
 
-            // Persist the raw file-system event for UI display and audit trail.
-            // Mode-B does this via TelemetryStorage; Mode-A events arrive here
-            // directly, so we must write to the DB ourselves.
+            // Persist filesystem event
             try {
                 database.insertFileSystemEvent(event);
             } catch (Exception e) {
@@ -131,23 +141,20 @@ public class UnifiedDetectionEngine {
                 return;
             }
 
-            // Update SPRT with actual Poisson arrival math — always, even without a file path.
-            // For Mode-A events with an unknown filename the write-rate signal is still valid.
+            // Update SPRT math (UID-SCOPED)
             long currentTime = System.currentTimeMillis();
-            if (lastEventTimestamp > 0) {
-                double deltaSeconds = (currentTime - lastEventTimestamp) / 1000.0;
-                // Cap delta to avoid massive drift if service was suspended
-                sprtDetector.recordTimePassed(Math.min(deltaSeconds, 5.0));
+            if (appCtx.lastEventTimestamp > 0) {
+                double deltaSeconds = (currentTime - appCtx.lastEventTimestamp) / 1000.0;
+                // Cap time delta
+                appCtx.sprtDetector.recordTimePassed(Math.min(deltaSeconds, 5.0));
             }
-            sprtDetector.recordEvent(correlation.getCriContribution());
-            lastEventTimestamp = currentTime;
+            appCtx.sprtDetector.recordEvent(correlation.getCriContribution());
+            appCtx.lastEventTimestamp = currentTime;
 
-            // Update modification rate for legacy monitoring
-            updateModificationRate(currentTime);
+            // Update modification rate (UID-SCOPED)
+            updateModificationRate(appCtx, currentTime);
 
-            // Calculate entropy and KL-divergence only when a real file is readable.
-            // When the path is empty or the file no longer exists (process exited before
-            // the daemon's 500ms poll), fall back to SPRT + behavior score only.
+            // Calculate file entropy
             double entropy = 0.0;
             double klDivergence = 0.0;
             File file = new File(filePath);
@@ -162,13 +169,19 @@ public class UnifiedDetectionEngine {
                         + (filePath.isEmpty() ? "<unknown path>" : filePath));
             }
 
-            // Get SPRT state
-            SPRTDetector.SPRTState sprtState = sprtDetector.getCurrentState();
+            // Get SPRT state (UID-SCOPED)
+            SPRTDetector.SPRTState sprtState = appCtx.sprtDetector.getCurrentState();
 
-            // Calculate composite confidence score
+            // Calculate confidence score
             int confidenceScore = calculateConfidenceScore(entropy, klDivergence, sprtState);
             
-            // PSEUDO-KERNEL: Use existing behavior correlation result
+            if (filePath.toLowerCase().endsWith(".apk")) {
+                // Reduce score for APKs
+                confidenceScore = (int)(confidenceScore * 0.6);
+                Log.d(TAG, "Reduced confidence score for APK file: " + confidenceScore);
+            }
+
+            // Behavior correlation result
             int behaviorScore = correlation.getBehaviorScore();
             int totalScore = Math.min(confidenceScore + behaviorScore, 130); // Max 130 (100 file + 30 behavior)
 
@@ -180,8 +193,8 @@ public class UnifiedDetectionEngine {
 
             logDetectionResult(result);
             
-            // Proactive Data Protection: Start attack tracking at medium confidence
             if (totalScore >= 40 && snapshotManager != null && snapshotManager.getActiveAttackId() == 0) {
+                // Start proactive tracking
                 Log.w(TAG, "SUSPICIOUS ACTIVITY: Starting proactive data tracking (Score: " + totalScore + ")");
                 snapshotManager.startAttackTracking();
             }
@@ -196,13 +209,7 @@ public class UnifiedDetectionEngine {
             if (result.isHighRisk()) {
                 Log.w(TAG, "HIGH RISK DETECTED: " + result.toJSON().toString());
 
-                // SAFETY FIRST: Kill the ransomware process immediately to stop further encryption
-                killMaliciousProcess(suspectPackageName);
-
-                // Network block to stop C2 communication
-                triggerNetworkBlock();
-
-                // Calculate estimated time to total infection
+                // Estimate infection time
                 int totalFiles = snapshotManager != null ?
                     snapshotManager.getTotalMonitoredFileCount(new String[]{
                         android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOCUMENTS).getAbsolutePath(),
@@ -211,17 +218,21 @@ public class UnifiedDetectionEngine {
                         android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DCIM).getAbsolutePath()
                     }) : 1000; // Fallback
 
-                double maliciousRate = recentModifications.size() / (TIME_WINDOW_MS / 1000.0);
+                double maliciousRate = appCtx.recentModifications.size() / (TIME_WINDOW_MS / 1000.0);
                 int infectionTimeSec = maliciousRate > 0 ? (int)(totalFiles / maliciousRate) : -1;
 
-                // Inform user and suggest recovery
-                showHighRiskAlert(filePath, totalScore, infectionTimeSec);
+                // TRIGGER MANUAL INTERVENTION NOTIFICATION (Philosophy Change)
+                // We no longer kill automatically. We notify the user.
+                showHighRiskAlert(filePath, totalScore, infectionTimeSec, suspectPackageName);
+                
+                // Still trigger network block as a safety measure
+                triggerNetworkBlock();
             }
 
-            // Reset SPRT only on ACCEPT_H0 (normal behavior confirmed)
             if (sprtState == SPRTDetector.SPRTState.ACCEPT_H0) {
-                Log.i(TAG, "SPRT Decision: Normal behavior confirmed, resetting");
-                sprtDetector.reset();
+                // SPRT: Reset on ACCEPT_H0 (UID-SCOPED)
+                Log.i(TAG, "SPRT Decision for " + suspectPackageName + ": Normal behavior confirmed, resetting");
+                appCtx.sprtDetector.reset();
             }
             // Keep SPRT state on ACCEPT_H1 to maintain high alert
         } catch (Exception e) {
@@ -229,23 +240,25 @@ public class UnifiedDetectionEngine {
         }
     }
 
-    /**
-     * Unconditional kill trigger for honeyfile access.
-     * Bypasses the 70-point threshold entirely and immediately initiates
-     * attack tracking and process termination.
-     */
+    // Honeyfile kill trigger
     public void triggerHoneyfileKill(String filePath, int uid) {
-        Log.w(TAG, "HONEYFILE DESTRUCTION DETECTED: Bypassing score thresholds for absolute kill.");
-
         String suspectPackageName = attributor != null ? attributor.getPackageForUid(uid) : "unknown";
 
-        // Proactive Data Protection: Start attack tracking immediately
+        // Whitelist check before kill
+        if (whitelistManager.isWhitelisted(suspectPackageName)) {
+            Log.i(TAG, "Honeyfile access detected but package is whitelisted: " + suspectPackageName);
+            return;
+        }
+
+        Log.w(TAG, "HONEYFILE DESTRUCTION DETECTED: Bypassing score thresholds for absolute kill by " + suspectPackageName);
+
+        // Immediate attack tracking
         if (snapshotManager != null && snapshotManager.getActiveAttackId() == 0) {
             Log.w(TAG, "SUSPICIOUS ACTIVITY: Starting proactive data tracking (Honeyfile Trigger)");
             snapshotManager.startAttackTracking();
         }
 
-        // Create a forced 100/100 score DetectionResult
+        // Forced detection result
         DetectionResult result = new DetectionResult(
                 8.0, 0.01, SPRTDetector.SPRTState.ACCEPT_H1.name(), 100, filePath);
         logDetectionResult(result);
@@ -256,25 +269,22 @@ public class UnifiedDetectionEngine {
             Log.e(TAG, "Failed to convert DetectionResult to JSON", e);
         }
 
-        // SAFETY FIRST: Kill the ransomware process immediately
-        killMaliciousProcess(suspectPackageName);
+        // FORCED MANUAL INTERVENTION (Honeyfile Trigger)
+        showHighRiskAlert(filePath, 100, -1, suspectPackageName);
 
-        // Network block to stop C2 communication
+        // Optional safety block
         triggerNetworkBlock();
-
-        // Inform user
-        showHighRiskAlert(filePath, 100, -1);
     }
 
-    private void updateModificationRate(long currentTime) {
+    private void updateModificationRate(AppDetectionContext appCtx, long currentTime) {
         // Add current modification
-        recentModifications.add(currentTime);
+        appCtx.recentModifications.add(currentTime);
 
         // Remove modifications outside time window
-        while (!recentModifications.isEmpty()) {
-            Long oldTime = recentModifications.peek();
+        while (!appCtx.recentModifications.isEmpty()) {
+            Long oldTime = appCtx.recentModifications.peek();
             if (oldTime != null && currentTime - oldTime > TIME_WINDOW_MS) {
-                recentModifications.poll();
+                appCtx.recentModifications.poll();
             } else {
                 break;
             }
@@ -285,7 +295,7 @@ public class UnifiedDetectionEngine {
             SPRTDetector.SPRTState sprtState) {
         int score = 0;
 
-        // Entropy contribution (0-30 points)
+        // Entropy contribution
         if (entropy > 7.9)
             score += 30; // Very high entropy
         else if (entropy > 7.5)
@@ -295,7 +305,7 @@ public class UnifiedDetectionEngine {
         else if (entropy > 6.0)
             score += 5;
 
-        // KL-divergence contribution (0-20 points)
+        // KL-divergence contribution
         if (klDivergence < 0.02)
             score += 20; // Very uniform distribution
         else if (klDivergence < 0.05)
@@ -305,8 +315,7 @@ public class UnifiedDetectionEngine {
         else if (klDivergence < 0.2)
             score += 5;
 
-        // SPRT contribution (0-50 points)
-        // High weight on behavioral rate to prevent single-file false positives
+        // SPRT: High frequency behavior
         if (sprtState == SPRTDetector.SPRTState.ACCEPT_H1)
             score += 50;
 
@@ -351,33 +360,33 @@ public class UnifiedDetectionEngine {
         Log.e(TAG, "Emergency mode triggered - broadcast sent");
     }
     
-    private void killMaliciousProcess(String packageName) {
+    public void killMaliciousProcess(String packageName) {
         if (packageName == null || packageName.equals("unknown") || packageName.equals(context.getPackageName())) {
             return;
         }
 
+        // Release kill guard check removed for manual trigger to allow retries
         int pid = getPidForPackage(packageName);
-        String attackId = String.valueOf(snapshotManager != null ? snapshotManager.getActiveAttackId() : 0);
-
-        // Execute full kill sequence on the provided executor (background thread by default)
+        
+        // Execute kill sequence
         killExecutor.execute(() -> {
-            Log.w(TAG, "Initiating 4-layer kill sequence for " + packageName + " (pid: " + pid + ")");
-
-            // Persistence audit: lockers often register BOOT_COMPLETED to restart on reboot.
+            Log.w(TAG, "User triggered kill sequence for " + packageName + " (pid: " + pid + ")");
+            
+            // Audit boot persistence
             PersistenceAuditor.auditBootPersistence(context, packageName);
 
-            // Layer 1: Accessibility Navigation (UI Escape)
+            // Layer 1: Navigation
             attemptAccessibilityKill(packageName);
 
-            // Layer 2: Mode A SIGKILL (Root Path)
+            // Layer 2: SIGKILL
             if (attemptModeAKill(packageName, pid)) {
-                awaitDeathAndRestore(packageName, attackId);
+                awaitDeathAndRestore(packageName);
                 return;
             }
 
-            // Layer 3: App Info Deeplink (Non-Root Path)
+            // Layer 3: AppInfo deeplink
             launchForceStopDeeplink(packageName);
-            awaitDeathAndRestore(packageName, attackId);
+            awaitDeathAndRestore(packageName);
         });
     }
 
@@ -430,37 +439,42 @@ public class UnifiedDetectionEngine {
         Log.i(TAG, "Layer 3: App Info deeplink launched for " + packageName);
     }
 
-    private void awaitDeathAndRestore(String packageName, String attackId) {
+    private void awaitDeathAndRestore(String packageName) {
         long startTime = System.currentTimeMillis();
         long lastLogTime = 0;
 
-        while (System.currentTimeMillis() - startTime < 30000) {
-            long elapsed = System.currentTimeMillis() - startTime;
-            if (elapsed - lastLogTime > 5000) {
-                Log.i(TAG, "Waiting for death of " + packageName + ", elapsed=" + elapsed + "ms");
-                lastLogTime = elapsed;
-            }
-
-            if (!isProcessRunning(packageName)) {
-                Log.i(TAG, "Process " + packageName + " is dead. Proceeding to restore.");
-                if (snapshotManager != null) {
-                    snapshotManager.stopAttackTracking();
-                    sprtDetector.reset(); // Clear high-risk state
-                    snapshotManager.performAutomatedRestore();
+        try {
+            while (System.currentTimeMillis() - startTime < 30000) {
+                long elapsed = System.currentTimeMillis() - startTime;
+                if (elapsed - lastLogTime > 5000) {
+                    Log.i(TAG, "Waiting for death of " + packageName + ", elapsed=" + elapsed + "ms");
+                    lastLogTime = elapsed;
                 }
-                com.dearmoon.shield.ui.KillGuidanceOverlay.getInstance(context).dismiss();
-                showRestoreCompleteNotification();
-                return;
+
+                if (!isProcessRunning(packageName)) {
+                    Log.i(TAG, "Process " + packageName + " is dead. Proceeding to restore.");
+                    if (snapshotManager != null) {
+                        snapshotManager.stopAttackTracking();
+                        resetSpiritsForPackage(packageName);
+                        snapshotManager.performAutomatedRestore();
+                    }
+                    com.dearmoon.shield.ui.KillGuidanceOverlay.getInstance(context).dismiss();
+                    showRestoreCompleteNotification();
+                    return;
+                }
+
+                try { Thread.sleep(300); } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    return;
+                }
             }
 
-            try { Thread.sleep(300); } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                return;
-            }
+            Log.e(TAG, "Process " + packageName + " still alive after 30s. Manual restore required.");
+            showManualRestoreRequiredNotification(packageName);
+        } finally {
+            // Release kill guard
+            killInProgress.remove(packageName);
         }
-
-        Log.e(TAG, "Process " + packageName + " still alive after 30s. Manual restore required.");
-        showManualRestoreRequiredNotification(packageName);
     }
 
     private void showRestoreCompleteNotification() {
@@ -552,46 +566,59 @@ public class UnifiedDetectionEngine {
         // TODO: Implement user-facing alert/notification
     }
 
-    private void showHighRiskAlert(String filePath, int score, int infectionTimeSec) {
-        android.content.Intent intent = new android.content.Intent("com.dearmoon.shield.HIGH_RISK_ALERT");
-        intent.putExtra("file_path", filePath);
-        intent.putExtra("confidence_score", score);
-        intent.putExtra("infection_time", infectionTimeSec);
-        intent.putExtra("instructions", "Ransomware activity terminated and automated data recovery initiated. Check logs for restoration status.");
-        intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
-        context.sendBroadcast(intent);
-        Log.e(TAG, "High-risk alert broadcast sent with recovery instructions");
+    private void showHighRiskAlert(String filePath, int score, int infectionTimeSec, String suspectPackage) {
+        android.app.NotificationManager nm = (android.app.NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+        if (nm == null) return;
 
-        // Requirement 3: System notification for ransomware found
-        try {
-            android.app.NotificationManager nm = (android.app.NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
-            if (nm != null) {
-                // Ensure channel exists
-                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-                    android.app.NotificationChannel channel = new android.app.NotificationChannel(
-                        "shield_alerts", "High Risk Alerts", android.app.NotificationManager.IMPORTANCE_HIGH);
-                    nm.createNotificationChannel(channel);
-                }
-
-                android.content.Intent uiIntent = new android.content.Intent(context, com.dearmoon.shield.MainActivity.class);
-                uiIntent.setFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK | android.content.Intent.FLAG_ACTIVITY_SINGLE_TOP);
-                android.app.PendingIntent pi = android.app.PendingIntent.getActivity(
-                    context, 0, uiIntent, android.app.PendingIntent.FLAG_UPDATE_CURRENT | android.app.PendingIntent.FLAG_IMMUTABLE);
-
-                androidx.core.app.NotificationCompat.Builder builder = new androidx.core.app.NotificationCompat.Builder(context, "shield_alerts")
-                    .setSmallIcon(android.R.drawable.ic_dialog_alert)
-                    .setContentTitle("⚠️ RANSOMWARE BLOCKED")
-                    .setContentText("Malicious process terminated. Recovering data for: " + basenameForDisplay(filePath))
-                    .setPriority(androidx.core.app.NotificationCompat.PRIORITY_MAX)
-                    .setCategory(androidx.core.app.NotificationCompat.CATEGORY_ALARM)
-                    .setAutoCancel(true)
-                    .setContentIntent(pi);
-
-                nm.notify(2002, builder.build());
-            }
-        } catch (Exception e) {
-            Log.e(TAG, "Failed to post high risk system notification", e);
+        // Ensure channel exists
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            android.app.NotificationChannel channel = new android.app.NotificationChannel(
+                "shield_alerts", "High Risk Alerts", android.app.NotificationManager.IMPORTANCE_HIGH);
+            nm.createNotificationChannel(channel);
         }
+
+        // Intent for the Manual Kill action
+        android.content.Intent killIntent = new android.content.Intent("com.dearmoon.shield.ACTION_INTERVENE_CRYPTO");
+        killIntent.putExtra("package", suspectPackage);
+        android.app.PendingIntent killPI = android.app.PendingIntent.getBroadcast(
+            context, 0, killIntent, android.app.PendingIntent.FLAG_UPDATE_CURRENT | android.app.PendingIntent.FLAG_IMMUTABLE);
+
+        // Main UI intent
+        android.content.Intent uiIntent = new android.content.Intent(context, com.dearmoon.shield.MainActivity.class);
+        uiIntent.setFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK | android.content.Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        android.app.PendingIntent pi = android.app.PendingIntent.getActivity(
+            context, 1, uiIntent, android.app.PendingIntent.FLAG_UPDATE_CURRENT | android.app.PendingIntent.FLAG_IMMUTABLE);
+
+        androidx.core.app.NotificationCompat.Builder builder = new androidx.core.app.NotificationCompat.Builder(context, "shield_alerts")
+            .setSmallIcon(android.R.drawable.ic_dialog_alert)
+            .setContentTitle("⚠️ ATTACK DETECTED: " + suspectPackage)
+            .setContentText("Encryption activity detected. Tap PROTECT to stop the attacker.")
+            .setPriority(androidx.core.app.NotificationCompat.PRIORITY_MAX)
+            .setCategory(androidx.core.app.NotificationCompat.CATEGORY_ALARM)
+            .setAutoCancel(true)
+            .setContentIntent(pi)
+            .addAction(android.R.drawable.ic_menu_close_clear_cancel, "PROTECT NOW", killPI);
+
+        nm.notify(2002, builder.build());
+        
+        // Also send broadcast for legacy UI support if needed
+        android.content.Intent bcastIntent = new android.content.Intent("com.dearmoon.shield.HIGH_RISK_ALERT");
+        bcastIntent.putExtra("file_path", filePath);
+        bcastIntent.putExtra("confidence_score", score);
+        bcastIntent.putExtra("infection_time", infectionTimeSec);
+        bcastIntent.putExtra("package", suspectPackage);
+        context.sendBroadcast(bcastIntent);
+    }
+
+    private void resetSpiritsForPackage(String packageName) {
+        try {
+            int uid = context.getPackageManager().getPackageUid(packageName, 0);
+            AppDetectionContext appCtx = appContexts.get(uid);
+            if (appCtx != null) {
+                appCtx.sprtDetector.reset();
+                Log.i(TAG, "Reset detection state for: " + packageName);
+            }
+        } catch (Exception ignored) {}
     }
 
     private static String basenameForDisplay(String pathOrUriOrRel) {

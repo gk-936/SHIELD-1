@@ -9,30 +9,12 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.List;
 
-/**
- * SnapshotIntegrityChecker  (Feature 4 – Self-Auditing Snapshot System)
- *
- * Runs on every app startup and verifies three guarantees:
- *
- *   1. Hash Chain Validity  – every stored chain_hash matches
- *        SHA-256(previous_chain_hash | metadata_hash)
- *      confirming the entire history has not been tampered with.
- *
- *   2. Backup File Existence – every entry flagged isBackedUp=true
- *      has a corresponding encrypted backup file on disk.
- *
- *   3. Metadata Integrity   – the metadata_hash for each entry is
- *      re-derived from its live DB fields and compared.
- *
- * On any mismatch the checker broadcasts
- * {@link #ACTION_TAMPER_ALERT} so MainActivity / ShieldProtectionService
- * can raise the detection score and disable restore.
- */
+// Snapshot integrity checker
 public class SnapshotIntegrityChecker {
 
     private static final String TAG = "SnapshotIntegrity";
 
-    /** Broadcast action emitted when snapshot tampering is detected. */
+    // Tamper alert broadcast
     public static final String ACTION_TAMPER_ALERT = "com.dearmoon.shield.SNAPSHOT_TAMPER_ALERT";
 
     // -------------------------------------------------------------------------
@@ -49,14 +31,7 @@ public class SnapshotIntegrityChecker {
 
     // -------------------------------------------------------------------------
 
-    /**
-     * Perform a full integrity audit.
-     *
-     * @param context  Android context for broadcasting alerts.
-     * @param database SnapshotDatabase instance to audit.
-     * @param encMgr   BackupEncryptionManager for decrypting stored backup paths.
-     * @return         IntegrityResult describing any violations found.
-     */
+    // Integrity audit check
     public IntegrityResult check(Context context,
                                   SnapshotDatabase database,
                                   BackupEncryptionManager encMgr) {
@@ -64,8 +39,8 @@ public class SnapshotIntegrityChecker {
         StringBuilder details = new StringBuilder();
 
         try {
-            // getAllBackedUpFiles returns entries ordered by row insertion (id ASC)
-            // so chain traversal is in the same order they were written.
+            // Traverse chain by ID
+            // Ordered entry traversal
             List<FileMetadata> allFiles = database.getAllBackedUpFiles();
             result.checkedEntries = allFiles.size();
 
@@ -73,15 +48,15 @@ public class SnapshotIntegrityChecker {
 
             for (FileMetadata meta : allFiles) {
 
-                // ── 1. Verify backup file exists on disk ──────────────────
+                // Verify backup existence
                 if (meta.isBackedUp && meta.backupPath != null) {
                     String realPath = meta.backupPath;
-                    // Backup path may be column-encrypted; attempt decrypt gracefully.
+                    // Decrypt path gracefully
                     if (encMgr != null) {
                         try {
                             realPath = encMgr.decryptColumn(meta.backupPath);
                         } catch (Exception ignored) {
-                            // plaintext path (legacy entry) – use as-is
+                            // Legacy plaintext path
                         }
                     }
                     if (realPath != null && !new File(realPath).exists()) {
@@ -91,7 +66,7 @@ public class SnapshotIntegrityChecker {
                     }
                 }
 
-                // ── 2. Validate hash chain ────────────────────────────────
+                // Validate hash chain
                 if (meta.chainHash != null && !meta.chainHash.isEmpty()) {
                     String metaHash     = computeMetadataHash(meta);
                     String expectedChain = computeChainHash(previousChainHash, metaHash);
@@ -102,7 +77,7 @@ public class SnapshotIntegrityChecker {
                         details.append("Chain break at: ").append(meta.filePath).append("\n");
                     }
 
-                    previousChainHash = meta.chainHash; // advance the chain pointer
+                    previousChainHash = meta.chainHash; // Update chain pointer
                 }
             }
 
@@ -129,10 +104,7 @@ public class SnapshotIntegrityChecker {
     //  Hash computation (package-private so SnapshotManager can reuse them)
     // =========================================================================
 
-    /**
-     * Compute a deterministic hash of a snapshot entry's metadata fields.
-     * Input: filePath | fileSize | lastModified | sha256Hash | snapshotId
-     */
+    // Compute metadata hash
     static String computeMetadataHash(FileMetadata meta) {
         try {
             String input = meta.filePath + "|" + meta.fileSize + "|"
@@ -144,10 +116,7 @@ public class SnapshotIntegrityChecker {
         }
     }
 
-    /**
-     * Combine the previous chain hash and this entry's metadata hash into
-     * a new chain hash:  SHA-256(previousChainHash | metadataHash)
-     */
+    // Compute chain hash
     static String computeChainHash(String previousChainHash, String metadataHash) {
         try {
             String input = previousChainHash + "|" + metadataHash;

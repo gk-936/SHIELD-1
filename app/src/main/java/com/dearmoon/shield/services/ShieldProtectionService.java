@@ -38,60 +38,86 @@ public class ShieldProtectionService extends Service {
     private static final String TAG = "ShieldProtectionService";
     private static final String CHANNEL_ID = "shield_protection_channel";
     private static final int NOTIFICATION_ID = 1001;
+    public static final String ACTION_INTERVENE_CRYPTO = "com.dearmoon.shield.ACTION_INTERVENE_CRYPTO";
+    private static final long HONEYFILE_WATCHDOG_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 
     private TelemetryStorage storage;
     private UnifiedDetectionEngine detectionEngine;
     private HoneyfileCollector honeyfileCollector;
     private SnapshotManager snapshotManager;
     private List<FileSystemCollector> fileSystemCollectors = new ArrayList<>();
-    private List<RecursiveFileSystemCollector> recursiveCollectors = new ArrayList<>();  // SECURITY FIX: Recursive monitoring
-    private com.dearmoon.shield.collectors.MediaStoreCollector mediaStoreCollector;  // H-02: MediaStore monitoring
+    private List<RecursiveFileSystemCollector> recursiveCollectors = new ArrayList<>();  // Recursive monitoring
+    private com.dearmoon.shield.collectors.MediaStoreCollector mediaStoreCollector;  // MediaStore monitoring
     private NetworkGuardService networkGuard;
     private boolean networkMonitoringStarted = false;
     private Handler cleanupHandler;
     private Handler snapshotHandler;
-    private Handler heartbeatHandler;  // L-01: heartbeat for watchdog
+    private Handler heartbeatHandler;  // Watchdog heartbeat
+    private Handler honeyfileWatchdogHandler;
     private static final long CLEANUP_INTERVAL_MS = 24 * 60 * 60 * 1000; // 24 hours
     private static final long SNAPSHOT_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
     private static final int RETENTION_DAYS = 7;
+
+    private final android.content.BroadcastReceiver interventionReceiver = new android.content.BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (ACTION_INTERVENE_CRYPTO.equals(intent.getAction())) {
+                String pkg = intent.getStringExtra("package");
+                Log.w(TAG, "MANUAL INTERVENTION: User requested kill for " + pkg);
+                if (detectionEngine != null && pkg != null) {
+                    detectionEngine.killMaliciousProcess(pkg);
+                }
+            }
+        }
+    };
 
     @Override
     public void onCreate() {
         super.onCreate();
         Log.i(TAG, "ShieldProtectionService created");
 
-        // Start watchdog
+        // Start service watchdog
         startService(new Intent(this, ShieldWatchdogService.class));
 
-        // Initialize storage and detection engine — use Application-scoped singletons
-        // so Mode A and Mode B share ONE engine, ONE snapshot manager, ONE SPRT state.
+        // Initialize detection engines
         storage = new TelemetryStorage(this);
         snapshotManager = com.dearmoon.shield.ShieldApplication.get().getSnapshotManager();
         detectionEngine = com.dearmoon.shield.ShieldApplication.get().getDetectionEngine();
 
-        // Initialize collectors
+        // Initialize telemetry collectors
         initializeCollectors();
 
-        // Start as foreground service
+        // Start foreground service
         startForeground(NOTIFICATION_ID, createNotification());
 
-        // L-01: Start heartbeat so watchdog can detect us reliably
+        // Start watchdog heartbeat
         heartbeatHandler = new Handler(android.os.Looper.getMainLooper());
         scheduleHeartbeat();
         
-        // Start integrated network monitoring
+        // Start network monitoring
         startNetworkMonitoring();
         
-        // Schedule periodic database cleanup
+        // Schedule database cleanup
         cleanupHandler = new Handler(android.os.Looper.getMainLooper());
         scheduleCleanup();
 
-        // Schedule periodic incremental snapshots
+        // Schedule incremental snapshots
         snapshotHandler = new Handler(android.os.Looper.getMainLooper());
         scheduleIncrementalSnapshot();
 
-        // Mode-A (eBPF collection) is started explicitly by the user via
-        // MainActivity when they choose Root Mode — not auto-launched here.
+        // Start honeyfile watchdog
+        honeyfileWatchdogHandler = new Handler(android.os.Looper.getMainLooper());
+        scheduleHoneyfileWatchdog();
+
+        // Register intervention receiver
+        android.content.IntentFilter filter = new android.content.IntentFilter(ACTION_INTERVENE_CRYPTO);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(interventionReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
+        } else {
+            registerReceiver(interventionReceiver, filter);
+        }
+
+        // Choice-based Mode-A start
     }
     
     private void scheduleCleanup() {
@@ -99,7 +125,7 @@ public class ShieldProtectionService extends Service {
             @Override
             public void run() {
                 performDatabaseCleanup();
-                scheduleCleanup(); // Reschedule
+                scheduleCleanup(); // Reschedule cleanup
             }
         }, CLEANUP_INTERVAL_MS);
     }
@@ -121,7 +147,7 @@ public class ShieldProtectionService extends Service {
             @Override
             public void run() {
                 performIncrementalSnapshot();
-                scheduleIncrementalSnapshot(); // Reschedule
+                scheduleIncrementalSnapshot(); // Reschedule snapshots
             }
         }, SNAPSHOT_INTERVAL_MS);
     }
@@ -142,12 +168,11 @@ public class ShieldProtectionService extends Service {
         // Create baseline snapshot
         snapshotManager.createBaselineSnapshot(honeyfileDirs);
 
-        // SECURITY FIX: Initialize recursive file system collectors for deep monitoring
-        // This prevents ransomware from encrypting files in subdirectories undetected
+        // Recursive monitoring setup
         for (String dir : honeyfileDirs) {
             File directory = new File(dir);
             if (directory.exists() && directory.isDirectory()) {
-                // Create recursive collector for this directory tree
+                // Create recursive collector
                 RecursiveFileSystemCollector recursiveCollector = 
                     new RecursiveFileSystemCollector(dir, storage, this);
                 recursiveCollector.setDetectionEngine(detectionEngine);
@@ -162,7 +187,7 @@ public class ShieldProtectionService extends Service {
             }
         }
 
-        // H-02: Enable MediaStoreCollector — catches ContentResolver-based ransomware
+        // Enable MediaStore monitoring
         mediaStoreCollector = new com.dearmoon.shield.collectors.MediaStoreCollector(this, storage, detectionEngine);
         mediaStoreCollector.startWatching();
         Log.i(TAG, "MediaStore monitoring enabled");
@@ -178,7 +203,7 @@ public class ShieldProtectionService extends Service {
             addIfExists(dirs, new File(externalStorage, "Pictures"));
             addIfExists(dirs, new File(externalStorage, "DCIM"));
 
-            // Add RanSim sandbox explicitly — do not remove the Android/ skip
+            // Monitor RanSim sandbox
             File ransimSandbox = new File(externalStorage, 
                 "Android/data/com.dearmoon.shield.ransim/shield_ransim_sandbox"
             );
@@ -327,11 +352,11 @@ public class ShieldProtectionService extends Service {
     public void onDestroy() {
         Log.i(TAG, "ShieldProtectionService destroyed");
 
-        // H-01: Use commit() (synchronous) so watchdog reads the flag before it can fire
+        // Force synchronous stop
         getSharedPreferences("ShieldPrefs", Context.MODE_PRIVATE)
             .edit().putBoolean("intentionally_stopped", true).commit();
 
-        // L-01: Stop heartbeat
+        // Stop service heartbeat
         if (heartbeatHandler != null) heartbeatHandler.removeCallbacksAndMessages(null);
 
         // Stop cleanup handler
@@ -347,49 +372,54 @@ public class ShieldProtectionService extends Service {
         // Stop network monitoring
         stopNetworkMonitoring();
 
-        // H-02: Stop MediaStore monitoring
+        // Stop MediaStore monitoring
         if (mediaStoreCollector != null) {
             mediaStoreCollector.stopWatching();
             mediaStoreCollector = null;
         }
 
-        // NOTE: ModeAService is NOT stopped here — Mode A manages its own lifecycle.
-        // It is started and stopped independently by the user via MainActivity.
-        // Stopping it here would race with Mode A's init thread and kill the daemon
-        // before the socket-wait loop has a chance to connect.
+        // Mode A independent lifecycle
 
-        // SECURITY FIX: Stop recursive file system collectors
+        // Stop recursive monitoring
         for (RecursiveFileSystemCollector collector : recursiveCollectors) {
             collector.stopWatching();
         }
         recursiveCollectors.clear();
 
-        // Stop all file system collectors (legacy, if any)
+        // Stop legacy collectors
         for (FileSystemCollector collector : fileSystemCollectors) {
             collector.stopWatching();
         }
         fileSystemCollectors.clear();
 
-        // Stop honeyfile collector and clear honeyfiles
+        // Stop honeyfile collector
         if (honeyfileCollector != null) {
             honeyfileCollector.stopWatching();
             honeyfileCollector.clearAllHoneyfiles();
         }
 
-        // Shutdown detection engine + snapshot manager via Application
-        // (this is the only place shutdown should be called)
+        // Shutdown detection engines
         com.dearmoon.shield.ShieldApplication.get().shutdownEngine();
         detectionEngine = null;
 
         snapshotManager = null;
 
-        // H-01: Restart broadcast removed — watchdog handles restart detection via heartbeat
+        // Heartbeat-based restart detection
 
-        // Optional: stopForeground ensures the notification clears immediately
+        // Clear foreground notification
+        try {
+            unregisterReceiver(interventionReceiver);
+        } catch (Exception ignored) {}
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             stopForeground(STOP_FOREGROUND_REMOVE);
         } else {
             stopForeground(true);
+        }
+
+        // Stop honeyfile watchdog
+        if (honeyfileWatchdogHandler != null) {
+            honeyfileWatchdogHandler.removeCallbacksAndMessages(null);
         }
 
         super.onDestroy();
@@ -406,8 +436,7 @@ public class ShieldProtectionService extends Service {
             return;
         }
 
-        // H-04: Check VPN permission. If not yet granted, route to MainActivity
-        // because the system dialog can only be shown from an Activity context.
+        // Route VPN permission
         Intent permCheck = android.net.VpnService.prepare(this);
         if (permCheck != null) {
             Log.w(TAG, "VPN permission not yet granted — requesting via MainActivity");
@@ -432,7 +461,7 @@ public class ShieldProtectionService extends Service {
         }
     }
 
-    // L-01: Write heartbeat timestamp every 30 s so the watchdog can detect service death
+    // Periodic heartbeat write
     private void scheduleHeartbeat() {
         heartbeatHandler.postDelayed(() -> {
             getSharedPreferences("ShieldPrefs", MODE_PRIVATE).edit()
@@ -455,5 +484,15 @@ public class ShieldProtectionService extends Service {
         } catch (Exception e) {
             Log.e(TAG, "Failed to stop network monitoring", e);
         }
+    }
+
+    private void scheduleHoneyfileWatchdog() {
+        honeyfileWatchdogHandler.postDelayed(() -> {
+            Log.d(TAG, "Honeyfile watchdog tick");
+            if (honeyfileCollector != null) {
+                honeyfileCollector.verifyAndRedeploy(this, getMonitoredDirectories());
+            }
+            scheduleHoneyfileWatchdog();
+        }, HONEYFILE_WATCHDOG_INTERVAL_MS);
     }
 }

@@ -7,24 +7,16 @@ public class FileMetadata {
     public long   lastModified;
     public String sha256Hash;
     public long   snapshotId;
-    public String backupPath;           // stored encrypted in DB (AES-GCM + Keystore)
+    public String backupPath;           // Encrypted DB storage
     public boolean isBackedUp;
     public long   modifiedDuringAttack;
 
     // ── Security enhancements ────────────────────────────────────────────────
 
-    /**
-     * Tamper-evident hash chain link (Feature 1).
-     * chainHash = SHA-256(previousChainHash | metadataHash)
-     * Stored in the DB; recomputed on integrity check to detect structural manipulation.
-     */
+    // Tamper-evident hash chain
     public String chainHash;
 
-    /**
-     * Per-snapshot AES-256 key, wrapped with the master Keystore key (Feature 6).
-     * Stored as a BLOB in the DB.  The backup file ciphertext can only be decrypted
-     * when this value is unwrapped via BackupEncryptionManager.
-     */
+    // Wrapped per-snapshot key
     public byte[] encryptedKey;
 
     // ─────────────────────────────────────────────────────────────────────────

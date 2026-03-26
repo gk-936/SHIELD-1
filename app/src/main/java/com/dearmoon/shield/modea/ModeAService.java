@@ -23,32 +23,7 @@ import com.dearmoon.shield.snapshot.SnapshotManager;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
-/**
- * ModeAService — foreground service that orchestrates eBPF-based ransomware
- * telemetry (Mode-A) integrated into the main SHIELD app.
- *
- * Requires API 30+ and a rooted device (Magisk). When unavailable, the
- * service stops itself immediately and broadcasts {@link #ACTION_UNAVAILABLE}
- * so the UI can reflect the fallback to Mode-B.
- *
- * Lifecycle
- * ---------
- *   1. onStartCommand(): guards API level, then spawns init thread.
- *   2. initModeA() (background): root check → BPF check → deploy binaries
- *      → start daemon → wait for socket → connect JNI → start poll loop.
- *   3. pollEvents() (HandlerThread): drains events every 20 ms, hands each
- *      to ModeAFileCollector → UnifiedDetectionEngine.
- *   4. onDestroy(): stop loop → JNI disconnect → stop daemon.
- *
- * Intents broadcast
- * -----------------
- *   {@link #ACTION_STARTED}     — Mode-A fully operational
- *   {@link #ACTION_UNAVAILABLE} — root/BPF unavailable, extra "reason"
- *
- * Intents consumed
- * ----------------
- *   {@link #ACTION_KILL_PID}    — extra "pid" (int), forwards to daemon
- */
+/** Mode-A orchestration service */
 public class ModeAService extends Service {
 
     private static final String TAG              = "SHIELD_MODE_A";
@@ -80,7 +55,7 @@ public class ModeAService extends Service {
         return daemonConnected;
     }
 
-    // Reusable event — allocated once, reused per poll iteration
+    // Event reuse
     private final ShieldEventData reusableEvent = new ShieldEventData();
 
     private final BroadcastReceiver killReceiver = new BroadcastReceiver() {
@@ -95,9 +70,7 @@ public class ModeAService extends Service {
         }
     };
 
-    // ------------------------------------------------------------------
-    // Lifecycle
-    // ------------------------------------------------------------------
+    // Service lifecycle
 
     @Override
     public void onCreate() {
@@ -106,10 +79,8 @@ public class ModeAService extends Service {
 
         controller      = new ModeAController(this);
         jni             = new ModeAJni();
-        // Obtain the application-scoped shared engine — do NOT create a new one.
-        // Mode A is a kernel-event data source; detection state must be unified
-        // with Mode B (ShieldProtectionService).  Creating a separate engine here
-        // would split the SPRT accumulator, snapshot attack-window, and EventMerger.
+        // Shared detection engine
+        // Unified kernel telemetry
         detectionEngine = com.dearmoon.shield.ShieldApplication.get().getDetectionEngine();
         collector       = new ModeAFileCollector(
                 detectionEngine,
@@ -158,9 +129,7 @@ public class ModeAService extends Service {
     @Nullable @Override
     public IBinder onBind(Intent intent) { return null; }
 
-    // ------------------------------------------------------------------
-    // Init sequence (runs on background thread "ModeAInit")
-    // ------------------------------------------------------------------
+    // Mode-A initialization
 
     private void initModeA() {
         Log.i(TAG, "Checking root access…");
@@ -196,7 +165,7 @@ public class ModeAService extends Service {
             return;
         }
 
-        // Poll for up to 10 s — BPF JIT compilation can be slow on first run
+        // Poll daemon socket
         boolean socketReady = false;
         for (int i = 0; i < 20; i++) {          // 20 × 500 ms = 10 s
             sleep(500);
@@ -234,9 +203,7 @@ public class ModeAService extends Service {
         startEventLoop();
     }
 
-    // ------------------------------------------------------------------
-    // Event poll loop (HandlerThread "ModeAEventLoop")
-    // ------------------------------------------------------------------
+    // Event poll loop
 
     private void startEventLoop() {
         eventThread = new HandlerThread("ModeAEventLoop");
@@ -271,9 +238,7 @@ public class ModeAService extends Service {
         if (eventThread  != null) { eventThread.quitSafely(); eventThread = null; }
     }
 
-    // ------------------------------------------------------------------
     // Utilities
-    // ------------------------------------------------------------------
 
     private static ShieldEventData copyEvent(ShieldEventData s) {
         ShieldEventData d = new ShieldEventData();

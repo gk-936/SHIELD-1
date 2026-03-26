@@ -31,11 +31,7 @@ public class NetworkGuardService extends VpnService {
     private volatile boolean blockingEnabled = false;
     private final java.util.Set<String> flowCache = java.util.Collections.synchronizedSet(new java.util.HashSet<>());
 
-    /**
-     * Known ransomware C2 exfiltration services.
-     * DNS queries to these domains are blocked when blockingEnabled or blockAllTraffic is true,
-     * preventing ransomware from reaching its command-and-control infrastructure.
-     */
+    // Ransomware C2 domains
     private static final String[] C2_DOMAINS = {
         "pastebin.com",
         "api.telegram.org",
@@ -85,7 +81,7 @@ public class NetworkGuardService extends VpnService {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         try {
-            // Start foreground immediately to prevent crash
+            // Start foreground service
             startForeground(2, createNotification());
             
             if (intent != null && ACTION_STOP.equals(intent.getAction())) {
@@ -137,11 +133,11 @@ public class NetworkGuardService extends VpnService {
                     if (length > 0) {
                         packet.limit(length);
                         
-                        // Analyze and decide whether to block
+                        // Analyze packet
                         boolean shouldBlock = analyzePacket(packet);
                         
                         if (!shouldBlock) {
-                            // Pass-through: write only the read bytes
+                            // Pass-through network packet
                             out.write(packet.array(), 0, length);
                         } else {
                             Log.w(TAG, "BLOCKED suspicious packet");
@@ -167,15 +163,12 @@ public class NetworkGuardService extends VpnService {
             Builder builder = new Builder();
             builder.addAddress("10.0.0.2", 32);
             builder.addRoute("0.0.0.0", 0);
-            // H-05: Use Quad9 security DNS (blocks malicious domains at resolution time)
-            // instead of Google DNS which provides no threat filtering.
+            // Use Quad9 DNS
             builder.addDnsServer("9.9.9.9");          // Quad9 primary
             builder.addDnsServer("149.112.112.112");  // Quad9 secondary
             builder.setMtu(1500);
             builder.setSession("NetworkGuard");
-            // NOTE: The port 4444/5555/6666/7777 blocklist only catches legacy RAT traffic.
-            // Modern HTTPS/443 C2 (Telegram, Pastebin, GitHub Gist) is NOT blocked by this list.
-            // Post-detection blockAllTraffic=true is the effective isolation mechanism.
+            // legacy port blocking
 
             Intent intent = new Intent(this, MainActivity.class);
             PendingIntent pendingIntent = PendingIntent.getActivity(
@@ -189,11 +182,7 @@ public class NetworkGuardService extends VpnService {
         }
     }
 
-    /**
-     * SECURITY FIX: Added IPv6 support to prevent C2 communication bypass.
-     * Analyzes both IPv4 (version 4) and IPv6 (version 6) packets.
-     * Returns true if packet should be blocked.
-     */
+    // Analyze IPv6 packet
     private boolean analyzePacket(ByteBuffer packet) {
         if (packet.remaining() < 20)
             return false;
@@ -211,9 +200,7 @@ public class NetworkGuardService extends VpnService {
         return false;
     }
     
-    /**
-     * Analyzes IPv4 packets (original implementation)
-     */
+    // Analyze IPv4 packet
     private boolean analyzeIPv4Packet(ByteBuffer packet) {
         if (packet.remaining() < 20)
             return false;
@@ -221,7 +208,7 @@ public class NetworkGuardService extends VpnService {
         int protocol = packet.get(9) & 0xFF;
         String protoName = protocol == 6 ? "TCP" : protocol == 17 ? "UDP" : "OTHER";
 
-        // Performance: Optimized IP string conversion
+        // Convert IP string
         int destIpOffset = 16;
         String destIp = (packet.get(destIpOffset) & 0xFF) + "." +
                         (packet.get(destIpOffset + 1) & 0xFF) + "." +
@@ -243,15 +230,14 @@ public class NetworkGuardService extends VpnService {
             }
         }
         
-        // Check if should block
-        // DNS interception: block queries for known C2 exfiltration domains (port 80/443)
+        // Check DNS
         if (isDnsQueryForC2Domain(packet)) return true;
         return shouldBlockConnection(destIp, destPort, protoName);
     }
 
     private boolean shouldLogFlow(String flowKey) {
         long now = System.currentTimeMillis();
-        // Clear cache every 5 minutes to track re-connections
+        // Clear flow cache
         if (now - lastCacheClear > 300000) {
             flowCache.clear();
             lastCacheClear = now;
@@ -259,12 +245,7 @@ public class NetworkGuardService extends VpnService {
         return flowCache.add(flowKey);
     }
     
-    /**
-     * SECURITY FIX: Analyzes IPv6 packets (40-byte header)
-     * IPv6 header format: Version(4) | Traffic Class(8) | Flow Label(20) | 
-     *                     Payload Length(16) | Next Header(8) | Hop Limit(8) |
-     *                     Source Address(128) | Destination Address(128)
-     */
+    // Analyze IPv6
     private boolean analyzeIPv6Packet(ByteBuffer packet) {
         if (packet.remaining() < 40)  // IPv6 header is 40 bytes
             return false;
@@ -272,7 +253,7 @@ public class NetworkGuardService extends VpnService {
         int nextHeader = packet.get(6) & 0xFF;  // Protocol (TCP=6, UDP=17)
         String protoName = nextHeader == 6 ? "TCP" : nextHeader == 17 ? "UDP" : "OTHER";
 
-        // Performance: Optimized IPv6 string conversion
+        // Convert IPv6 string
         StringBuilder ipv6 = new StringBuilder(39);
         for (int i = 24; i < 40; i += 2) {
             if (i > 24) ipv6.append(":");
@@ -297,15 +278,13 @@ public class NetworkGuardService extends VpnService {
             }
         }
         
-        // Check if should block (IPv6 addresses need special handling)
+        // Check block
         return shouldBlockIPv6Connection(destIp, destPort, protoName);
     }
     
-    /**
-     * SECURITY FIX: IPv6-specific blocking logic
-     */
+    // IPv6 blocking
     private boolean shouldBlockIPv6Connection(String destIp, int destPort, String protocol) {
-        // If blocking disabled by user, allow all traffic
+        // User blocking
         if (!blockingEnabled && !blockAllTraffic) {
             return false;
         }
@@ -316,60 +295,50 @@ public class NetworkGuardService extends VpnService {
             return true;
         }
         
-        // Block known malicious ports (same as IPv4)
+        // Block malicious ports
         if (destPort == 4444 || destPort == 5555 || destPort == 6666 || destPort == 7777) {
             Log.w(TAG, "BLOCKED: Suspicious IPv6 port " + destPort);
             return true;
         }
         
-        // Block localhost (::1)
+        // Allow localhost traffic
         if (destIp.equals("::1") || destIp.startsWith("0000:0000:0000:0000:0000:0000:0000:0001")) {
             return false;  // Local traffic, allow
         }
         
-        // Block link-local (fe80::/10)
+        // Allow link-local traffic
         if (destIp.startsWith("fe80:") || destIp.startsWith("fe90:") || destIp.startsWith("fea0:") || destIp.startsWith("feb0:")) {
             return false;  // Link-local, allow
         }
         
-        // Block multicast (ff00::/8)
+        // Block multicast traffic
         if (destIp.startsWith("ff")) {
             return true;
         }
         
-        // Allow all other IPv6 traffic (can be enhanced with IPv6 threat intelligence)
+        // Allow IPv6 traffic
         return false;
     }
 
-    /**
-     * Returns true if {@code packet} is a DNS query (IPv4 UDP port 53) targeting
-     * one of the known C2 exfiltration domains.  Blocks name resolution before
-     * the ransomware can open a connection to its C2 server on port 80/443.
-     *
-     * Parsing approach: IPv4 + UDP headers are stripped, then the DNS QNAME label
-     * sequence is reconstructed and checked against C2_DOMAINS.  The check is
-     * intentionally conservative — false negatives are acceptable; false positives
-     * would block legitimate apps unnecessarily.
-     */
+    // Check C2 DNS
     private boolean isDnsQueryForC2Domain(ByteBuffer packet) {
         if (!blockingEnabled && !blockAllTraffic) return false;
-        // Minimum: 20 (IPv4) + 8 (UDP) + 12 (DNS header) = 40 bytes
+        // Minimum DNS length
         if (packet.remaining() < 40) return false;
-        // Must be UDP (protocol byte 9 of IPv4 header)
+        // Check UDP protocol
         if ((packet.get(9) & 0xFF) != 17) return false;
-        // IPv4 IHL in lower nibble of byte 0 (in 4-byte units)
+        // Check IHL length
         int ihl = (packet.get(0) & 0x0F) * 4;
         if (ihl < 20 || packet.remaining() < ihl + 20) return false;
-        // UDP destination port at ihl + 2
+        // Check destination port
         int dstPort = packet.getShort(ihl + 2) & 0xFFFF;
         if (dstPort != 53) return false;
-        // DNS payload begins after 8-byte UDP header
+        // Check DNS payload
         int dnsOffset = ihl + 8;
         if (packet.remaining() < dnsOffset + 12) return false;
-        // QR bit (byte dnsOffset+2, bit 7): 0 = query, 1 = response — only intercept queries
+        // Intercept DNS queries
         if ((packet.get(dnsOffset + 2) & 0x80) != 0) return false;
-
-        // Reconstruct QNAME from label sequence starting at byte 12 of DNS payload
+        // Reconstruct DNS QNAME
         int offset = dnsOffset + 12;
         StringBuilder domain = new StringBuilder(64);
         try {
@@ -407,7 +376,7 @@ public class NetworkGuardService extends VpnService {
     }
 
     private boolean shouldBlockConnection(String destIp, int destPort, String protocol) {
-        // If blocking disabled by user, allow all traffic
+        // Check user blocking
         if (!blockingEnabled && !blockAllTraffic) {
             return false;
         }
@@ -418,19 +387,19 @@ public class NetworkGuardService extends VpnService {
             return true;
         }
         
-        // Block known malicious ports
+        // Block malicious ports
         if (destPort == 4444 || destPort == 5555 || destPort == 6666 || destPort == 7777) {
             Log.w(TAG, "BLOCKED: Suspicious port " + destPort);
             return true;
         }
         
-        // Block Tor exit nodes (common C2 infrastructure)
+        // Block Tor nodes
         if (isTorExitNode(destIp)) {
             Log.w(TAG, "BLOCKED: Tor exit node " + destIp);
             return true;
         }
         
-        // Block private/suspicious IP ranges
+        // Block suspicious IPs
         if (isSuspiciousIp(destIp)) {
             Log.w(TAG, "BLOCKED: Suspicious IP " + destIp);
             return true;
@@ -465,12 +434,12 @@ public class NetworkGuardService extends VpnService {
     }
     
     private boolean isSuspiciousIp(String ip) {
-        // Allow localhost and link-local (not external destinations anyway)
+        // Allow local traffic
         if (ip.startsWith("127.") || ip.startsWith("169.254.")) {
             return false; // Local traffic, allow
         }
         
-        // Allow private networks (home/office networks)
+        // Allow private networks
         if (ip.startsWith("10.") || ip.startsWith("192.168.")) {
             return false; // Local network, allow
         }
@@ -489,7 +458,7 @@ public class NetworkGuardService extends VpnService {
             }
         }
         
-        // Block multicast/broadcast
+        // Block multicast traffic
         if (ip.startsWith("224.") || ip.startsWith("255.")) {
             return true;
         }
@@ -526,7 +495,7 @@ public class NetworkGuardService extends VpnService {
                     .build();
         } catch (Exception e) {
             Log.e(TAG, "Error creating notification", e);
-            // Return minimal notification as fallback
+            // Fallback notification
             return new NotificationCompat.Builder(this, "network_guard_channel")
                     .setContentTitle("Network Guard")
                     .setSmallIcon(android.R.drawable.ic_dialog_info)

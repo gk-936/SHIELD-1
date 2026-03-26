@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="24dp"
+    android:background="#EFF6FF"
+    android:elevation="8dp">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="SHIELD Ransomware Removal Guide"
+        android:textStyle="bold"
+        android:textColor="#D32F2F"
+        android:textSize="20sp" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:textColor="#333333"
+        android:textSize="16sp"
+        android:text="Follow these steps to safely remove the ransomware screen locker:\n\nStep 1: We are opening App Settings for you.\nStep 2: Tap FORCE STOP.\nStep 3: Tap UNINSTALL." />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="end"
+        android:layout_marginTop="24dp">
+        
+        <Button
+            android:id="@+id/guide_btn_dismiss"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="DISMISS"
+            android:textColor="#757575"
+            style="?android:attr/borderlessButtonStyle" />
+
+        <Button
+            android:id="@+id/guide_btn_settings"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:text="OPEN SETTINGS"
+            android:backgroundTint="#2196F3"
+            android:textColor="#FFFFFF" />
+    </LinearLayout>
+</LinearLayout>

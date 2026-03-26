@@ -7,36 +7,20 @@ import android.util.Log;
 
 import androidx.annotation.Nullable;
 
-/**
- * SnapshotDirectoryObserver  (Feature 5 – Snapshot Directory Monitoring)
- *
- * Attaches a {@link FileObserver} to the {@code secure_backups/} directory.
- * Any DELETE, MOVED_FROM or ATTRIB change on a file inside that directory
- * is treated as a potential ransomware or attacker tampering event and:
- *
- *   1. Logged at ERROR level.
- *   2. Broadcast as {@link #ACTION_BACKUP_DIR_TAMPER} so
- *      ShieldProtectionService / MainActivity can raise the detection score
- *      and trigger mitigation.
- *
- * Usage:
- *   SnapshotDirectoryObserver obs = new SnapshotDirectoryObserver(context, path);
- *   obs.startWatching();   // call once when protection starts
- *   obs.stopWatching();    // call when service stops
- */
+// Snapshot directory observer
 public class SnapshotDirectoryObserver extends FileObserver {
 
     private static final String TAG = "SnapshotDirObserver";
 
-    /** Broadcast action emitted when the backup directory is tampered with. */
+    // Backup tamper broadcast
     public static final String ACTION_BACKUP_DIR_TAMPER =
             "com.dearmoon.shield.BACKUP_DIR_TAMPER";
 
-    // Events that indicate malicious or unexpected modification of backups.
+    // Watched modification events
     private static final int WATCHED_EVENTS =
-            FileObserver.DELETE       // file deleted
-            | FileObserver.MOVED_FROM // file renamed/moved away
-            | FileObserver.ATTRIB;    // permissions / timestamps altered
+            FileObserver.DELETE       // File deleted
+            | FileObserver.MOVED_FROM // File moved/renamed
+            | FileObserver.ATTRIB;    // Attributes altered
 
     private final Context context;
     private final String  watchedPath;
@@ -68,9 +52,7 @@ public class SnapshotDirectoryObserver extends FileObserver {
         }
     }
 
-    // =========================================================================
-    //  Internal helpers
-    // =========================================================================
+    // Internal helper methods
 
     private void broadcastTamper(int eventCode, String filePath) {
         Intent intent = new Intent(ACTION_BACKUP_DIR_TAMPER);

@@ -14,7 +14,7 @@ public class BootReceiver extends BroadcastReceiver {
                     .getBoolean("intentionally_stopped", false);
 
             if (intentionallyStopped) {
-                return; // Protection was intentionally left off
+                return; // Protection intentionally off
             }
 
             Intent serviceIntent = new Intent(context, ShieldProtectionService.class);

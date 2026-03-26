@@ -7,17 +7,13 @@ public class KLDivergenceCalculator {
     private static final int SAMPLE_SIZE = 8192;
     private static final double UNIFORM_PROB = 1.0 / 256.0;
 
-    /**
-     * Multi-region KL-divergence sampling to prevent bypass attacks.
-     * Samples beginning, middle, and end of file. Returns MINIMUM divergence found
-     * (the closer to 0, the more uniform/encrypted the data).
-     */
+    // Multi-region KL-divergence sampling
     public double calculateDivergence(File file) {
         if (!file.exists() || !file.canRead() || file.length() == 0) return 1.0;
 
         long fileSize = file.length();
 
-        // For very small files, analyze entire file
+        // Full file analysis
         if (fileSize <= SAMPLE_SIZE) {
             return calculateFullFileDivergence(file);
         }
@@ -40,14 +36,14 @@ public class KLDivergenceCalculator {
         double minDivergence = 10.0; // Large initial value
 
         try (FileInputStream fis = new FileInputStream(file)) {
-            // Region 1: Beginning
+            // Beginning region
             byte[] buffer = new byte[SAMPLE_SIZE];
             int bytesRead = fis.read(buffer);
             if (bytesRead > 0) {
                 minDivergence = Math.min(minDivergence, calculateDivergence(buffer, bytesRead));
             }
 
-            // Region 2: Middle
+            // Middle region
             long middleOffset = (fileSize / 2) - (SAMPLE_SIZE / 2);
             if (middleOffset > SAMPLE_SIZE && fis.skip(middleOffset - SAMPLE_SIZE) > 0) {
                 bytesRead = fis.read(buffer);
@@ -58,7 +54,7 @@ public class KLDivergenceCalculator {
         } catch (Exception e) { }
 
         try (FileInputStream fis = new FileInputStream(file)) {
-            // Region 3: End
+            // End region
             long endOffset = Math.max(0, fileSize - SAMPLE_SIZE);
             if (endOffset > SAMPLE_SIZE && fis.skip(endOffset) > 0) {
                 byte[] buffer = new byte[SAMPLE_SIZE];
@@ -81,7 +77,7 @@ public class KLDivergenceCalculator {
             freq[data[i] & 0xFF]++;
         }
 
-        // Calculate KL-divergence: D_KL(P || U) = Σ P(x) log₂(P(x) / U(x))
+        // Calculate KL-divergence
         double divergence = 0.0;
         for (int count : freq) {
             if (count > 0) {
@@ -94,8 +90,7 @@ public class KLDivergenceCalculator {
     }
 
     public boolean isUniformDistribution(double divergence) {
-        // Low divergence (< 0.1) indicates uniform distribution (encrypted)
-        // High divergence indicates structured data (compressed/plain)
+        // KL divergence threshold
         return divergence < 0.1;
     }
 }

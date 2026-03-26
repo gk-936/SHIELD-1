@@ -21,29 +21,12 @@ import javax.crypto.SecretKey;
 import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
-/**
- * BackupEncryptionManager
- *
- * Provides AES-256-GCM encryption for:
- *   1. Backup files  – per-snapshot unique key, wrapped with master key in Android Keystore.
- *   2. Sensitive DB columns (backup_path) – dedicated DB column key in Android Keystore.
- *
- * Key Rotation Strategy (Feature 6):
- *   - One master key lives in Android Keystore (never exported).
- *   - Every backup file gets its own freshly-generated AES-256 key.
- *   - That per-file key is encrypted (wrapped) by the master key and stored as a BLOB in the DB.
- *   - If one per-file key is somehow compromised, all other files remain protected.
- *
- * Security Guarantee:
- *   - Keystore keys are hardware-backed on supported devices.
- *   - Raw keys never touch the DB or filesystem.
- *   - AES-GCM authenticated encryption detects any byte-level tampering of backup files.
- */
+// Backup encryption manager
 public class BackupEncryptionManager {
 
     private static final String TAG = "BackupEncryptionMgr";
 
-    // Android Keystore aliases
+    // Keystore aliases
     private static final String MASTER_KEY_ALIAS   = "shield_backup_master_v1";
     private static final String DB_COL_KEY_ALIAS   = "shield_db_column_v1";
 
@@ -68,14 +51,9 @@ public class BackupEncryptionManager {
         }
     }
 
-    // =========================================================================
-    //  Per-snapshot Key Management  (Feature 6 – Key Rotation)
-    // =========================================================================
+    // Per-snapshot keys
 
-    /**
-     * Generate a fresh AES-256 key for one snapshot, wrap it with the master
-     * Keystore key, and return the wrapped bytes for storage in the DB.
-     */
+    // Generate fresh key
     public byte[] generateAndWrapSnapshotKey() throws Exception {
         KeyGenerator kg = KeyGenerator.getInstance("AES");
         kg.init(AES_BITS, new SecureRandom());
@@ -83,22 +61,15 @@ public class BackupEncryptionManager {
         return wrapWithMasterKey(snapshotKey.getEncoded());
     }
 
-    /**
-     * Recover the per-snapshot SecretKey from the wrapped bytes stored in the DB.
-     */
+    // Recover snapshot key
     public SecretKey unwrapSnapshotKey(byte[] wrappedKey) throws Exception {
         byte[] rawKey = unwrapWithMasterKey(wrappedKey);
         return new SecretKeySpec(rawKey, "AES");
     }
 
-    // =========================================================================
-    //  File Encryption / Decryption  (Feature 2 – Encrypt Backup Files)
-    // =========================================================================
+    // File encryption logic
 
-    /**
-     * Encrypt {@code src} into {@code dst} using the provided SecretKey.
-     * Output layout: [ 12-byte IV ][ ciphertext + 16-byte GCM auth-tag ]
-     */
+    // Encrypt source file
     public void encryptFile(File src, File dst, SecretKey key) throws Exception {
         byte[] iv = randomIV();
         Cipher cipher = Cipher.getInstance(TRANSFORMATION);
@@ -119,11 +90,7 @@ public class BackupEncryptionManager {
         }
     }
 
-    /**
-     * Decrypt an encrypted backup file using the wrapped key bytes from the DB.
-     * Input layout: [ 12-byte IV ][ ciphertext + 16-byte GCM auth-tag ]
-     * GCM authentication automatically detects file tampering.
-     */
+    // Decrypt backup file
     public void decryptFile(File encryptedSrc, File dst, byte[] wrappedKey) throws Exception {
         SecretKey key = unwrapSnapshotKey(wrappedKey);
 
@@ -149,14 +116,9 @@ public class BackupEncryptionManager {
         }
     }
 
-    // =========================================================================
-    //  DB Column Encryption  (Feature 3 – Protect Snapshot Database)
-    // =========================================================================
+    // DB column encryption
 
-    /**
-     * Encrypt a sensitive DB column string (e.g. backup_path).
-     * Returns a Base64 string containing [ 12-byte IV | ciphertext ].
-     */
+    // Encrypt DB column
     public String encryptColumn(String plaintext) throws Exception {
         if (plaintext == null) return null;
         SecretKey key = getKeystoreKey(DB_COL_KEY_ALIAS);
@@ -171,9 +133,7 @@ public class BackupEncryptionManager {
         return Base64.encodeToString(buf.array(), Base64.NO_WRAP);
     }
 
-    /**
-     * Decrypt a DB column value previously encrypted with {@link #encryptColumn}.
-     */
+    // Decrypt DB column
     public String decryptColumn(String encoded) throws Exception {
         if (encoded == null) return null;
         byte[] data = Base64.decode(encoded, Base64.NO_WRAP);
@@ -189,9 +149,7 @@ public class BackupEncryptionManager {
         return new String(cipher.doFinal(ct), "UTF-8");
     }
 
-    // =========================================================================
-    //  Internal Helpers
-    // =========================================================================
+    // Internal Helpers
 
     private void ensureKeystoreKey(String alias) throws Exception {
         KeyStore ks = KeyStore.getInstance(KEYSTORE_PROVIDER);
@@ -217,7 +175,7 @@ public class BackupEncryptionManager {
         return (SecretKey) ks.getKey(alias, null);
     }
 
-    /** Wrap (encrypt) raw key bytes with the master Keystore key. */
+    // Wrap raw key
     private byte[] wrapWithMasterKey(byte[] rawKey) throws Exception {
         SecretKey master = getKeystoreKey(MASTER_KEY_ALIAS);
         byte[] iv = randomIV();
@@ -231,7 +189,7 @@ public class BackupEncryptionManager {
         return buf.array();
     }
 
-    /** Unwrap (decrypt) raw key bytes using the master Keystore key. */
+    // Unwrap raw key
     private byte[] unwrapWithMasterKey(byte[] data) throws Exception {
         ByteBuffer buf = ByteBuffer.wrap(data);
         byte[] iv = new byte[IV_SIZE];

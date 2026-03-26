@@ -1,10 +1,22 @@
 [
     {
-        "merged": "com.dearmoon.shield.ransim.app-debug-31:/layout_overlay_locker.xml.flat",
-        "source": "com.dearmoon.shield.ransim.app-main-33:/layout/overlay_locker.xml"
+        "merged": "C:\\Users\\gokul D\\.gradle\\daemon\\9.0.0\\com.dearmoon.shield.ransim.app-debug-31:\\layout_overlay_locker.xml.flat",
+        "source": "C:\\Users\\gokul D\\.gradle\\daemon\\9.0.0\\com.dearmoon.shield.ransim.app-main-33:\\layout\\overlay_locker.xml"
+    },
+    {
+        "merged": "C:\\Users\\gokul D\\.gradle\\daemon\\9.0.0\\com.dearmoon.shield.ransim.app-debug-31:\\layout_activity_main.xml.flat",
+        "source": "C:\\Users\\gokul D\\.gradle\\daemon\\9.0.0\\com.dearmoon.shield.ransim.app-main-33:\\layout\\activity_main.xml"
     },
     {
         "merged": "com.dearmoon.shield.ransim.app-debug-31:/layout_activity_main.xml.flat",
         "source": "com.dearmoon.shield.ransim.app-main-33:/layout/activity_main.xml"
+    },
+    {
+        "merged": "com.dearmoon.shield.ransim.app-debug-31:/layout_item_scenario.xml.flat",
+        "source": "com.dearmoon.shield.ransim.app-main-33:/layout/item_scenario.xml"
+    },
+    {
+        "merged": "com.dearmoon.shield.ransim.app-debug-31:/drawable_bottom_fade_bg.xml.flat",
+        "source": "com.dearmoon.shield.ransim.app-main-33:/drawable/bottom_fade_bg.xml"
     }
 ]

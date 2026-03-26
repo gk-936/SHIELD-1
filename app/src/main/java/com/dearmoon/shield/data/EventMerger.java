@@ -1,14 +1,12 @@
 package com.dearmoon.shield.data;
 
+import com.dearmoon.shield.utils.PathNormalizer;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.List;
 import java.util.ArrayList;
 
-/**
- * EventMerger: Aggregates and deduplicates events from Mode A (eBPF/daemon) and Mode B (FileObserver).
- * Merges file path (prefer Mode B) and process info (prefer Mode A) for /sdcard/ events.
- */
+// Event aggregation layer
 public class EventMerger {
     private static final long DEDUP_WINDOW_MS = 1000; // 1 second window
     private final ConcurrentLinkedQueue<MergedEvent> recentEvents = new ConcurrentLinkedQueue<>();
@@ -27,10 +25,10 @@ public class EventMerger {
 
     public synchronized MergedEvent mergeEvent(TelemetryEvent event, String source) {
         long now = System.currentTimeMillis();
-        // Try to find a matching event in the deduplication window
+        // Find matching event
         for (MergedEvent e : recentEvents) {
             if (isDuplicate(e, event, source, now)) {
-                // Merge details
+                // Merge event details
                 if (source.equals("MODE_A")) {
                     e.uid = event.getUid();
                     if (event instanceof FileSystemEvent) {
@@ -52,7 +50,7 @@ public class EventMerger {
                 return e;
             }
         }
-        // No duplicate found, create new
+        // Create new event
         MergedEvent merged = new MergedEvent();
         if (event instanceof FileSystemEvent) {
             merged.filePath = ((FileSystemEvent) event).getFilePath();
@@ -70,7 +68,7 @@ public class EventMerger {
         if (source.equals("MODE_A")) merged.rawA = event;
         else merged.rawB = event;
         recentEvents.add(merged);
-        // Clean up old events
+        // Clean old events
         cleanOldEvents(now);
         return merged;
     }
@@ -79,10 +77,17 @@ public class EventMerger {
         String eventOperation = (event instanceof FileSystemEvent) ? ((FileSystemEvent) event).getOperation() : null;
         if (e.operation != null && eventOperation != null && !e.operation.equals(eventOperation)) return false;
         if (Math.abs(e.timestamp - event.getTimestamp()) > DEDUP_WINDOW_MS) return false;
-        // If both have filePath, must match
+        // Normalize and match
         String eventFilePath = (event instanceof FileSystemEvent) ? ((FileSystemEvent) event).getFilePath() : null;
-        if (e.filePath != null && eventFilePath != null && !e.filePath.equals(eventFilePath)) return false;
-        // If both have pid, must match
+        if (e.filePath != null && eventFilePath != null) {
+            String normE = PathNormalizer.normalize(e.filePath);
+            String normEvent = PathNormalizer.normalize(eventFilePath);
+            if (!normE.equals(normEvent)) return false;
+        } else if (e.filePath != null || eventFilePath != null) {
+            // Path mismatch check
+            return false;
+        }
+        // PID mismatch check
         Integer eventPid = (event instanceof FileSystemEvent) ? ((FileSystemEvent) event).getPid() : null;
         if (e.pid != null && eventPid != null && !e.pid.equals(eventPid)) return false;
         return true;

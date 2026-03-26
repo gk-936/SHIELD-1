@@ -13,7 +13,7 @@ public class ServiceRestartReceiver extends BroadcastReceiver {
                 .getBoolean("intentionally_stopped", false);
 
         if (intentionallyStopped) {
-            return; // Do not restart if the user intentionally stopped the service via biometric
+            return; // User intentionally stopped service
         }
 
         Intent serviceIntent = new Intent(context, ShieldProtectionService.class);

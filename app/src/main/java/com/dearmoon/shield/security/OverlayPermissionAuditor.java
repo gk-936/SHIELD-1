@@ -14,16 +14,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-/**
- * Audits installed apps for overlay abuse risk.
- *
- * Locker ransomware requires the "draw over other apps" app-op (SYSTEM_ALERT_WINDOW / overlay).
- * Android exposes the actual grant state via AppOpsManager; however, access to cross-app AppOps
- * varies by Android build/permissions. This auditor is best-effort:
- *
- * - Always flags apps that *request* SYSTEM_ALERT_WINDOW and are not allowlisted.
- * - If AppOps can be queried, upgrades severity when the overlay op is actually allowed.
- */
+// Audit overlay abuse
 public final class OverlayPermissionAuditor {
     private static final String TAG = "OverlayPermissionAuditor";
 
@@ -67,7 +58,7 @@ public final class OverlayPermissionAuditor {
             if (!req) continue;
             requested++;
 
-            // Filter out obvious system packages
+            // Filter system packages
             String pkg = pi.packageName;
             if (pkg.startsWith("com.android.") || pkg.startsWith("android.")
                     || pkg.startsWith("com.google.android.")) {
@@ -92,7 +83,7 @@ public final class OverlayPermissionAuditor {
             flagged++;
         }
 
-        // Summary row for UI/logs
+        // Log audit summary
         try {
             db.insertConfigAuditEvent(
                     "OVERLAY_AUDIT",
@@ -136,9 +127,9 @@ public final class OverlayPermissionAuditor {
     }
 
     private static Set<String> defaultAllowlist() {
-        // Minimal allowlist: keep small to avoid blind spots.
+        // Minimal allowlist
         Set<String> s = new HashSet<>();
-        // Common legitimate overlay holders (examples; can be managed via UI later)
+        // Legitimate overlay holders
         s.add("com.google.android.apps.nexuslauncher"); // some launchers
         s.add("com.microsoft.launcher");
         s.add("com.facebook.orca"); // chat heads

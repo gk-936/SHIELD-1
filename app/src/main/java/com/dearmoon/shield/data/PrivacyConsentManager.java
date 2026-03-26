@@ -9,36 +9,12 @@ import org.json.JSONObject;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-/**
- * M6 — Inadequate Privacy Controls
- *
- * <p>Manages user consent and data minimisation for all telemetry SHIELD collects. Three
- * responsibilities:
- *
- * <ol>
- *   <li><strong>Consent gating:</strong> Tracks whether the user has explicitly accepted the
- *       data-collection disclosure. Call {@link #hasConsent(Context)} before starting collectors;
- *       call {@link #recordConsent(Context, boolean)} from the consent dialog callback. Consent
- *       decisions are persisted in a private {@link SharedPreferences} file
- *       {@code shield_privacy} with a version stamp so future policy changes can re-prompt the
- *       user.
- *   <li><strong>Telemetry summary:</strong> {@link #getTelemetrySummary(Context)} returns a
- *       human-readable map of how many events of each type are stored, used for the privacy
- *       disclosure UI in {@code SettingsActivity}.
- *   <li><strong>Purge:</strong> {@link #purgeAllTelemetry(Context)} deletes every row from every
- *       telemetry table in {@link EventDatabase} and logs the purge action to the
- *       {@code privacy_consent_events} audit table. The audit table itself is intentionally
- *       excluded from purges so there is always a record that a purge occurred.
- * </ol>
- *
- * <p>Consent records and purge events are also written to {@link EventDatabase} so they appear in
- * the audit trail alongside other security events.
- */
+// Privacy management layer
 public final class PrivacyConsentManager {
 
     private static final String TAG = "PrivacyConsentManager";
 
-    /** Current version of the privacy policy. Bump this to re-prompt users after policy changes. */
+    // Privacy policy version
     public static final int POLICY_VERSION = 1;
 
     private static final String PREFS_FILE       = "shield_privacy";
@@ -48,19 +24,9 @@ public final class PrivacyConsentManager {
 
     private PrivacyConsentManager() { /* non-instantiable */ }
 
-    // -------------------------------------------------------------------------
-    // Consent gating
-    // -------------------------------------------------------------------------
+    // Check user consent
 
-    /**
-     * Returns {@code true} if the user has given consent for the current policy version.
-     *
-     * <p>Returns {@code false} if:
-     * <ul>
-     *   <li>Consent has never been recorded, or
-     *   <li>Consent was recorded for an older policy version than {@link #POLICY_VERSION}.
-     * </ul>
-     */
+    // Check user consent
     public static boolean hasConsent(Context ctx) {
         SharedPreferences prefs = prefs(ctx);
         boolean consented    = prefs.getBoolean(KEY_CONSENTED, false);
@@ -68,12 +34,7 @@ public final class PrivacyConsentManager {
         return consented && (policyVer >= POLICY_VERSION);
     }
 
-    /**
-     * Records the user's consent decision.
-     *
-     * @param ctx       any valid {@link Context}.
-     * @param accepted  {@code true} if the user accepted; {@code false} if they declined.
-     */
+    // Record consent choice
     public static void recordConsent(Context ctx, boolean accepted) {
         long now = System.currentTimeMillis();
         prefs(ctx).edit()
@@ -84,7 +45,7 @@ public final class PrivacyConsentManager {
 
         Log.i(TAG, "Consent recorded: accepted=" + accepted + " policyVersion=" + POLICY_VERSION);
 
-        // Audit trail
+        // Audit consent decision
         try {
             EventDatabase db = EventDatabase.getInstance(ctx);
             JSONObject detail = new JSONObject();
@@ -101,25 +62,14 @@ public final class PrivacyConsentManager {
         }
     }
 
-    /**
-     * Returns the Unix timestamp (ms) at which the user last gave or denied consent, or
-     * {@code -1} if no consent decision has been recorded yet.
-     */
+    // Get consent timestamp
     public static long getConsentTimestamp(Context ctx) {
         return prefs(ctx).getLong(KEY_CONSENT_TIME, -1L);
     }
 
-    // -------------------------------------------------------------------------
-    // Telemetry summary
-    // -------------------------------------------------------------------------
+    // Get telemetry summary
 
-    /**
-     * Returns a {@link LinkedHashMap} of {@code tableLabel -> eventCount} for every telemetry
-     * table SHIELD stores data in, ordered from most privacy-sensitive to least.
-     *
-     * <p>Intended use: display this map in a "What data SHIELD stores" screen inside
-     * {@code SettingsActivity}.
-     */
+    // Get event counts
     public static Map<String, Long> getTelemetrySummary(Context ctx) {
         Map<String, Long> summary = new LinkedHashMap<>();
         try {
@@ -138,17 +88,9 @@ public final class PrivacyConsentManager {
         return summary;
     }
 
-    // -------------------------------------------------------------------------
-    // Purge
-    // -------------------------------------------------------------------------
+    // Purge all telemetry
 
-    /**
-     * Deletes all rows from every telemetry table.  The {@code privacy_consent_events} and
-     * {@code integrity_events} audit tables are NOT purged so there is always a forensic record
-     * that a purge took place.
-     *
-     * @return the total number of rows deleted across all tables.
-     */
+    // Purge all telemetry
     public static int purgeAllTelemetry(Context ctx) {
         int total = 0;
         try {
@@ -163,7 +105,7 @@ public final class PrivacyConsentManager {
 
             Log.i(TAG, "Telemetry purge completed: " + total + " rows deleted");
 
-            // Audit the purge itself
+            // Audit telemetry purge
             try {
                 JSONObject detail = new JSONObject();
                 detail.put("rows_deleted", total);
@@ -183,9 +125,7 @@ public final class PrivacyConsentManager {
         return total;
     }
 
-    // -------------------------------------------------------------------------
-    // Helpers
-    // -------------------------------------------------------------------------
+    // Privacy helper methods
 
     private static SharedPreferences prefs(Context ctx) {
         return ctx.getApplicationContext()

@@ -15,19 +15,18 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * SECURITY FIX: Recursive file system monitoring to prevent ransomware bypass.
- * Monitors root directory AND all subdirectories up to MAX_DEPTH.
- * Prevents ransomware from encrypting files in nested directories undetected.
- */
+// Recursive monitoring fix
+// Monitor all subdirectories
+// Prevent undetected encryption
 public class RecursiveFileSystemCollector {
     private static final String TAG = "RecursiveFileSystemCollector";
-    private static final int MAX_DEPTH = 8; // Deep monitoring for better coverage
-    private static final int MAX_OBSERVERS = 1000; // Increased to support deeper recursion
+    private static final int MAX_DEPTH = 8; // Deep directory monitoring
+    private static final int MAX_OBSERVERS = 1000; // Higher observer count
     
     private final TelemetryStorage storage;
     private final String rootPath;
-    private final ShieldStats shieldStats;    // shared across all child collectors
+    private final Context context;           // Path exclusion context
+    private final ShieldStats shieldStats;   // Shared stats object
     private UnifiedDetectionEngine detectionEngine;
     private SnapshotManager snapshotManager;
     private com.dearmoon.shield.data.EventMerger sharedEventMerger;
@@ -36,12 +35,14 @@ public class RecursiveFileSystemCollector {
     public RecursiveFileSystemCollector(String rootPath, TelemetryStorage storage) {
         this.rootPath    = rootPath;
         this.storage     = storage;
-        this.shieldStats = null;   // legacy constructor — stats not tracked
+        this.context     = null;
+        this.shieldStats = null;   // Legacy constructor
     }
 
     public RecursiveFileSystemCollector(String rootPath, TelemetryStorage storage, Context context) {
         this.rootPath    = rootPath;
         this.storage     = storage;
+        this.context     = context;
         this.shieldStats = new ShieldStats(context);
     }
     
@@ -53,16 +54,12 @@ public class RecursiveFileSystemCollector {
         this.snapshotManager = manager;
     }
 
-    /** Provide the application-scoped shared EventMerger so events from all collectors
-     *  in this tree feed into the same dedup window as Mode A events. */
+    // Shared event merger
     public void setEventMerger(com.dearmoon.shield.data.EventMerger merger) {
         this.sharedEventMerger = merger;
     }
     
-    /**
-     * Starts recursive monitoring of root directory and subdirectories.
-     * Limits depth and total observers to prevent resource exhaustion.
-     */
+    // Start recursive monitoring
     public void startWatching() {
         File root = new File(rootPath);
         if (!root.exists() || !root.isDirectory()) {
@@ -75,9 +72,7 @@ public class RecursiveFileSystemCollector {
         Log.i(TAG, "Recursive monitoring started: " + collectors.size() + " directories monitored");
     }
     
-    /**
-     * Recursively monitors directories up to MAX_DEPTH.
-     */
+    // Monitor directories recursively
     private void monitorDirectoryRecursive(File directory, int depth) {
         // Safety checks
         if (depth > MAX_DEPTH) {
@@ -96,8 +91,9 @@ public class RecursiveFileSystemCollector {
         
         // Create collector for this directory
         try {
+            // Pass exclusion context
             FileSystemCollector collector = new FileSystemCollector(
-                directory.getAbsolutePath(), storage);
+                directory.getAbsolutePath(), storage, context);
             
             if (detectionEngine != null) {
                 collector.setDetectionEngine(detectionEngine);
@@ -127,20 +123,30 @@ public class RecursiveFileSystemCollector {
         File[] subdirs = directory.listFiles(File::isDirectory);
         if (subdirs != null) {
             for (File subdir : subdirs) {
-                // Skip hidden directories and system directories
+                // Skip private directories
                 String name = subdir.getName();
+                String absPath = subdir.getAbsolutePath();
                 if (name.startsWith(".") || name.equals("Android") || name.equals("cache")) {
                     continue;
                 }
-                
+                // Exclude SHIELD's own private storage (Internal + External)
+                String internalPrivate = context.getFilesDir().getParentFile().getAbsolutePath();
+                File externalContextDir = context.getExternalFilesDir(null);
+                String externalPrivate = (externalContextDir != null) ? 
+                    externalContextDir.getParentFile().getAbsolutePath() : "";
+
+                if (absPath.equals(internalPrivate) || absPath.startsWith(internalPrivate + "/") ||
+                    (!externalPrivate.isEmpty() && (absPath.equals(externalPrivate) || absPath.startsWith(externalPrivate + "/")))) {
+                    Log.d(TAG, "Skipping SHIELD private storage: " + absPath);
+                    continue;
+                }
+
                 monitorDirectoryRecursive(subdir, depth + 1);
             }
         }
     }
     
-    /**
-     * Stops all file system collectors.
-     */
+    // Stop all collectors
     public void stopWatching() {
         Log.i(TAG, "Stopping recursive monitoring: " + collectors.size() + " collectors");
         for (FileSystemCollector collector : collectors) {
@@ -153,9 +159,7 @@ public class RecursiveFileSystemCollector {
         collectors.clear();
     }
     
-    /**
-     * Returns number of directories being monitored.
-     */
+    // Directory count
     public int getMonitoredDirectoryCount() {
         return collectors.size();
     }

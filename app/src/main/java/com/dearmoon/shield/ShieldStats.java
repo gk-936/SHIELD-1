@@ -3,13 +3,7 @@ package com.dearmoon.shield;
 import android.content.Context;
 import android.content.SharedPreferences;
 
-/**
- * ShieldStats — Task 3
- *
- * Central persistent counter store for the dashboard stats card.
- * Pre-seeded with real numbers from AndMal2020 / CIC-MalDroid test runs.
- * Persists across sessions so the dashboard never shows zeros.
- */
+// Dashboard statistics storage
 public class ShieldStats {
 
     private static final String PREFS_NAME  = "ShieldStats";
@@ -20,9 +14,8 @@ public class ShieldStats {
     private static final String KEY_THREATS_FOUND   = "threats_found";
     private static final String KEY_SEEDED          = "seeded_v1";
 
-    // All counters start at 0 — they reflect real device scan activity only.
-    // The 14,098 figure was from the CICMalDroid-2020 validation run and is
-    // not representative of any individual device's scan history.
+    // Counters starts at 0
+    // Real device scan activity
     private static final int SEED_FILES_SCANNED   = 0;
     private static final int SEED_ATTACKS_BLOCKED = 0;
     private static final int SEED_THREATS_FOUND   = 0;
@@ -45,7 +38,7 @@ public class ShieldStats {
         }
     }
 
-    // ── Getters ──────────────────────────────────────────────────────────────
+    // Getters
 
     public int getFilesScanned() {
         return prefs.getInt(KEY_FILES_SCANNED, 0);
@@ -59,7 +52,7 @@ public class ShieldStats {
         return prefs.getInt(KEY_THREATS_FOUND, 0);
     }
 
-    // ── Incrementers ─────────────────────────────────────────────────────────
+    // Incrementers
 
     public void incrementFilesScanned(int count) {
         int current = getFilesScanned();
@@ -76,7 +69,7 @@ public class ShieldStats {
         prefs.edit().putInt(KEY_THREATS_FOUND, current + 1).apply();
     }
 
-    // ── Called when demo/real detection fires ────────────────────────────────
+    // Record detection
 
     public void recordAttackDetected() {
         incrementAttacksBlocked();

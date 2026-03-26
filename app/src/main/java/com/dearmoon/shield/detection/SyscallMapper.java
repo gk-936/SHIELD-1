@@ -1,19 +1,10 @@
 package com.dearmoon.shield.detection;
 
-/**
- * Pseudo-Kernel Detection Layer: Syscall Mapper
- * 
- * REUSE STRATEGY:
- * - Maps existing FileObserver events to syscall-like names
- * - No new event types created
- * - Pure mapping layer (no data collection)
- */
+// Syscall mapper layer
 public class SyscallMapper {
     
-    /**
-     * Map FileObserver operation to syscall name
-     * REUSES: Existing FileSystemEvent.operation field
-     */
+    // Map to syscall
+    // Reuses existing operation
     public static String toSyscall(String fileObserverOp) {
         switch (fileObserverOp) {
             case "CREATE": return "sys_creat";
@@ -26,10 +17,8 @@ public class SyscallMapper {
         }
     }
     
-    /**
-     * Map network operation to syscall name
-     * REUSES: Existing NetworkEvent.protocol field
-     */
+    // Map network syscall
+    // Reuses existing protocol
     public static String networkToSyscall(String protocol) {
         switch (protocol) {
             case "TCP": return "sys_connect";
@@ -38,10 +27,8 @@ public class SyscallMapper {
         }
     }
     
-    /**
-     * Map honeyfile access to syscall name
-     * REUSES: Existing HoneyfileEvent.accessType field
-     */
+    // Map honeyfile syscall
+    // Reuses existing accessType
     public static String honeyfileToSyscall(String accessType) {
         switch (accessType) {
             case "OPEN": return "sys_open";

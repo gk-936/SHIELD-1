@@ -1,29 +1,23 @@
 package com.dearmoon.shield.data;
 
+import com.dearmoon.shield.utils.PathNormalizer;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 public class FileSystemEvent extends TelemetryEvent {
-    /**
-     * Human-readable identifier for the file.
-     *
-     * - For direct filesystem observers (Mode B) / kernel telemetry (Mode A): usually an absolute path.
-     * - For MediaStore (scoped storage): may be "RELATIVE_PATH + DISPLAY_NAME" or even a content Uri.
-     *
-     * Callers should not assume this is always a real filesystem path.
-     */
+    // Human-readable file identifier
     private String filePath;
     private String fileExtension;
     private String operation;
     private long fileSizeBefore;
     private long fileSizeAfter;
 
-    // Optional MediaStore/scoped-storage fields
+    // Optional Scoped Storage fields
     private String fileUri;       // e.g. content://media/external/file/123
     private String displayName;   // MediaStore DISPLAY_NAME
     private String relativePath;  // MediaStore RELATIVE_PATH (e.g. "DCIM/Camera/")
 
-    // Optional "real" filesystem path when actually known/resolved (legacy DATA, Mode A, FileObserver)
+    // Resolved filesystem path
     private String resolvedPath;
 
     public FileSystemEvent(String filePath, String operation, long sizeBefore, long sizeAfter) {
@@ -32,7 +26,7 @@ public class FileSystemEvent extends TelemetryEvent {
         this.operation = operation;
         this.fileSizeBefore = sizeBefore;
         this.fileSizeAfter = sizeAfter;
-        this.resolvedPath = filePath;
+        this.resolvedPath = PathNormalizer.normalize(filePath);
         this.fileExtension = extractExtension(filePath);
     }
 
@@ -65,7 +59,7 @@ public class FileSystemEvent extends TelemetryEvent {
         return filePath;
     }
 
-    /** Best-effort display string for UI (name preferred, else filePath/uri). */
+    // Best-effort display string
     public String getDisplayPath() {
         if (relativePath != null && !relativePath.isEmpty()
                 && displayName != null && !displayName.isEmpty()) {
@@ -77,11 +71,11 @@ public class FileSystemEvent extends TelemetryEvent {
         return "Unknown";
     }
 
-    /** A real filesystem path when available; may be null/empty under scoped storage. */
+    // Real filesystem path
     public String getResolvedPath() { return resolvedPath; }
     public void setResolvedPath(String resolvedPath) {
-        this.resolvedPath = resolvedPath;
-        // Keep extension in sync with best available name/path
+        this.resolvedPath = PathNormalizer.normalize(resolvedPath);
+        // Sync file extension
         String ext = extractExtension(resolvedPath);
         if ((ext == null || ext.isEmpty()) && displayName != null) ext = extractExtension(displayName);
         if (ext != null && !ext.isEmpty()) this.fileExtension = ext;
@@ -110,7 +104,7 @@ public class FileSystemEvent extends TelemetryEvent {
         return fileSizeAfter;
     }
 
-    // For compatibility with EventMerger, return -1 (not tracked in this class)
+    // EventMerger compatibility PID
     public int getPid() {
         return -1;
     }

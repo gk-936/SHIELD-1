@@ -11,17 +11,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * SnapshotDatabase  – v2 schema
- *
- * Schema additions (v1 → v2):
- *   chain_hash    TEXT   – tamper-evident hash chain link (Feature 1)
- *   encrypted_key BLOB   – AES-256 per-snapshot key wrapped with Keystore master (Feature 6)
- *
- * The backup_path column stores an AES-GCM encrypted + Base64-encoded string
- * (Feature 3 – DB column protection).  Encryption / decryption is performed by
- * BackupEncryptionManager; this class treats the value as an opaque string.
- */
+// SnapshotDatabase v2 schema
 public class SnapshotDatabase extends SQLiteOpenHelper {
     private static final String TAG = "SnapshotDatabase";
 
@@ -147,10 +137,7 @@ public class SnapshotDatabase extends SQLiteOpenHelper {
     //  Integrity / Chain queries  (Features 1 & 4)
     // =========================================================================
 
-    /**
-     * Returns ALL entries that have a backup recorded, ordered by row id ASC.
-     * Used by SnapshotIntegrityChecker to validate the full hash chain in order.
-     */
+    // Traverse backed-up files
     public synchronized List<FileMetadata> getAllBackedUpFiles() {
         SQLiteDatabase db = getReadableDatabase();
         List<FileMetadata> files = new ArrayList<>();
@@ -161,11 +148,7 @@ public class SnapshotDatabase extends SQLiteOpenHelper {
         return files;
     }
 
-    /**
-     * Returns the chain_hash of the most recently inserted backed-up entry,
-     * or {@code "GENESIS"} when no entries exist yet.
-     * Used by SnapshotManager when appending a new chain link.
-     */
+    // Get last chain_hash
     public synchronized String getLastChainHash() {
         SQLiteDatabase db = getReadableDatabase();
         Cursor c = db.query(TABLE_FILES,
@@ -184,10 +167,7 @@ public class SnapshotDatabase extends SQLiteOpenHelper {
     //  Retention policy helpers  (Feature 7)
     // =========================================================================
 
-    /**
-     * Returns the {@code limit} oldest backed-up entries (by row id ASC).
-     * Used by SnapshotManager to prune when over file-count or storage limits.
-     */
+    // Get oldest backups
     public synchronized List<FileMetadata> getOldestBackedUpFiles(int limit) {
         SQLiteDatabase db = getReadableDatabase();
         List<FileMetadata> files = new ArrayList<>();
@@ -198,7 +178,7 @@ public class SnapshotDatabase extends SQLiteOpenHelper {
         return files;
     }
 
-    /** Total number of backed-up entries. */
+    // Total backup count
     public synchronized int getBackedUpFileCount() {
         SQLiteDatabase db = getReadableDatabase();
         Cursor c = db.rawQuery(
@@ -257,9 +237,7 @@ public class SnapshotDatabase extends SQLiteOpenHelper {
         return id;
     }
 
-    // =========================================================================
-    //  Stats
-    // =========================================================================
+    // Database statistics
 
     public synchronized int getTotalFileCount() {
         SQLiteDatabase db = getReadableDatabase();
@@ -285,9 +263,7 @@ public class SnapshotDatabase extends SQLiteOpenHelper {
         db.delete(TABLE_FILES, "file_path = ?", new String[]{filePath});
     }
 
-    // =========================================================================
-    //  Cursor helper
-    // =========================================================================
+    // Cursor conversion helper
 
     private FileMetadata cursorToMetadata(Cursor c) {
         FileMetadata m = new FileMetadata(

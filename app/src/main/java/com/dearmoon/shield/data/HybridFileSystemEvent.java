@@ -3,9 +3,7 @@ package com.dearmoon.shield.data;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-/**
- * HybridFileSystemEvent: Represents a merged/deduplicated event from Mode A and/or Mode B.
- */
+// Merged hybrid event
 public class HybridFileSystemEvent extends FileSystemEvent {
     private final String source; // MODE_A, MODE_B, MERGED
     private final boolean merged;

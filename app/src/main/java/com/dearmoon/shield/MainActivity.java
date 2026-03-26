@@ -35,8 +35,8 @@ public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
     private static final int PERMISSION_REQUEST_CODE = 100;
     private static final int VPN_REQUEST_CODE = 200;
-    private static final int MODE_CONFIRM_REQUEST   = 300;   // ModeConfirmActivity result (Mode B)
-    private static final int MODE_A_CONFIRM_REQUEST = 301;   // ModeConfirmActivity result (Mode A)
+    private static final int MODE_CONFIRM_REQUEST   = 300;   // Mode B result
+    private static final int MODE_A_CONFIRM_REQUEST = 301;   // Mode A result
 
     private GlitchTextView tvProtectionStatus;
     private android.widget.TextView tvInfectionTimer;
@@ -60,12 +60,12 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        // Immersive Edge-to-Edge display
+        // Edge-to-edge display
         androidx.core.view.WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
         androidx.core.view.WindowInsetsControllerCompat windowInsetsController =
                 androidx.core.view.WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView());
         if (windowInsetsController != null) {
-            // Because the theme is Abyssal Navy, force light icons for visibility
+            // Force light icons
             windowInsetsController.setAppearanceLightStatusBars(false); 
             windowInsetsController.setAppearanceLightNavigationBars(false);
         }
@@ -77,7 +77,7 @@ public class MainActivity extends AppCompatActivity {
 
         setContentView(R.layout.activity_main);
         
-        // Prevent content overlap via insets while letting background stretch behind bars
+        // Apply window insets
         android.view.View root = findViewById(R.id.mainRoot);
         if (root != null) {
             androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(root, (v, windowInsets) -> {
@@ -112,13 +112,11 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    // =========================================================================
-    //  Permission Gate
-    // =========================================================================
+    // Permission gate layer
 
     private void showPermissionBlockingDialog() {
         if (permissionDialog != null && permissionDialog.isShowing()) {
-            // Refresh the message so checkmarks update on each return from Settings
+            // Refresh permission message
             permissionDialog.setMessage(buildPermissionMessage());
             return;
         }
@@ -129,7 +127,7 @@ public class MainActivity extends AppCompatActivity {
                 .setPositiveButton("Grant Permissions", (d, w) -> requestNextMissingPermission())
                 .create();
         permissionDialog.setCanceledOnTouchOutside(false);
-        // Back button closes the app — SHIELD cannot run without permissions
+        // Back button behavior
         permissionDialog.setOnKeyListener((d, keyCode, event) -> {
             if (keyCode == android.view.KeyEvent.KEYCODE_BACK
                     && event.getAction() == android.view.KeyEvent.ACTION_UP) {
@@ -147,7 +145,7 @@ public class MainActivity extends AppCompatActivity {
         sb.append("SHIELD needs the following permissions to protect your device.\n");
         sb.append("All must be granted before the app will start.\n\n");
 
-        // 1. File access
+        // File access check
         boolean hasFiles;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             hasFiles = Environment.isExternalStorageManager();
@@ -161,7 +159,7 @@ public class MainActivity extends AppCompatActivity {
         sb.append("  All Files Access\n");
         sb.append("    Needed to scan, back up, and restore your files.\n\n");
 
-        // 2. Notifications (Android 13+)
+        // Notifications check
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             boolean hasNotif = ContextCompat.checkSelfPermission(this,
                     Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED;
@@ -170,16 +168,16 @@ public class MainActivity extends AppCompatActivity {
             sb.append("    Needed for ransomware alerts and service status.\n\n");
         }
 
-        // 3. Display over other apps (SYSTEM_ALERT_WINDOW)
+        // Overlay permission check
         boolean hasOverlay = Settings.canDrawOverlays(this);
         sb.append(hasOverlay ? "\u2705" : "\u274C");
         sb.append("  Display over other apps\n");
         sb.append("    Needed to show emergency guidance over lockscreens.\n\n");
 
-        // 4. Accessibility service
+        // Accessibility service check
         boolean hasA11y = isAccessibilityServiceEnabled();
         sb.append(hasA11y ? "\u2705" : "\u274C");
-        sb.append("  Accessibility Service (LockerGuard)\n");
+        sb.append("  Accessibility Service\n");
         sb.append("    Needed to detect and block locker-style ransomware.\n\n");
 
         sb.append("Tap \"Grant Permissions\" to address each item one at a time.");
@@ -196,9 +194,9 @@ public class MainActivity extends AppCompatActivity {
                 && enabled.toLowerCase(Locale.ROOT).contains(component.toLowerCase(Locale.ROOT));
     }
 
-    /** Requests the first permission that is still missing, in priority order. */
+    // Request missing permissions
     private void requestNextMissingPermission() {
-        // 1. All-files access
+        // File access check
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             if (!Environment.isExternalStorageManager()) {
                 startActivity(new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
@@ -219,7 +217,7 @@ public class MainActivity extends AppCompatActivity {
             }
         }
 
-        // 2. Notifications (Android 13+)
+        // Notifications check
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
                     != PackageManager.PERMISSION_GRANTED) {
@@ -230,7 +228,7 @@ public class MainActivity extends AppCompatActivity {
             }
         }
 
-        // 3. Display over other apps
+        // Overlay permission check
         if (!Settings.canDrawOverlays(this)) {
             Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
                     Uri.parse("package:" + getPackageName()));
@@ -238,7 +236,7 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
-        // 4. Accessibility service (cannot request programmatically — send user to Settings)
+        // Accessibility request
         if (!isAccessibilityServiceEnabled()) {
             Toast.makeText(this,
                     "Enable \"SHIELD LockerGuard\" in Accessibility Settings, then come back.",
@@ -260,7 +258,7 @@ public class MainActivity extends AppCompatActivity {
                     viewsInitialized = true;
                 }
             } else {
-                // Some permissions still missing — show the gate again
+                // Permissions missing
                 showPermissionBlockingDialog();
             }
         }
@@ -279,27 +277,27 @@ public class MainActivity extends AppCompatActivity {
         shieldStats = new ShieldStats(this);
         startGaugeBackgroundUpdater();
 
-        // Unified button: Intelligently start the appropriate protection mode(s) or stop all
+        // Unified protection button
         btnUnifiedProtection.setOnClickListener(v -> {
             boolean protectionActive = getSharedPreferences("ShieldPrefs", Context.MODE_PRIVATE)
                     .getBoolean("shield_active", false);
             boolean modeARunning = isServiceRunning(com.dearmoon.shield.modea.ModeAService.class);
 
             if (protectionActive || modeARunning) {
-                // Protection is active (or at least Mode A is) — turn OFF
-                triggerButtonRipple(btnUnifiedProtection, modeARunning);  // true if Mode A running
+                // Disable active protection
+                triggerButtonRipple(btnUnifiedProtection, modeARunning);
                 authenticateBiometric(() -> stopProtection());
             } else {
-                // Protection is off — turn ON based on root availability
+                // Enable protection
                 triggerButtonRipple(btnUnifiedProtection, canStartModeA());
                 if (canStartModeA()) {
-                    // Rooted device: show Mode A confirmation animation, which starts both modes
+                    // Rooted activation
                     android.content.Intent rootIntent = new android.content.Intent(this, ModeConfirmActivity.class);
                     rootIntent.putExtra("mode", "ROOT");
                     startActivityForResult(rootIntent, MODE_A_CONFIRM_REQUEST);
                     overridePendingTransition(R.anim.slide_up_from_bottom, 0);
                 } else {
-                    // Non-rooted device: go straight to Mode B permission check
+                    // Standard activation
                     checkPermissionsAndStartAnimation();
                 }
             }
@@ -307,7 +305,7 @@ public class MainActivity extends AppCompatActivity {
 
         updateStatusDisplay();
 
-        // ── Fluid bottom menu ──────────────────────────────────────────────────
+        // Fluid bottom menu
         FluidMenuView fluidMenu = findViewById(R.id.fluidMenu);
         if (fluidMenu != null) {
             fluidMenu.setup(this, Arrays.asList(
@@ -349,7 +347,7 @@ public class MainActivity extends AppCompatActivity {
                     })
             ));
 
-            // Close menu on outside touch
+            // Outside touch closure
             findViewById(android.R.id.content).setOnTouchListener((v, event) -> {
                 if (event.getAction() == MotionEvent.ACTION_DOWN && fluidMenu.isExpanded()) {
                     fluidMenu.collapseMenu();
@@ -384,8 +382,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
-        // H-04: Handle VPN permission request forwarded from ShieldProtectionService
-        // (service cannot show the system dialog directly — it routes through here)
+        // Handle VPN request
         if ("com.dearmoon.shield.REQUEST_VPN_PERMISSION".equals(intent.getAction())) {
             Intent vpnIntent = android.net.VpnService.prepare(this);
             if (vpnIntent != null) {
@@ -394,17 +391,11 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    /**
-     * Triggers the full Security Ripple animation on button tap:
-     *  Phase 1 (0–60ms)   — press-in: scale 1.0 → 0.92  [Linear]
-     *  Phase 2 (60–210ms) — ping release: scale 0.92 → 1.08 [AnticipateOvershoot t=3]
-     *  Phase 3 (210–330ms)— settle: scale 1.08 → 1.0  [Decelerate]
-     *  Then fires SecurityRippleView burst.
-     */
+    // Trigger button ripple
     private void triggerButtonRipple(android.view.View btn, boolean isRoot) {
         if (securityRipple == null) return;
 
-        // Phase 1: press-in compression
+        // Phase 1: press-in
         android.animation.ObjectAnimator pressIn = android.animation.ObjectAnimator.ofPropertyValuesHolder(
             btn,
             android.animation.PropertyValuesHolder.ofFloat("scaleX", 1.0f, 0.92f),
@@ -413,7 +404,7 @@ public class MainActivity extends AppCompatActivity {
         pressIn.setDuration(60);
         pressIn.setInterpolator(new android.view.animation.LinearInterpolator());
 
-        // Phase 2: overshoot ping
+        // Phase 2: ping
         android.animation.ObjectAnimator pingRelease = android.animation.ObjectAnimator.ofPropertyValuesHolder(
             btn,
             android.animation.PropertyValuesHolder.ofFloat("scaleX", 0.92f, 1.08f),
@@ -435,12 +426,12 @@ public class MainActivity extends AppCompatActivity {
         bounce.playSequentially(pressIn, pingRelease, settle);
         bounce.start();
 
-        // Fire the ripple burst (centred on button)
+        // Fire ripple burst
         android.util.Pair<Float, Float> centre = securityRipple.centreOf(btn);
         securityRipple.triggerRipple(centre.first, centre.second, isRoot);
     }
 
-    /** Launches IncidentActivity with the most recent attack window parameters from SharedPreferences. */
+    // Open incident report
     private void openIncidentReport() {
         android.content.SharedPreferences prefs = getSharedPreferences("shield_prefs", MODE_PRIVATE);
         startActivity(new Intent(this, IncidentActivity.class)
@@ -499,7 +490,7 @@ public class MainActivity extends AppCompatActivity {
         if (vpnIntent != null) {
             startActivityForResult(vpnIntent, VPN_REQUEST_CODE);
         } else {
-            // Permissions and VPN ready! Show animation
+            // Show activation animation
             android.content.Intent stdIntent = new android.content.Intent(this, ModeConfirmActivity.class);
             stdIntent.putExtra("mode", "STANDARD");
             startActivityForResult(stdIntent, MODE_CONFIRM_REQUEST);
@@ -518,18 +509,15 @@ public class MainActivity extends AppCompatActivity {
                 Toast.makeText(this, "VPN permission required for network monitoring", Toast.LENGTH_LONG).show();
             }
         } else if (requestCode == MODE_CONFIRM_REQUEST && resultCode == RESULT_OK) {
-            // User watched the animation — now actually start protection
+            // Start Mode B
             startShieldService();
         } else if (requestCode == MODE_A_CONFIRM_REQUEST && resultCode == RESULT_OK) {
-            // User confirmed Root Mode animation — start ModeAService
+            // Start Mode A
             startModeAService();
         }
     }
 
-    /**
-     * Checks if this device can run Mode A (root-based eBPF kernel monitoring).
-     * Requires: Android 11+, device root access, kernel eBPF support.
-     */
+    // Check root capability
     private boolean canStartModeA() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
             return false;  // Requires Android 11+
@@ -537,17 +525,14 @@ public class MainActivity extends AppCompatActivity {
         return SecurityUtils.isDeviceRooted();
     }
 
-    /**
-     * Unified stop function: Stops both Mode A and Mode B cleanly.
-     * This ensures no services are left running when the user taps "Stop Protection".
-     */
+    // Stop all protection
     private void stopProtection() {
         Log.i(TAG, "Stopping all protection services...");
         
-        // Stop Root Mode (Mode A) if running
+        // Stop Mode A
         stopService(new Intent(this, com.dearmoon.shield.modea.ModeAService.class));
         
-        // Stop Standard Mode (Mode B)
+        // Stop Mode B
         stopShieldService();
         
         Toast.makeText(this, "Protection Disabled", Toast.LENGTH_SHORT).show();
@@ -558,10 +543,9 @@ public class MainActivity extends AppCompatActivity {
             Toast.makeText(this, "Root Mode requires Android 11+", Toast.LENGTH_SHORT).show();
             return;
         }
-        // Start shared infrastructure (snapshots, honeyfiles, network guard, watchdog)
-        // exactly the same as Mode B — collection layer is the only difference.
+        // Standard infrastructure start
         startShieldService();
-        // Start eBPF collection layer on top.
+        // Start eBPF layer
         Intent intent = new Intent(this, com.dearmoon.shield.modea.ModeAService.class);
         startForegroundService(intent);
         Toast.makeText(this, "Root Mode starting\u2026", Toast.LENGTH_SHORT).show();
@@ -569,7 +553,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void startShieldService() {
-        // Clear intentionally stopped flag, set active flag
+        // Reset status flags
         getSharedPreferences("ShieldPrefs", Context.MODE_PRIVATE)
             .edit()
             .putBoolean("intentionally_stopped", false)
@@ -607,18 +591,18 @@ public class MainActivity extends AppCompatActivity {
         boolean isVpnRunning = isServiceRunning(NetworkGuardService.class);
         boolean isModeARunning = isServiceRunning(com.dearmoon.shield.modea.ModeAService.class);
 
-        // Determine unified button state and text
+        // Update button state
         String buttonText;
         boolean protectionActive = isModeBRunning || isModeARunning;
 
-        // Persist state to preferences for consistency
+        // Persist shield state
         getSharedPreferences("ShieldPrefs", Context.MODE_PRIVATE)
                 .edit()
                 .putBoolean("shield_active", protectionActive)
                 .apply();
         
         if (protectionActive) {
-            // Button shows "Stop Protection" when anything is active
+            // Stop protection state
             buttonText = "Stop Protection";
             btnUnifiedProtection.setBackgroundResource(R.drawable.bg_glass_button_active);
             btnUnifiedProtection.setTextColor(0xFFFFFFFF);
@@ -628,7 +612,7 @@ public class MainActivity extends AppCompatActivity {
             tvProtectionStatus.setTextColor(0xFFD2DBEB);
             tvProtectionStatus.startScanBeam(() -> tvProtectionStatus.startCursorBlink());
         } else {
-            // Button shows "Start Protection" when nothing is active
+            // Start protection state
             buttonText = "Start Protection";
             btnUnifiedProtection.setBackgroundResource(R.drawable.bg_glass_button_inactive);
             btnUnifiedProtection.setTextColor(ContextCompat.getColor(this, R.color.text_primary));
@@ -732,10 +716,7 @@ public class MainActivity extends AppCompatActivity {
         gaugeUpdateRunnable = new Runnable() {
             @Override
             public void run() {
-                // The pseudo-code explicitly asks to map "fileSystemEvents" to total,
-                // and "detection_results" with score >= 70 to attacked.
-                // However, ShieldStats handles the long-term historical numbers 
-                // in the original app. We'll use the precise values requested.
+                // Map database stats
                 int totalFiles = 0;
                 int attackedFiles = 0;
                 
@@ -754,9 +735,7 @@ public class MainActivity extends AppCompatActivity {
                     Log.e(TAG, "Error querying gauge data", e);
                 }
 
-                // If DB is mostly empty (for example when first installed), 
-                // fallback to ShieldStats to show the "simulated/historical" big numbers by default, 
-                // as the dashboard uses those to look impressive.
+                // Fallback to stats
                 if (totalFiles == 0 && shieldStats != null) {
                     totalFiles = shieldStats.getFilesScanned();
                     attackedFiles = shieldStats.getThreatsFound();
@@ -788,11 +767,10 @@ public class MainActivity extends AppCompatActivity {
                 int score = intent.getIntExtra("confidence_score", 0);
                 int infectionTime = intent.getIntExtra("infection_time", -1);
 
-                // Persist the detection event to stats counters
+                // Record attack detected
                 if (shieldStats != null) shieldStats.recordAttackDetected();
 
-                // Store attack window in SharedPreferences so IncidentActivity can read them.
-                // Window start is approximated as 30 seconds before the alert arrives.
+                // Store attack window
                 android.content.SharedPreferences prefs =
                     MainActivity.this.getSharedPreferences("shield_prefs", MODE_PRIVATE);
                 long attackStart = System.currentTimeMillis() - 30000L;
@@ -808,7 +786,7 @@ public class MainActivity extends AppCompatActivity {
                 Log.d(TAG, "Attack window stored in prefs: start=" + attackStart + " end=" + attackEnd);
 
                 runOnUiThread(() -> {
-                    // Show persistent timer in UI
+                    // Show persistent timer
                     if (infectionTime > 0) {
                         timerContainer.setVisibility(android.view.View.VISIBLE);
                         startCountdown(infectionTime);
@@ -831,12 +809,12 @@ public class MainActivity extends AppCompatActivity {
                 });
             } else if ("com.dearmoon.shield.RESTORE_COMPLETE".equals(action)) {
                 int restoredCount = intent.getIntExtra("restored_count", 0);
-                // Store restored count so IncidentActivity can report accurate recovery stats
+                // Store restored count
                 MainActivity.this.getSharedPreferences("shield_prefs", MODE_PRIVATE)
                     .edit().putInt("last_restored_count", restoredCount).apply();
 
                 runOnUiThread(() -> {
-                    // Hide timer
+                    // Hide timer UI
                     timerContainer.setVisibility(android.view.View.GONE);
                     if (countDownTimer != null) countDownTimer.cancel();
 

@@ -13,7 +13,7 @@ public class NetworkBlockReceiver extends BroadcastReceiver {
         if ("com.dearmoon.shield.BLOCK_NETWORK".equals(intent.getAction())) {
             Log.e(TAG, "EMERGENCY: Activating network block");
             
-            // Trigger emergency mode in NetworkGuardService
+            // Trigger emergency mode
             Intent serviceIntent = new Intent("com.dearmoon.shield.EMERGENCY_MODE");
             context.sendBroadcast(serviceIntent);
         }

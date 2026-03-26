@@ -19,7 +19,7 @@ public class EventDatabase extends SQLiteOpenHelper {
     private static EventDatabase instance;
     private final Context context;
 
-    // Table names
+    // SQLite table names
     private static final String TABLE_FILE_SYSTEM = "file_system_events";
     private static final String TABLE_HONEYFILE = "honeyfile_events";
     private static final String TABLE_NETWORK = "network_events";
@@ -29,7 +29,7 @@ public class EventDatabase extends SQLiteOpenHelper {
     private static final String TABLE_CONFIG_AUDIT   = "config_audit_events";
     private static final String TABLE_PRIVACY_CONSENT = "privacy_consent_events";
 
-    // Common columns
+    // Common table columns
     private static final String COL_ID = "id";
     private static final String COL_TIMESTAMP = "timestamp";
     private static final String COL_EVENT_TYPE = "event_type";
@@ -51,7 +51,7 @@ public class EventDatabase extends SQLiteOpenHelper {
     public void onCreate(SQLiteDatabase db) {
         Log.i(TAG, "Creating database tables");
 
-        // File System Events Table
+        // File system table
         db.execSQL("CREATE TABLE " + TABLE_FILE_SYSTEM + " (" +
             COL_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
             COL_TIMESTAMP + " INTEGER NOT NULL, " +
@@ -71,7 +71,7 @@ public class EventDatabase extends SQLiteOpenHelper {
             "source TEXT, " +
             "merge_flag INTEGER DEFAULT 0)");
 
-        // Honeyfile Events Table
+        // Honeyfile events table
         db.execSQL("CREATE TABLE " + TABLE_HONEYFILE + " (" +
                 COL_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
                 COL_TIMESTAMP + " INTEGER NOT NULL, " +
@@ -82,7 +82,7 @@ public class EventDatabase extends SQLiteOpenHelper {
                 "package_name TEXT, " +
                 "app_label TEXT)");
 
-        // Network Events Table
+        // Network events table
         db.execSQL("CREATE TABLE " + TABLE_NETWORK + " (" +
                 COL_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
                 COL_TIMESTAMP + " INTEGER NOT NULL, " +
@@ -96,7 +96,7 @@ public class EventDatabase extends SQLiteOpenHelper {
                 "package_name TEXT, " +
                 "app_label TEXT)");
 
-        // Detection Results Table
+        // Detection results table
         db.execSQL("CREATE TABLE " + TABLE_DETECTION + " (" +
                 COL_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
                 COL_TIMESTAMP + " INTEGER NOT NULL, " +
@@ -106,7 +106,7 @@ public class EventDatabase extends SQLiteOpenHelper {
                 "sprt_state TEXT, " +
                 "confidence_score INTEGER)");
 
-        // LockerShield Events Table
+        // LockerShield events table
         db.execSQL("CREATE TABLE " + TABLE_LOCKER_SHIELD + " (" +
                 COL_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
                 COL_TIMESTAMP + " INTEGER NOT NULL, " +
@@ -116,7 +116,7 @@ public class EventDatabase extends SQLiteOpenHelper {
                 "risk_score INTEGER, " +
                 "details TEXT)");
 
-        // Correlation Results Table (PSEUDO-KERNEL)
+        // Correlation results table
         db.execSQL("CREATE TABLE " + TABLE_CORRELATION + " (" +
                 COL_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
                 COL_TIMESTAMP + " INTEGER NOT NULL, " +
@@ -131,7 +131,7 @@ public class EventDatabase extends SQLiteOpenHelper {
                 "locker_event_count INTEGER, " +
                 "syscall_pattern TEXT)");
 
-        // Create indexes for performance
+        // Create performance indexes
         db.execSQL("CREATE INDEX idx_fs_timestamp ON " + TABLE_FILE_SYSTEM + "(" + COL_TIMESTAMP + ")");
         db.execSQL("CREATE INDEX idx_hf_timestamp ON " + TABLE_HONEYFILE + "(" + COL_TIMESTAMP + ")");
         db.execSQL("CREATE INDEX idx_net_timestamp ON " + TABLE_NETWORK + "(" + COL_TIMESTAMP + ")");
@@ -139,7 +139,7 @@ public class EventDatabase extends SQLiteOpenHelper {
         db.execSQL("CREATE INDEX idx_ls_timestamp ON " + TABLE_LOCKER_SHIELD + "(" + COL_TIMESTAMP + ")");
         db.execSQL("CREATE INDEX idx_corr_timestamp ON " + TABLE_CORRELATION + "(" + COL_TIMESTAMP + ")");
 
-        // TEE Integrity Events Table (v3)
+        // Integrity events table
         db.execSQL("CREATE TABLE IF NOT EXISTS integrity_events (" +
                 "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
                 "timestamp INTEGER NOT NULL, " +
@@ -149,7 +149,7 @@ public class EventDatabase extends SQLiteOpenHelper {
                 "additional_info TEXT)");
         db.execSQL("CREATE INDEX IF NOT EXISTS idx_integrity_timestamp ON integrity_events(timestamp)");
 
-        // Config Audit Events Table (v4) — M8 Security Misconfiguration + M2 Supply Chain
+        // Config audit table
         db.execSQL("CREATE TABLE IF NOT EXISTS " + TABLE_CONFIG_AUDIT + " (" +
                 "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
                 "timestamp INTEGER NOT NULL, " +
@@ -159,7 +159,7 @@ public class EventDatabase extends SQLiteOpenHelper {
                 "detail TEXT)");
         db.execSQL("CREATE INDEX IF NOT EXISTS idx_cfg_timestamp ON " + TABLE_CONFIG_AUDIT + "(timestamp)");
 
-        // Privacy Consent Events Table (v4) — M6 Privacy Controls
+        // Privacy consent table
         db.execSQL("CREATE TABLE IF NOT EXISTS " + TABLE_PRIVACY_CONSENT + " (" +
                 "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
                 "timestamp INTEGER NOT NULL, " +
@@ -168,7 +168,7 @@ public class EventDatabase extends SQLiteOpenHelper {
                 "detail TEXT)");
         db.execSQL("CREATE INDEX IF NOT EXISTS idx_priv_timestamp ON " + TABLE_PRIVACY_CONSENT + "(timestamp)");
 
-        // DNA Profiles Table (v5) — stores completed RansomwareDnaProfile snapshots
+        // DNA profiles table
         db.execSQL("CREATE TABLE IF NOT EXISTS dna_profiles (" +
                 "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
                 "profile_id TEXT NOT NULL, " +
@@ -192,7 +192,7 @@ public class EventDatabase extends SQLiteOpenHelper {
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
         Log.w(TAG, "Upgrading database from version " + oldVersion + " to " + newVersion);
 
-        // v5 -> v6: add MediaStore/scoped-storage columns for file system events
+        // Migrating to v6
         if (oldVersion < 6) {
             addColumnSafe(db, TABLE_FILE_SYSTEM, "resolved_path", "TEXT");
             addColumnSafe(db, TABLE_FILE_SYSTEM, "file_uri", "TEXT");
@@ -202,7 +202,7 @@ public class EventDatabase extends SQLiteOpenHelper {
             if (oldVersion == 5) return;
         }
 
-        // Non-destructive migration: add dna_profiles table for v4 -> v5 (Incident feature)
+        // Migrating to v5
         if (oldVersion < 5) {
             db.execSQL("CREATE TABLE IF NOT EXISTS dna_profiles (" +
                     "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
@@ -223,7 +223,7 @@ public class EventDatabase extends SQLiteOpenHelper {
             if (oldVersion == 4) return;
         }
 
-        // Non-destructive migration: add config_audit_events and privacy_consent_events for v3 -> v4
+        // Migrating to v4
         if (oldVersion < 4) {
             db.execSQL("CREATE TABLE IF NOT EXISTS " + TABLE_CONFIG_AUDIT + " (" +
                     "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
@@ -244,7 +244,7 @@ public class EventDatabase extends SQLiteOpenHelper {
             if (oldVersion == 3) return;
         }
 
-        // Non-destructive migration: add integrity_events table for v2 -> v3
+        // Migrating to v3
         if (oldVersion < 3) {
             db.execSQL("CREATE TABLE IF NOT EXISTS integrity_events (" +
                     "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
@@ -258,7 +258,7 @@ public class EventDatabase extends SQLiteOpenHelper {
             if (oldVersion == 2) return;  // Only added the new table; other tables intact
         }
 
-        // Full recreation for older versions
+        // Recreate old versions
         db.execSQL("DROP TABLE IF EXISTS " + TABLE_FILE_SYSTEM);
         db.execSQL("DROP TABLE IF EXISTS " + TABLE_HONEYFILE);
         db.execSQL("DROP TABLE IF EXISTS " + TABLE_NETWORK);
@@ -269,8 +269,7 @@ public class EventDatabase extends SQLiteOpenHelper {
     }
 
     private void addColumnSafe(SQLiteDatabase db, String table, String column, String type) {
-        // SQLite only supports ADD COLUMN without IF NOT EXISTS on many Android builds.
-        // We treat "duplicate column name" as success to keep migrations idempotent.
+        // Safe column addition
         try {
             db.execSQL("ALTER TABLE " + table + " ADD COLUMN " + column + " " + type);
         } catch (Exception ignored) { }
@@ -283,7 +282,7 @@ public class EventDatabase extends SQLiteOpenHelper {
         if (c != null) c.close();
     }
 
-    // Insert methods
+    // Data insert methods
     public synchronized long insertFileSystemEvent(FileSystemEvent event) {
         SQLiteDatabase db = getWritableDatabase();
         ContentValues values = new ContentValues();
@@ -305,13 +304,13 @@ public class EventDatabase extends SQLiteOpenHelper {
             values.put("uid", json.optInt("uid"));
             values.put("package_name", json.optString("packageName"));
             values.put("app_label", json.optString("appLabel"));
-            // New fields for hybrid event system
+            // Hybrid system fields
             if (event instanceof com.dearmoon.shield.data.HybridFileSystemEvent) {
                 com.dearmoon.shield.data.HybridFileSystemEvent h = (com.dearmoon.shield.data.HybridFileSystemEvent) event;
                 values.put("source", h.getSource());
                 values.put("merge_flag", h.isMerged() ? 1 : 0);
             } else {
-                // Fallback for legacy events
+                // Legacy event fallback
                 values.put("source", "LEGACY");
                 values.put("merge_flag", 0);
             }
@@ -389,7 +388,7 @@ public class EventDatabase extends SQLiteOpenHelper {
         return id;
     }
 
-    // Query methods
+    // Data query methods
     public List<JSONObject> getAllEvents(String eventType, int limit) {
         List<JSONObject> events = new ArrayList<>();
         SQLiteDatabase db = getReadableDatabase();
@@ -397,7 +396,7 @@ public class EventDatabase extends SQLiteOpenHelper {
         Log.d(TAG, "getAllEvents called with eventType=" + eventType + ", limit=" + limit);
         
         if ("ALL".equals(eventType)) {
-            // Use SQL UNION with explicit column selection for efficiency
+            // Unified event query
             String query = "SELECT timestamp, 'FILE_SYSTEM' as eventType, operation, file_path, file_extension, file_size_after, " +
                     "NULL as access_type, uid as calling_uid, package_name, app_label, " +
                     "NULL as destination_ip, NULL as destination_port, NULL as protocol, NULL as bytes_sent, NULL as bytes_received, " +
@@ -458,7 +457,7 @@ public class EventDatabase extends SQLiteOpenHelper {
                     json.put("filePath", cursor.getString(3));
                     json.put("fileExtension", cursor.getString(4));
                     json.put("fileSizeAfter", cursor.getLong(5));
-                    // Optional v6 columns may not exist in older DBs / union query; guard by index
+                    // Guard v6 columns
                     if (cursor.getColumnCount() > 15) {
                         json.put("resolvedPath", cursor.getString(15));
                         json.put("fileUri", cursor.getString(16));
@@ -499,8 +498,8 @@ public class EventDatabase extends SQLiteOpenHelper {
                     json.put("timestamp", cursor.getLong(cursor.getColumnIndexOrThrow(COL_TIMESTAMP)));
                     json.put("eventType", eventType);
                     
-                    // Parse columns based on event type
-                    // Add common app attribution fields
+                    // Parse event columns
+                    // App attribution fields
                     int uidCol = eventType.equals("NETWORK") ? cursor.getColumnIndex("app_uid") :
                                  eventType.equals("FILE_SYSTEM") ? cursor.getColumnIndex("uid") :
                                  cursor.getColumnIndex("calling_uid");
@@ -566,25 +565,49 @@ public class EventDatabase extends SQLiteOpenHelper {
     }
 
     public List<JSONObject> queryEventsSince(String eventType, long sinceTimestamp, int limit) {
+        return queryEventsSince(eventType, sinceTimestamp, -1, limit);
+    }
+
+    public List<JSONObject> queryEventsSince(String eventType, long sinceTimestamp, int uid, int limit) {
         List<JSONObject> results = new ArrayList<>();
         SQLiteDatabase db = getReadableDatabase();
         String tableName;
+        String uidColumn = null;
 
-        if ("FILE_SYSTEM".equals(eventType)) tableName = TABLE_FILE_SYSTEM;
-        else if ("HONEYFILE_ACCESS".equals(eventType)) tableName = TABLE_HONEYFILE;
-        else if ("NETWORK".equals(eventType)) tableName = TABLE_NETWORK;
-        else if ("LOCKER_SHIELD".equals(eventType)) tableName = TABLE_LOCKER_SHIELD;
-        else return results;
+        if ("FILE_SYSTEM".equals(eventType)) {
+            tableName = TABLE_FILE_SYSTEM;
+            uidColumn = "uid";
+        } else if ("HONEYFILE_ACCESS".equals(eventType)) {
+            tableName = TABLE_HONEYFILE;
+            uidColumn = "calling_uid";
+        } else if ("NETWORK".equals(eventType)) {
+            tableName = TABLE_NETWORK;
+            uidColumn = "app_uid";
+        } else if ("LOCKER_SHIELD".equals(eventType)) {
+            tableName = TABLE_LOCKER_SHIELD;
+            // Locker events don't have UID in this schema version (only package_name)
+        } else {
+            return results;
+        }
+
+        String selection = COL_TIMESTAMP + " >= ?";
+        List<String> selectionArgs = new ArrayList<>();
+        selectionArgs.add(String.valueOf(sinceTimestamp));
+
+        if (uid != -1 && uidColumn != null) {
+            selection += " AND " + uidColumn + " = ?";
+            selectionArgs.add(String.valueOf(uid));
+        }
 
         Cursor cursor = null;
         try {
-            cursor = db.query(tableName, null, COL_TIMESTAMP + " >= ?",
-                    new String[]{String.valueOf(sinceTimestamp)}, null, null,
+            cursor = db.query(tableName, null, selection,
+                    selectionArgs.toArray(new String[0]), null, null,
                     COL_TIMESTAMP + " DESC", String.valueOf(limit));
 
             results = parseTableSpecificCursor(cursor, eventType);
         } catch (Exception e) {
-            Log.e(TAG, "Error in queryEventsSince", e);
+            Log.e(TAG, "Error in queryEventsSince (UID=" + uid + ")", e);
         } finally {
             if (cursor != null) cursor.close();
         }
@@ -705,19 +728,7 @@ public class EventDatabase extends SQLiteOpenHelper {
         return id;
     }
 
-    // -------------------------------------------------------------------------
-    // M2 / M8 — Config Audit insert
-    // -------------------------------------------------------------------------
-
-    /**
-     * Inserts a configuration audit finding (from {@code ConfigAuditChecker} or
-     * {@code DependencyIntegrityChecker}) into {@code config_audit_events}.
-     *
-     * @param category   short category label, e.g. {@code "DEBUGGABLE"} or {@code "SUPPLY_CHAIN"}.
-     * @param severity   {@code "PASS"}, {@code "WARN"}, or {@code "FAIL"}.
-     * @param resultType brief classification, e.g. {@code "FINDING"} or {@code "CERT_CHANGED"}.
-     * @param detail     human-readable description of the finding.
-     */
+    // Insert config audit
     public synchronized long insertConfigAuditEvent(String category, String severity,
                                                     String resultType, String detail) {
         SQLiteDatabase db = getWritableDatabase();
@@ -732,18 +743,7 @@ public class EventDatabase extends SQLiteOpenHelper {
         return id;
     }
 
-    // -------------------------------------------------------------------------
-    // M6 — Privacy Consent insert
-    // -------------------------------------------------------------------------
-
-    /**
-     * Inserts a privacy consent or purge audit event into {@code privacy_consent_events}.
-     *
-     * @param eventType     e.g. {@code "CONSENT_GRANTED"}, {@code "CONSENT_DENIED"}, or
-     *                      {@code "TELEMETRY_PURGE"}.
-     * @param policyVersion version label, e.g. {@code "POLICY_V1"}.
-     * @param detail        JSON string with additional context.
-     */
+    // Insert privacy event
     public synchronized long insertPrivacyConsentEvent(String eventType, String policyVersion,
                                                        String detail) {
         SQLiteDatabase db = getWritableDatabase();
@@ -757,14 +757,7 @@ public class EventDatabase extends SQLiteOpenHelper {
         return id;
     }
 
-    // -------------------------------------------------------------------------
-    // M6 — Telemetry summary / purge helpers
-    // -------------------------------------------------------------------------
-
-    /**
-     * Returns the number of rows in {@code tableName}, or 0 if the table does not exist or an
-     * error occurs.  Used by {@link PrivacyConsentManager#getTelemetrySummary}.
-     */
+    // Count table events
     public synchronized long countEvents(String tableName) {
         try {
             SQLiteDatabase db = getReadableDatabase();
@@ -785,7 +778,7 @@ public class EventDatabase extends SQLiteOpenHelper {
      * SQL injection.
      */
     public synchronized int purgeTable(String tableName) {
-        // Whitelist — only allow purging known user-data tables
+        // Purge whitelist check
         if (!tableName.equals("file_system_events")
                 && !tableName.equals("network_events")
                 && !tableName.equals("honeyfile_events")

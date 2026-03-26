@@ -7,13 +7,7 @@ public class SPRTDetector {
     private static final double A = BETA / (1 - ALPHA);
     private static final double B = (1 - BETA) / ALPHA;
 
-    /**
-     * Minimum number of file events that must be recorded before the SPRT is
-     * allowed to accept H1 (ransomware rate).
-     *
-     * Raised to 10 (from 3) as a conservative guard until empirical baseline
-     * measurement has been performed across real devices. See H-03 in fix report.
-     */
+    // Minimum event samples
     private static final int MIN_SAMPLES_FOR_H1 = 5;
     
     private double logLikelihoodRatio = 0.0;
@@ -34,10 +28,7 @@ public class SPRTDetector {
         ACCEPT_H1   // Ransomware behavior
     }
 
-    /**
-     * Records a single event arrival.
-     * Increments log-likelihood ratio by log(λ₁/λ₀).
-     */
+    // Record single event
     public synchronized void recordEvent(double riskWeight) {
         logLikelihoodRatio += riskWeight * Math.log(RANSOMWARE_RATE / NORMAL_RATE);
         cumulativeRisk += riskWeight;
@@ -53,10 +44,7 @@ public class SPRTDetector {
         }
     }
 
-    /**
-     * Records elapsed time.
-     * Decrements log-likelihood ratio by (λ₁ - λ₀) * deltaSeconds.
-     */
+    // Records elapsed time
     public synchronized void recordTimePassed(double seconds) {
         logLikelihoodRatio += (NORMAL_RATE - RANSOMWARE_RATE) * seconds;
         updateState();
@@ -92,10 +80,10 @@ public class SPRTDetector {
         epoch++;
     }
 
-    /** Returns the timestamp of the last SPRT reset (for M-02 behavior correlation filtering). */
+    // Get last reset
     public synchronized long getLastResetTimestamp() { return lastResetTimestamp; }
 
-    /** Returns the current epoch (increments each reset). */
+    // Get current epoch
     public synchronized int getEpoch() { return epoch; }
 
     public SPRTState getCurrentState() {

@@ -85,7 +85,6 @@ SHIELD is an Android ransomware detection application that implements "Mode B" f
   - Detailed event information with timestamps
   - Parses both telemetry and detection logs
   - User-friendly card-based interface
-  - See [LOG_VIEWER_GUIDE.md](LOG_VIEWER_GUIDE.md) for detailed usage
 
 ## Detection Algorithm
 
@@ -259,11 +258,25 @@ app/src/main/java/com/dearmoon/shield/
 │   ├── FileMetadata.java               # File tracking
 │   └── RecoveryActivity.java           # Recovery UI
 └── lockerguard/
-    ├── LockerShieldService.java        # Accessibility monitor
-    ├── RiskEvaluator.java              # Threat scoring
+    ├── LockerShieldService.java        # Passive behavioral monitor & bypass
+    ├── RiskEvaluator.java              # Threat scoring & persistent signals
     ├── LockerShieldEvent.java          # Locker events
     └── EmergencyRecoveryActivity.java  # Emergency UI
 ```
+
+## LockerGuard: Zero-Inconvenience Protection
+SHIELD features a state-of-the-art **LockerGuard** that protects against "Locker" ransomware without annoying the user with frequent interruptions.
+
+### Passive Behavioral Detection
+Unlike traditional systems that force a "home-jump," SHIELD's LockerGuard uses **passive surveillance**:
+- **Over-Launcher Detection**: Detection only triggers if a non-whitelisted overlay persists over the **Android Launcher** or **System UI**.
+- **Persistence Threshold**: An overlay must remain visible for **2 seconds** or **3 refresh cycles** before being flagged.
+- **Zero-Inconvenience**: If you are using an app normally, SHIELD stays silent. It only acts if the app refuses to let you see your home screen.
+
+### Reliable Bypass Mechanisms
+In case of a false positive, SHIELD provides two robust ways to regain control:
+1. **Physical Button Combination**: Press **Volume Up + Volume Down** simultaneously to immediately dismiss the locker and return home.
+2. **Notification Bypass**: A high-priority, persistent notification with a **"BYPASS / STOP"** button is available in the system tray whenever a potential locker is detected.
 
 ## Completion Status
 
@@ -307,4 +320,5 @@ The project is now complete and ready for:
 - **Security:** RASP checks for debugger, emulator, root, hooks, and signature tampering
 - **Reliability:** Auto-restart on boot and service crash
 - **Network Protection:** VPN blocks ransomware C2 communication (user-controlled + auto-emergency mode)
+- **Zero-Inconvenience:** Passive locker detection with physical and notification-based bypasses
 #   s h i e l d - d s c i -

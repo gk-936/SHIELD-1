@@ -37,11 +37,11 @@ public class ShieldWatchdogService extends Service {
 
         if (intentionallyStopped) {
             Log.d(TAG, "Main service intentionally stopped, not restarting");
-            stopSelf();  // L-01: Watchdog also stops itself when service is intentionally stopped
+            // Stop watchdog service
             return;
         }
 
-        // L-01: Use heartbeat check instead of deprecated getRunningServices() (unreliable API 26+)
+        // Check service heartbeat
         if (!isServiceAlive()) {
             Log.e(TAG, "ShieldProtectionService KILLED! Restarting...");
             Intent serviceIntent = new Intent(this, ShieldProtectionService.class);
@@ -53,8 +53,7 @@ public class ShieldWatchdogService extends Service {
         }
     }
 
-    // L-01: Heartbeat-based liveness check. ShieldProtectionService writes last_heartbeat
-    // every 30 seconds; if stale > 60 s it has died.
+    // Heartbeat-based liveness check
     private boolean isServiceAlive() {
         long last = getSharedPreferences("ShieldPrefs", Context.MODE_MULTI_PROCESS)
                 .getLong("last_heartbeat", 0);

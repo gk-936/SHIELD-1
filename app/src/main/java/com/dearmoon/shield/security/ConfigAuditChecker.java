@@ -16,56 +16,20 @@ import com.dearmoon.shield.data.EventDatabase;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * M8 — Security Misconfiguration
- *
- * <p>Performs a runtime audit of the application's own manifest settings and OS-level
- * configuration flags to detect dangerous misconfigurations that an attacker could exploit to
- * undermine SHIELD's protections.  Seven checks are performed:
- *
- * <ol>
- *   <li><strong>Debuggable flag:</strong> {@code android:debuggable=true} allows arbitrary
- *       debugging and code injection via ADB.  This should only be {@code true} in development
- *       builds.
- *   <li><strong>Backup flag:</strong> {@code android:allowBackup=true} allows {@code adb backup}
- *       to extract all private files including the snapshot database, encryption keys stored
- *       outside the Keystore, and SharedPreferences that hold the HMAC integrity baseline.
- *   <li><strong>Exported activities:</strong> Any {@code Activity} with
- *       {@code android:exported=true} that does not explicitly declare an {@code <intent-filter>}
- *       is likely a misconfiguration — it can be launched by any app on the device.
- *   <li><strong>Exported services:</strong> Any {@code Service} with
- *       {@code android:exported=true} without a required permission is an injection surface.
- *   <li><strong>Exported content providers:</strong> Any {@code Provider} with
- *       {@code android:exported=true} and no read/write permission is a data-leak surface.
- *   <li><strong>ADB / USB debugging:</strong> {@code Settings.Global.ADB_ENABLED} == 1 means USB
- *       debugging is active.  On a production device this should be off.
- *   <li><strong>Clear-text traffic:</strong> If the app targets API < 28 and does not suppress
- *       clear-text traffic via a Network Security Config, HTTP connections are permitted.
- * </ol>
- *
- * <p>Each check produces a {@link ConfigFinding} record with a severity, category, and
- * human-readable description.  All findings are written to {@code config_audit_events} in
- * {@link EventDatabase}.  A summary broadcast {@code com.dearmoon.shield.CONFIG_AUDIT_RESULT}
- * is fired after every audit run so the main UI can reflect the result without polling.
- *
- * <p>This class is non-instantiable (static API only).  Call {@link #audit(Context)} once per
- * service start.
- */
+// Audit security misconfigurations
 public final class ConfigAuditChecker {
 
     private static final String TAG = "ConfigAuditChecker";
 
-    /** Broadcast action sent after every audit run. */
+    /** Audit result broadcast */
     public static final String ACTION_CONFIG_AUDIT_RESULT =
             "com.dearmoon.shield.CONFIG_AUDIT_RESULT";
-    /** Extra: total number of FAIL findings (int). */
+    /** FAIL result count */
     public static final String EXTRA_FAIL_COUNT = "fail_count";
-    /** Extra: total number of WARN findings (int). */
+    /** WARN result count */
     public static final String EXTRA_WARN_COUNT = "warn_count";
 
-    // -------------------------------------------------------------------------
-    // Finding model
-    // -------------------------------------------------------------------------
+    // Audit finding model
 
     /** Severity assigned to each individual configuration finding. */
     public enum Severity { PASS, WARN, FAIL }
@@ -89,9 +53,7 @@ public final class ConfigAuditChecker {
 
     private ConfigAuditChecker() { /* non-instantiable */ }
 
-    // -------------------------------------------------------------------------
-    // Public API
-    // -------------------------------------------------------------------------
+    // Public audit API
 
     /**
      * Runs all seven configuration checks and persists the findings to {@link EventDatabase}.
@@ -111,7 +73,7 @@ public final class ConfigAuditChecker {
         checkAdbEnabled(appCtx, findings);
         checkCleartextTraffic(appCtx, findings);
 
-        // Log to database and broadcast
+        // Log results
         persistFindings(appCtx, findings);
         broadcastSummary(appCtx, findings);
 
@@ -122,9 +84,7 @@ public final class ConfigAuditChecker {
         return java.util.Collections.unmodifiableList(findings);
     }
 
-    // -------------------------------------------------------------------------
-    // Checks
-    // -------------------------------------------------------------------------
+    // Specific audit checks
 
     private static void checkDebuggable(Context ctx, List<ConfigFinding> out) {
         boolean debuggable =
@@ -255,9 +215,7 @@ public final class ConfigAuditChecker {
         }
     }
 
-    // -------------------------------------------------------------------------
-    // Persist and broadcast
-    // -------------------------------------------------------------------------
+    // Persist audit results
 
     private static void persistFindings(Context ctx, List<ConfigFinding> findings) {
         try {

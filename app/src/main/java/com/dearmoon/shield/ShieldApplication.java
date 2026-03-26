@@ -1,37 +1,26 @@
 package com.dearmoon.shield;
 
+import android.app.ActivityManager;
 import android.app.Application;
+import android.content.Context;
+import android.content.Intent;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 
 import com.dearmoon.shield.data.EventMerger;
 import com.dearmoon.shield.detection.UnifiedDetectionEngine;
+import com.dearmoon.shield.services.ShieldProtectionService;
 import com.dearmoon.shield.snapshot.SnapshotManager;
 
-/**
- * Application class — holds the single, process-scoped instances of the core
- * detection pipeline components.
- *
- * Both ShieldProtectionService (Mode B) and ModeAService (Mode A) obtain
- * these shared objects from here instead of each creating their own.  This
- * guarantees that:
- *
- *   • The SPRT accumulator sees every file event regardless of which
- *     collection channel (FileObserver or eBPF) produced it.
- *   • The SnapshotManager's in-memory activeAttackId is consistent across
- *     both services — there is only one attack window at a time.
- *   • The EventMerger's 1-second dedup window can actually match Mode A
- *     and Mode B events about the same file write into one DB row.
- *
- * Lifecycle ownership
- * -------------------
- *   ShieldProtectionService is the primary service and calls shutdownEngine()
- *   in its onDestroy().  ModeAService is a data-source add-on — it only
- *   attaches ModeAFileCollector to the shared engine and must NOT call
- *   shutdown when it stops.
- */
+// Process-scoped shared instances
 public class ShieldApplication extends Application {
 
     private static final String TAG = "ShieldApplication";
+
+    // Watchdog polling setup
+    private static final long WATCHDOG_INITIAL_DELAY_MS = 30_000L;
+    private static final long WATCHDOG_INTERVAL_MS      = 10_000L;
 
     private static ShieldApplication instance;
 
@@ -39,22 +28,25 @@ public class ShieldApplication extends Application {
     private UnifiedDetectionEngine detectionEngine;
     private EventMerger            eventMerger;
 
+    private final Handler  watchdogHandler  = new Handler(Looper.getMainLooper());
+    private       Runnable watchdogRunnable;
+    private volatile boolean watchdogEnabled = false;
+
     @Override
     public void onCreate() {
         super.onCreate();
         instance = this;
         Log.i(TAG, "ShieldApplication initialised");
+        startWatchdog();
     }
 
     public static ShieldApplication get() {
         return instance;
     }
 
-    // -------------------------------------------------------------------------
-    // Shared component accessors (lazy, thread-safe)
-    // -------------------------------------------------------------------------
+    // Shared component accessors
 
-    /** Returns the single SnapshotManager for this process. */
+    // Shared SnapshotManager
     public synchronized SnapshotManager getSnapshotManager() {
         if (snapshotManager == null) {
             snapshotManager = new SnapshotManager(this);
@@ -63,12 +55,7 @@ public class ShieldApplication extends Application {
         return snapshotManager;
     }
 
-    /**
-     * Returns the single UnifiedDetectionEngine for this process.
-     * The engine is created with the shared SnapshotManager so that attack
-     * tracking and backup restores stay in sync regardless of which service
-     * triggers a detection.
-     */
+    // Shared detection engine
     public synchronized UnifiedDetectionEngine getDetectionEngine() {
         if (detectionEngine == null) {
             detectionEngine = new UnifiedDetectionEngine(this, getSnapshotManager());
@@ -77,10 +64,7 @@ public class ShieldApplication extends Application {
         return detectionEngine;
     }
 
-    /**
-     * Returns the single EventMerger so Mode A and Mode B events about the
-     * same file write are deduplicated into one database row.
-     */
+    // Shared event merger
     public synchronized EventMerger getEventMerger() {
         if (eventMerger == null) {
             eventMerger = new EventMerger();
@@ -88,15 +72,9 @@ public class ShieldApplication extends Application {
         return eventMerger;
     }
 
-    // -------------------------------------------------------------------------
-    // Lifecycle management — called by ShieldProtectionService.onDestroy()
-    // -------------------------------------------------------------------------
+    // Application lifecycle management
 
-    /**
-     * Tears down the detection engine and snapshot manager so they are
-     * re-created fresh if the service is restarted by the watchdog.
-     * Must only be called by ShieldProtectionService.
-     */
+    // Shutdown shared components
     public synchronized void shutdownEngine() {
         if (detectionEngine != null) {
             detectionEngine.shutdown();
@@ -109,5 +87,51 @@ public class ShieldApplication extends Application {
             Log.i(TAG, "SnapshotManager shut down");
         }
         eventMerger = null;
+    }
+
+    // Service watchdog layer
+
+    // Start periodic watchdog
+    public void startWatchdog() {
+        if (watchdogEnabled) return;
+        watchdogEnabled = true;
+
+        watchdogRunnable = new Runnable() {
+            @Override public void run() {
+                if (!watchdogEnabled) return;
+                if (!isServiceRunning(ShieldProtectionService.class)) {
+                    Log.w(TAG, "Watchdog: ShieldProtectionService not running — restarting");
+                    Intent intent = new Intent(ShieldApplication.this, ShieldProtectionService.class);
+                    try {
+                        startService(intent);
+                    } catch (Exception e) {
+                        Log.e(TAG, "Watchdog: Failed to restart ShieldProtectionService", e);
+                    }
+                }
+                watchdogHandler.postDelayed(this, WATCHDOG_INTERVAL_MS);
+            }
+        };
+
+        watchdogHandler.postDelayed(watchdogRunnable, WATCHDOG_INITIAL_DELAY_MS);
+        Log.i(TAG, "Watchdog started (initial delay " + WATCHDOG_INITIAL_DELAY_MS / 1000 + "s, interval " + WATCHDOG_INTERVAL_MS / 1000 + "s)");
+    }
+
+    // Stop periodic watchdog
+    public void stopWatchdog() {
+        watchdogEnabled = false;
+        watchdogHandler.removeCallbacks(watchdogRunnable);
+        Log.i(TAG, "Watchdog stopped");
+    }
+
+    @SuppressWarnings("deprecation")
+    private boolean isServiceRunning(Class<?> serviceClass) {
+        ActivityManager am = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
+        if (am == null) return false;
+        for (ActivityManager.RunningServiceInfo svc : am.getRunningServices(Integer.MAX_VALUE)) {
+            if (serviceClass.getName().equals(svc.service.getClassName())) {
+                return true;
+            }
+        }
+        return false;
     }
 }

@@ -50,3 +50,33 @@ download_*.py
 *.csv
 *.csv.gz
 *.zip
+
+# --- Logs & Performance reports ---
+*.log
+hs_err_pid*
+replay_pid*
+build.log
+build_errors*.txt
+build_output_*.txt
+test_output*.txt
+test_results.txt
+test_errors.txt
+full_log*.txt
+kill_test_output*.txt
+final_test_report.txt
+shield_services.txt
+countofSamplesinEachMalwareCategoryBeforeAndAfterReboot.txt
+shield_calibration_report.txt
+view_hierarchy*.xml
+*.apk
+
+# --- Simulator & Ransim internals ---
+crash_log.txt
+ransim_logs.txt
+/RansomwareSimulator/ransim/shield_ransim_sandbox/
+
+# --- Database / App data exports ---
+*.db
+*.db-shm
+*.db-wal
+shield_thresholds.json

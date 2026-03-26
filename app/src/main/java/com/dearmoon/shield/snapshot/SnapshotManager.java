@@ -3,6 +3,7 @@ package com.dearmoon.shield.snapshot;
 import android.content.Context;
 import android.util.Log;
 
+import com.dearmoon.shield.utils.PathNormalizer;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -13,22 +14,10 @@ import java.util.concurrent.Executors;
 
 import javax.crypto.SecretKey;
 
-/**
- * SnapshotManager â€“ v2
- *
- * Integrates all 7 snapshot security enhancements:
- *
- *  1. Hash Chain Linking        â€“ every backup entry includes a chain_hash that
- *                                  links to the previous entry, forming a tamper-evident ledger.
- *  2. AES-256-GCM file encryption â€“ each backup file is encrypted before being written to disk.
- *  3. DB column protection       â€“ backup_path is stored encrypted in the database.
- *  4. Startup integrity check    â€“ chain + backup existence verified on construction.
- *  5. Backup directory monitoring â€“ SnapshotDirectoryObserver watches secure_backups/.
- *  6. Per-file key rotation      â€“ every backup uses its own AES-256 key wrapped by Keystore.
- *  7. Retention policy           â€“ keeps â‰¤RETENTION_MAX_FILES files and â‰¤RETENTION_MAX_BYTES.
- */
+// SnapshotManager v2
+// Implements 7 enhancements
 public class SnapshotManager {
-    // Broadcast action constants for user notification
+    // UI broadcast constants
     public static final String ACTION_ATTACK_STARTED = "com.dearmoon.shield.ATTACK_STARTED";
     public static final String ACTION_ATTACK_STOPPED = "com.dearmoon.shield.ATTACK_STOPPED";
     public static final String ACTION_SNAPSHOT_COMPLETE = "com.dearmoon.shield.SNAPSHOT_COMPLETE";
@@ -36,7 +25,7 @@ public class SnapshotManager {
     private static final String TAG = "SnapshotManager";
     private static final String BACKUP_DIR = "secure_backups";
 
-    // â”€â”€ Retention limits (Feature 7) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // Retention limits
     private static final int  RETENTION_MAX_FILES = 100;
     private static final long RETENTION_MAX_BYTES = 200L * 1024 * 1024; // 200 MB
 
@@ -46,8 +35,8 @@ public class SnapshotManager {
     private final SnapshotDatabase          database;
     private final ExecutorService           executor;
     private final File                      backupRoot;
-    private final BackupEncryptionManager   encManager;      // Features 2, 3, 6
-    private final SnapshotDirectoryObserver dirObserver;     // Feature 5
+    private final BackupEncryptionManager   encManager;      // Encryption features
+    private final SnapshotDirectoryObserver dirObserver;     // Directory monitoring
     private long                            currentSnapshotId;
     private long                            activeAttackId = 0;
 
@@ -59,17 +48,17 @@ public class SnapshotManager {
         this.backupRoot.mkdirs();
         this.currentSnapshotId = System.currentTimeMillis();
 
-        // Feature 2 & 6: Encryption manager (initialises Keystore keys)
+        // Initialize encryption manager
         this.encManager = new BackupEncryptionManager(context);
 
-        // Feature 5: Start watching the backup directory for tampering
+        // Start directory observer
         this.dirObserver = new SnapshotDirectoryObserver(context, backupRoot.getAbsolutePath());
         this.dirObserver.startWatching();
 
-        // Feature 4: Run integrity self-check asynchronously so startup is not blocked
+        // Async integrity check
         executor.execute(() -> performIntegrityCheck());
 
-        // Harden: Check and close any stale attack window on startup
+        // Close stale windows
         checkAndCloseStaleAttackWindow();
     }
 
@@ -128,8 +117,9 @@ public class SnapshotManager {
     }
 
     /** Called by FileSystemCollector whenever a file change is detected. */
-    public void trackFileChange(String filePath) {
+    public void trackFileChange(String rawPath) {
         executor.execute(() -> {
+            String filePath = PathNormalizer.normalize(rawPath);
             File file = new File(filePath);
             if (!file.exists()) {
                 handleFileDeletion(filePath);
@@ -138,11 +128,7 @@ public class SnapshotManager {
 
             FileMetadata existing = database.getFileMetadata(filePath);
 
-            // During an active attack, protect clean backups from being overwritten
-            // by ransomware-encrypted versions.  If the file was already safely backed
-            // up before the attack started, skip re-backup and just record the touch.
-            // Files that have never been backed up are allowed through — they may still
-            // be in their original, unencrypted state and must be captured now.
+            // Protect clean backups
             if (activeAttackId > 0 && existing != null && existing.isBackedUp) {
                 Log.w(TAG, "Skipping re-backup for already-protected file during attack: " + filePath);
                 if (existing.modifiedDuringAttack == 0) {
@@ -164,7 +150,7 @@ public class SnapshotManager {
     }
 
     public void startAttackTracking() {
-        // Harden: Prevent overlapping attack windows
+        // Prevent overlapping attacks
         if (activeAttackId > 0 && database.isAttackWindowActive(activeAttackId)) {
             Log.w(TAG, "Attempted to start attack tracking while another attack is active: " + activeAttackId);
             return;
@@ -175,7 +161,7 @@ public class SnapshotManager {
         android.content.Intent intent = new android.content.Intent(ACTION_ATTACK_STARTED);
         intent.putExtra("attack_id", activeAttackId);
         context.sendBroadcast(intent);
-        // Mitigation: Immediately snapshot all files changed in the last 10 seconds
+        // Quick pre-attack snapshot
         executor.execute(() -> {
             long now = System.currentTimeMillis();
             long windowMs = 10_000; // 10 seconds
@@ -193,7 +179,7 @@ public class SnapshotManager {
     }
 
     public void stopAttackTracking() {
-        // Harden: Idempotent and only close if active
+        // Safe attack stop
         if (activeAttackId > 0 && database.isAttackWindowActive(activeAttackId)) {
             database.endAttackWindow(activeAttackId);
             Log.i(TAG, "Attack tracking stopped: " + activeAttackId);
@@ -233,14 +219,9 @@ public class SnapshotManager {
         executor.shutdown();
     }
 
-    // =========================================================================
-    //  Feature 4 â€“ Integrity self-check (called on startup & on demand)
-    // =========================================================================
+    // Integrity self-check
 
-    /**
-     * Re-validate the entire snapshot chain and all backup file existences.
-     * Broadcasts SNAPSHOT_TAMPER_ALERT if anything is wrong.
-     */
+    // Validate chain
     public SnapshotIntegrityChecker.IntegrityResult performIntegrityCheck() {
         SnapshotIntegrityChecker checker = new SnapshotIntegrityChecker();
         SnapshotIntegrityChecker.IntegrityResult result =
@@ -280,7 +261,7 @@ public class SnapshotManager {
             String hash   = calculateHash(file);
 
             FileMetadata metadata = new FileMetadata(
-                    file.getAbsolutePath(), size, modified, hash, currentSnapshotId);
+                    PathNormalizer.normalize(file.getAbsolutePath()), size, modified, hash, currentSnapshotId);
 
             // Persist the metadata entry first
             database.insertOrUpdateFile(metadata);
@@ -312,39 +293,32 @@ public class SnapshotManager {
             database.insertOrUpdateFile(existing);
             Log.w(TAG, "File modified: " + file.getName());
         } catch (Exception e) {
-            Log.e(TAG, "Failed to handle modification: " + file.getAbsolutePath(), e);
+            Log.e(TAG, "Failed to handle modification: " + PathNormalizer.normalize(file.getAbsolutePath()), e);
         }
     }
 
-    /**
-     * Back up {@code file} before it is overwritten/deleted.
-     *
-     * Feature 2 â€“ AES-256-GCM encryption of the backup file.
-     * Feature 3 â€“ backup_path stored encrypted in the DB.
-     * Feature 6 â€“ unique per-file key wrapped with Keystore master key.
-     * Feature 1 â€“ chain_hash computed after encryption and stored.
-     */
+    // Backup original file
     private void backupOriginalFile(File file, FileMetadata metadata) {
-        // Declared outside try so the catch block can delete a partially-written .enc file
+        // Safe encryption closure
         File encBackupFile = null;
         try {
-            // â”€â”€ Feature 6: Generate and wrap a fresh per-file AES-256 key â”€â”€â”€â”€
+            // Key rotation generation
             byte[] wrappedKey = encManager.generateAndWrapSnapshotKey();
             SecretKey fileKey  = encManager.unwrapSnapshotKey(wrappedKey);
 
-            // â”€â”€ Feature 2: Encrypt backup file with per-file key â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            // Encrypt backup file
             String encFileName = metadata.snapshotId + "_" + file.getName() + ".enc";
             encBackupFile = new File(backupRoot, encFileName);
             encManager.encryptFile(file, encBackupFile, fileKey);
 
-            // â”€â”€ Feature 3: Encrypt backup_path column before storing â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            // Encrypt metadata path
             String encPath = encManager.encryptColumn(encBackupFile.getAbsolutePath());
 
             metadata.backupPath  = encPath;
             metadata.isBackedUp  = true;
             metadata.encryptedKey = wrappedKey;
 
-            // â”€â”€ Feature 1: Compute and append hash chain link â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            // Compute hash chain
             String previousChainHash = database.getLastChainHash();
             String metaHash          = SnapshotIntegrityChecker.computeMetadataHash(metadata);
             String chainHash         = SnapshotIntegrityChecker.computeChainHash(previousChainHash, metaHash);
@@ -352,11 +326,7 @@ public class SnapshotManager {
 
             database.insertOrUpdateFile(metadata);
 
-            // -- Feature 7: Enforce retention policy after every backup.
-            // SAFETY: Skip purging while an attack is active (activeAttackId > 0).
-            // The policy always deletes the oldest entries first; during an attack
-            // those are the pre-attack clean copies that the restore engine needs.
-            // The retention sweep resumes once the attack is resolved.
+            // Skip purge during attack
             if (activeAttackId == 0) {
                 enforceRetentionPolicy();
             }
@@ -382,20 +352,12 @@ public class SnapshotManager {
         }
     }
 
-    // =========================================================================
-    //  Feature 7 â€“ Retention policy
-    // =========================================================================
+    // Retention policy
 
-    /**
-     * Prune old backups so that:
-     *   â€“ at most RETENTION_MAX_FILES backup entries exist, and
-     *   â€“ total backup storage stays under RETENTION_MAX_BYTES.
-     *
-     * The oldest entries (lowest DB row id) are removed first.
-     */
+    // Prune old backups
     private void enforceRetentionPolicy() {
         try {
-            // â”€â”€ File-count limit â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            // File-count limit
             int backedUp = database.getBackedUpFileCount();
             if (backedUp > RETENTION_MAX_FILES) {
                 int excess = backedUp - RETENTION_MAX_FILES;
@@ -404,7 +366,7 @@ public class SnapshotManager {
                 Log.i(TAG, "Retention: pruned " + oldest.size() + " entries (file-count limit)");
             }
 
-            // â”€â”€ Storage size limit â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            // Storage size limit
             long totalSize = calculateBackupDirSize();
             while (totalSize > RETENTION_MAX_BYTES) {
                 List<FileMetadata> oldest = database.getOldestBackedUpFiles(1);
@@ -418,7 +380,7 @@ public class SnapshotManager {
         }
     }
 
-    /** Remove one backup entry: delete the encrypted file and the DB row. */
+    // Remove backup entry
     private void pruneEntry(FileMetadata m) {
         try {
             // Decrypt path to find the actual file
@@ -453,12 +415,12 @@ public class SnapshotManager {
         long size = file.length();
         try (FileInputStream fis = new FileInputStream(file)) {
             if (size <= 500L * 1024 * 1024) {
-                // Full streaming hash for files up to 500 MB
+                // Full streaming hash
                 byte[] buffer = new byte[65536];
                 int n;
                 while ((n = fis.read(buffer)) != -1) digest.update(buffer, 0, n);
             } else {
-                // M-03 partial hash for very large files: first 1 MB + last 1 MB + size
+                // Partial large-file hash
                 byte[] buf = new byte[1024 * 1024];
                 int n = fis.read(buf);
                 if (n > 0) digest.update(buf, 0, n);

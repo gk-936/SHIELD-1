@@ -5,45 +5,80 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.LinearLayout;
-import android.widget.ScrollView;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.coordinatorlayout.widget.CoordinatorLayout;
 import androidx.viewbinding.ViewBinding;
 import androidx.viewbinding.ViewBindings;
 import com.dearmoon.shield.ransim.R;
+import com.google.android.material.appbar.MaterialToolbar;
+import com.google.android.material.button.MaterialButton;
+import com.google.android.material.card.MaterialCardView;
 import java.lang.NullPointerException;
 import java.lang.Override;
 import java.lang.String;
 
 public final class ActivityMainBinding implements ViewBinding {
   @NonNull
-  private final ScrollView rootView;
+  private final CoordinatorLayout rootView;
+
+  @NonNull
+  public final MaterialButton btnReset;
+
+  @NonNull
+  public final MaterialButton btnStopAll;
+
+  @NonNull
+  public final MaterialCardView logCard;
+
+  @NonNull
+  public final TextView logPanel;
 
   @NonNull
   public final LinearLayout mainContentRoot;
 
   @NonNull
+  public final MaterialCardView permissionCard;
+
+  @NonNull
+  public final LinearLayout permissionContainer;
+
+  @NonNull
+  public final LinearLayout scenarioContainer;
+
+  @NonNull
+  public final TextView scenarioHeader;
+
+  @NonNull
   public final TextView statusBar;
 
   @NonNull
-  public final TextView subtitle;
+  public final MaterialToolbar toolbar;
 
-  @NonNull
-  public final TextView title;
-
-  private ActivityMainBinding(@NonNull ScrollView rootView, @NonNull LinearLayout mainContentRoot,
-      @NonNull TextView statusBar, @NonNull TextView subtitle, @NonNull TextView title) {
+  private ActivityMainBinding(@NonNull CoordinatorLayout rootView, @NonNull MaterialButton btnReset,
+      @NonNull MaterialButton btnStopAll, @NonNull MaterialCardView logCard,
+      @NonNull TextView logPanel, @NonNull LinearLayout mainContentRoot,
+      @NonNull MaterialCardView permissionCard, @NonNull LinearLayout permissionContainer,
+      @NonNull LinearLayout scenarioContainer, @NonNull TextView scenarioHeader,
+      @NonNull TextView statusBar, @NonNull MaterialToolbar toolbar) {
     this.rootView = rootView;
+    this.btnReset = btnReset;
+    this.btnStopAll = btnStopAll;
+    this.logCard = logCard;
+    this.logPanel = logPanel;
     this.mainContentRoot = mainContentRoot;
+    this.permissionCard = permissionCard;
+    this.permissionContainer = permissionContainer;
+    this.scenarioContainer = scenarioContainer;
+    this.scenarioHeader = scenarioHeader;
     this.statusBar = statusBar;
-    this.subtitle = subtitle;
-    this.title = title;
+    this.toolbar = toolbar;
   }
 
   @Override
   @NonNull
-  public ScrollView getRoot() {
+  public CoordinatorLayout getRoot() {
     return rootView;
   }
 
@@ -68,32 +103,75 @@ public final class ActivityMainBinding implements ViewBinding {
     // This is done to optimize the compiled bytecode for size and performance.
     int id;
     missingId: {
+      id = R.id.btn_reset;
+      MaterialButton btnReset = ViewBindings.findChildViewById(rootView, id);
+      if (btnReset == null) {
+        break missingId;
+      }
+
+      id = R.id.btn_stop_all;
+      MaterialButton btnStopAll = ViewBindings.findChildViewById(rootView, id);
+      if (btnStopAll == null) {
+        break missingId;
+      }
+
+      id = R.id.log_card;
+      MaterialCardView logCard = ViewBindings.findChildViewById(rootView, id);
+      if (logCard == null) {
+        break missingId;
+      }
+
+      id = R.id.log_panel;
+      TextView logPanel = ViewBindings.findChildViewById(rootView, id);
+      if (logPanel == null) {
+        break missingId;
+      }
+
       id = R.id.main_content_root;
       LinearLayout mainContentRoot = ViewBindings.findChildViewById(rootView, id);
       if (mainContentRoot == null) {
         break missingId;
       }
 
-      id = R.id.statusBar;
+      id = R.id.permission_card;
+      MaterialCardView permissionCard = ViewBindings.findChildViewById(rootView, id);
+      if (permissionCard == null) {
+        break missingId;
+      }
+
+      id = R.id.permission_container;
+      LinearLayout permissionContainer = ViewBindings.findChildViewById(rootView, id);
+      if (permissionContainer == null) {
+        break missingId;
+      }
+
+      id = R.id.scenario_container;
+      LinearLayout scenarioContainer = ViewBindings.findChildViewById(rootView, id);
+      if (scenarioContainer == null) {
+        break missingId;
+      }
+
+      id = R.id.scenario_header;
+      TextView scenarioHeader = ViewBindings.findChildViewById(rootView, id);
+      if (scenarioHeader == null) {
+        break missingId;
+      }
+
+      id = R.id.status_bar;
       TextView statusBar = ViewBindings.findChildViewById(rootView, id);
       if (statusBar == null) {
         break missingId;
       }
 
-      id = R.id.subtitle;
-      TextView subtitle = ViewBindings.findChildViewById(rootView, id);
-      if (subtitle == null) {
+      id = R.id.toolbar;
+      MaterialToolbar toolbar = ViewBindings.findChildViewById(rootView, id);
+      if (toolbar == null) {
         break missingId;
       }
 
-      id = R.id.title;
-      TextView title = ViewBindings.findChildViewById(rootView, id);
-      if (title == null) {
-        break missingId;
-      }
-
-      return new ActivityMainBinding((ScrollView) rootView, mainContentRoot, statusBar, subtitle,
-          title);
+      return new ActivityMainBinding((CoordinatorLayout) rootView, btnReset, btnStopAll, logCard,
+          logPanel, mainContentRoot, permissionCard, permissionContainer, scenarioContainer,
+          scenarioHeader, statusBar, toolbar);
     }
     String missingId = rootView.getResources().getResourceName(id);
     throw new NullPointerException("Missing required view with ID: ".concat(missingId));

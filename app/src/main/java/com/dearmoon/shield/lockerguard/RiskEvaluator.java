@@ -16,6 +16,10 @@ public class RiskEvaluator {
     private final Map<String, Long> lastDecay = new HashMap<>();
 
     public synchronized int evaluateRisk(String packageName, String eventType) {
+        return evaluateRisk(packageName, eventType, false);
+    }
+
+    public synchronized int evaluateRisk(String packageName, String eventType, boolean isSystemWindow) {
         long now = System.currentTimeMillis();
         
         applyDecay(packageName, now);
@@ -28,9 +32,12 @@ public class RiskEvaluator {
                 score += 25;
                 break;
             case "FULLSCREEN_WINDOW_STACK":
-                // Stronger signal: observed as a separate topmost window in the system window stack.
-                // This catches non-focusable application overlays (e.g., simulation lockers).
-                score += 45;
+                // System overlay risk increment
+                score += isSystemWindow ? 75 : 40;
+                break;
+            case "PERSISTENT_OVER_LAUNCHER":
+                // Launcher persistence signal
+                score += 50;
                 break;
             case "RAPID_FOCUS_REGAIN":
                 score += 30;
@@ -48,7 +55,7 @@ public class RiskEvaluator {
         
         packageScores.put(packageName, Math.min(score, 100));
         
-        Log.d(TAG, packageName + " risk: " + score + " (" + eventType + ")");
+        Log.d(TAG, packageName + " risk: " + score + " (" + eventType + ", system=" + isSystemWindow + ")");
         return score;
     }
 
@@ -56,10 +63,19 @@ public class RiskEvaluator {
         return packageScores.getOrDefault(packageName, 0) >= THRESHOLD;
     }
 
+    // Full risk reset
     public void reset(String packageName) {
         packageScores.remove(packageName);
         eventHistory.remove(packageName);
         lastDecay.remove(packageName);
+    }
+
+    // Partial risk reset
+    public void partialReset(String packageName) {
+        packageScores.put(packageName, 30);
+        // Clear event history
+        eventHistory.remove(packageName);
+        Log.d(TAG, packageName + " partial reset: score retained at 30");
     }
 
     private void applyDecay(String packageName, long now) {
