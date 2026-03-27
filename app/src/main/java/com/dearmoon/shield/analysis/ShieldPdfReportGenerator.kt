@@ -290,18 +290,13 @@ object ShieldPdfReportGenerator {
         val left = 36f
         val lh = 16f
         
-        val rsVal = formatRupees(profile.estimatedRansomRupees)
-        
         c.drawText("Detection Time:   ", left, y + lh, labelBoldPaint)
         c.drawText("${profile.detectionTimeSeconds}s", left + 85f, y + lh, valuePaint)
         
         c.drawText("Files Protected:  ", left, y + lh * 2, labelBoldPaint)
         c.drawText("${profile.filesRestoredCount}", left + 85f, y + lh * 2, valuePaint)
-        
-        c.drawText("Financial Risk:   ", left, y + lh * 3, labelBoldPaint)
-        c.drawText("$rsVal estimated", left + 85f, y + lh * 3, valuePaint)
 
-        return y + (lh * 3) + 48f
+        return y + (lh * 2) + 48f
     }
 
     private fun drawIncidentClassification(
@@ -324,8 +319,6 @@ object ShieldPdfReportGenerator {
             "Primary Detector:" to profile.primaryDetector,
             "Confidence:" to confidenceLabel,
             "SPRT Decision:" to if (profile.sprtAcceptedH1) "ACCEPT H1" else "ACCEPT H0",
-            "Entropy Score:" to "${profile.entropyScore}/40",
-            "KLD Score:" to "${profile.kldScore}/30",
             "Composite Score:" to "$normalizedScore/100" // normalized 
         )
 
@@ -389,13 +382,9 @@ object ShieldPdfReportGenerator {
             else                                                                -> "TOTAL"
         }
 
-        val savings = formatRupees(profile.filesRestoredCount.toLong() * 15_000L)
-        
         y = drawTableRow(c, "Files Modified", "${profile.filesEncryptedEstimate}", y, 36f, 523f, false)
         y = drawTableRow(c, "Files Restored", "${profile.filesRestoredCount}", y, 36f, 523f, true)
         y = drawTableRow(c, "Data Loss", dataLossLabel, y, 36f, 523f, false)
-        y = drawTableRow(c, "Ransom Demanded", formatRupees(profile.estimatedRansomRupees), y, 36f, 523f, true)
-        y = drawTableRow(c, "Savings via SHIELD", savings, y, 36f, 523f, false)
 
         if (profile.filesRestoredCount > 0) {
             y += 8f
@@ -496,13 +485,6 @@ object ShieldPdfReportGenerator {
         return y + rowH
     }
 
-    private fun formatRupees(amount: Long): String {
-        return "Rs. " + if (amount >= 100_000L) {
-            "${amount / 100_000}.${(amount % 100_000) / 10_000}L"
-        } else {
-            "$amount"
-        }
-    }
 
     /** Ensure we don't present raw "UNKNOWN", "null", or empty to a pro analyst. */
     private fun sanitizeString(s: String?): String {

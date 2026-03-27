@@ -24,7 +24,6 @@ object RansomwareDnaProfiler {
     private const val TAG = "SHIELD_DNA"
     private const val SHIELD_VERSION = "SHIELD-1 MVP"
     private const val MAX_TIMELINE_EVENTS = 50
-    private const val RANSOM_RUPEES_PER_FILE = 15_000L   // Indian SME average ransom per file
 
     // ─────────────────────────────────────────────────────────────────────────
     // Public API
@@ -60,8 +59,10 @@ object RansomwareDnaProfiler {
 
             // ── 2. Count file modification events in window ───────────────────
             val fileModCount = queryCount(db,
-                "SELECT COUNT(*) FROM file_system_events WHERE timestamp BETWEEN ? AND ? AND (operation='WRITE' OR operation='MODIFY')",
+                "SELECT COUNT(*) FROM file_system_events WHERE timestamp BETWEEN ? AND ? AND (operation='MODIFY' OR operation='DELETED' OR operation='COMPRESSED')",
                 attackWindowStart, attackWindowEnd)
+
+            Log.d(TAG, "buildProfile() metrics: locker=$lockerEventCount mod=$fileModCount windowSec=${((attackWindowEnd - attackWindowStart) / 1000L)}")
 
             // ── 3. Derive file modification rate (files per second) ────────────
             val windowSeconds = ((attackWindowEnd - attackWindowStart) / 1000L).coerceAtLeast(1L)
@@ -108,6 +109,7 @@ object RansomwareDnaProfiler {
 
             // ── 7. Targeted extensions (top 5 by frequency) ──────────────────
             val targetedExtensions = queryTopExtensions(db, attackWindowStart, attackWindowEnd)
+            val diversityCount     = queryFileTypeDiversity(db, attackWindowStart, attackWindowEnd)
 
             // ── 8. Directory priority string ──────────────────────────────────
             val targetPriority = queryDirectoryPriority(db, attackWindowStart, attackWindowEnd)
@@ -130,7 +132,6 @@ object RansomwareDnaProfiler {
             // ── 12. Damage assessment ─────────────────────────────────────────
             val filesEncryptedEstimate = fileModCount
             val dataLossOccurred = filesEncryptedEstimate > restoredFileCount
-            val estimatedRansomRupees = totalFilesAtRisk.toLong() * RANSOM_RUPEES_PER_FILE
 
             // ── 13. Attribution — use most recent correlation result ──────────
             val (suspectPackage, suspectAppName) =
@@ -158,6 +159,7 @@ object RansomwareDnaProfiler {
                 sprtAcceptedH1             = sprtAcceptedH1,
                 primaryDetector            = primaryDetector,
                 confidenceLevel            = confidenceLevel,
+                fileTypeDiversity          = diversityCount,
                 encryptionSpeedFilesPerMin = encryptionSpeedFilesPerMin,
                 attackDurationSeconds      = attackDurationSeconds,
                 detectionTimeSeconds       = detectionTimeSeconds,
@@ -173,7 +175,6 @@ object RansomwareDnaProfiler {
                 filesEncryptedEstimate     = filesEncryptedEstimate,
                 filesRestoredCount         = restoredFileCount,
                 dataLossOccurred           = dataLossOccurred,
-                estimatedRansomRupees      = estimatedRansomRupees,
                 suspectPackage             = suspectPackage,
                 suspectAppName             = suspectAppName,
                 timelineEvents             = timelineEvents
@@ -201,15 +202,22 @@ object RansomwareDnaProfiler {
             try {
                 // Find the most recent detection result with a high confidence score
                 val cursor = db.readableDatabase.rawQuery(
-                    "SELECT timestamp, confidence_score FROM detection_results " +
+                    "SELECT timestamp, confidence_score, entropy, kl_divergence, sprt_state FROM detection_results " +
                     "WHERE confidence_score >= 40 ORDER BY timestamp DESC LIMIT 1",
                     null
                 )
                 if (!cursor.moveToFirst()) { cursor.close(); return@withContext null }
 
-                val latestTs = cursor.getLong(0)
+                val latestTs    = cursor.getLong(0)
                 val latestScore = cursor.getInt(1)
+                val rawEntropy  = cursor.getDouble(2)
+                val rawKld      = cursor.getDouble(3)
+                val sprtState   = cursor.getString(4)
                 cursor.close()
+
+                // Calculate the constituent forensic scores from raw metrics (mapping REAL -> Score)
+                val entropyScoreValue = calculateEntropyScore(rawEntropy)
+                val kldScoreValue     = calculateKldScore(rawKld)
 
                 // Use a 60-second window before the detection timestamp
                 val windowStart = latestTs - 60_000L
@@ -220,9 +228,9 @@ object RansomwareDnaProfiler {
                     attackWindowStart  = windowStart,
                     attackWindowEnd    = windowEnd,
                     compositeScore     = latestScore,
-                    entropyScore       = 0,
-                    kldScore           = 0,
-                    sprtAcceptedH1     = latestScore >= 70,
+                    entropyScore       = entropyScoreValue,
+                    kldScore           = kldScoreValue,
+                    sprtAcceptedH1     = "ACCEPT_H1".equals(sprtState),
                     restoredFileCount  = 0
                 )
             } catch (e: Exception) {
@@ -230,6 +238,29 @@ object RansomwareDnaProfiler {
                 null
             }
         }
+
+    /**
+     * Maps raw entropy metric (REAL) to the 40-point forensic scale used in SHIELD UI.
+     */
+    private fun calculateEntropyScore(entropy: Double): Int {
+        return when {
+            entropy > 7.9 -> 25
+            entropy > 7.5 -> 15
+            entropy > 7.0 -> 5
+            else          -> 0
+        }
+    }
+
+    /**
+     * Maps raw KL Divergence metric (REAL) to the 30-point forensic scale used in SHIELD UI.
+     */
+    private fun calculateKldScore(kld: Double): Int {
+        return when {
+            kld < 0.04 -> 15
+            kld < 0.08 -> 10
+            else       -> 0
+        }
+    }
 
     // ─────────────────────────────────────────────────────────────────────────
     // Private helpers
@@ -268,6 +299,26 @@ object RansomwareDnaProfiler {
         } catch (e: Exception) {
             Log.e(TAG, "queryTopExtensions failed", e)
             emptyList()
+        }
+    }
+
+    /**
+     * Computes the diversity of file types modified in the window.
+     * Diversity is the count of unique extensions found in file_system_events.
+     */
+    private fun queryFileTypeDiversity(db: EventDatabase, start: Long, end: Long): Int {
+        return try {
+            val cursor = db.readableDatabase.rawQuery(
+                "SELECT COUNT(DISTINCT file_extension) FROM file_system_events " +
+                "WHERE timestamp BETWEEN ? AND ? AND file_extension IS NOT NULL AND file_extension != ''",
+                arrayOf(start.toString(), end.toString())
+            )
+            val count = if (cursor.moveToFirst()) cursor.getInt(0) else 0
+            cursor.close()
+            count
+        } catch (e: Exception) {
+            Log.e(TAG, "queryFileTypeDiversity failed", e)
+            0
         }
     }
 
@@ -631,6 +682,7 @@ object RansomwareDnaProfiler {
         sprtAcceptedH1             = sprtH1,
         primaryDetector            = "Unknown",
         confidenceLevel            = "LOW",
+        fileTypeDiversity          = 0,
         encryptionSpeedFilesPerMin = 0f,
         attackDurationSeconds      = (end - start) / 1000L,
         detectionTimeSeconds       = 0L,
@@ -646,7 +698,6 @@ object RansomwareDnaProfiler {
         filesEncryptedEstimate     = 0,
         filesRestoredCount         = restoredCount,
         dataLossOccurred           = false,
-        estimatedRansomRupees      = 0L,
         suspectPackage             = null,
         suspectAppName             = null,
         timelineEvents             = emptyList()

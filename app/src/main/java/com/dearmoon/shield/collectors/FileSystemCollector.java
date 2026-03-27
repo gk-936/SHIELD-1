@@ -18,7 +18,7 @@ public class FileSystemCollector extends FileObserver {
     private final TelemetryStorage storage;
     private com.dearmoon.shield.data.EventMerger eventMerger = new com.dearmoon.shield.data.EventMerger();
     private final String monitoredPath;
-    private UnifiedDetectionEngine detectionEngine;
+    private final com.dearmoon.shield.data.ShieldEventBus eventBus = com.dearmoon.shield.data.ShieldEventBus.getInstance();
     private SnapshotManager snapshotManager;
     private ShieldStats shieldStats;   // optional — set via setShieldStats()
 
@@ -63,8 +63,9 @@ public class FileSystemCollector extends FileObserver {
         return new String[] { filesDir, dbDir, dataDir, legacyDataDir };
     }
 
+    @Deprecated
     public void setDetectionEngine(UnifiedDetectionEngine engine) {
-        this.detectionEngine = engine;
+        // Obsolete: events are now published to ShieldEventBus
     }
 
     public void setSnapshotManager(SnapshotManager manager) {
@@ -147,13 +148,12 @@ public class FileSystemCollector extends FileObserver {
             }
         }
 
-        // Forward to engine
-        if (detectionEngine != null && isCloseWrite) {
+        // Forward to framework via EventBus
+        if (isCloseWrite) {
             File file = new File(fullPath);
             long size = file.exists() ? file.length() : 0;
             FileSystemEvent detectionEvent = new FileSystemEvent(fullPath, "MODIFY", size, size);
-            detectionEngine.processFileEvent(detectionEvent);
-            Log.d(TAG, "Forwarded to detection engine: MODIFY - " + fullPath);
+            eventBus.publishFileSystemEvent(detectionEvent);
         }
 
         // Track snapshot changes

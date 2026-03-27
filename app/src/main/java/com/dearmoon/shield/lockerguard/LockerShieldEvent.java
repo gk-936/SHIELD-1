@@ -39,4 +39,8 @@ public class LockerShieldEvent extends TelemetryEvent {
     public int getRiskScore() {
         return riskScore;
     }
+
+    public String getThreatType() {
+        return threatType;
+    }
 }

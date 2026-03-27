@@ -27,7 +27,6 @@ public class RecursiveFileSystemCollector {
     private final String rootPath;
     private final Context context;           // Path exclusion context
     private final ShieldStats shieldStats;   // Shared stats object
-    private UnifiedDetectionEngine detectionEngine;
     private SnapshotManager snapshotManager;
     private com.dearmoon.shield.data.EventMerger sharedEventMerger;
     private final List<FileSystemCollector> collectors = new ArrayList<>();
@@ -46,9 +45,7 @@ public class RecursiveFileSystemCollector {
         this.shieldStats = new ShieldStats(context);
     }
     
-    public void setDetectionEngine(UnifiedDetectionEngine engine) {
-        this.detectionEngine = engine;
-    }
+
     
     public void setSnapshotManager(SnapshotManager manager) {
         this.snapshotManager = manager;
@@ -95,10 +92,6 @@ public class RecursiveFileSystemCollector {
             FileSystemCollector collector = new FileSystemCollector(
                 directory.getAbsolutePath(), storage, context);
             
-            if (detectionEngine != null) {
-                collector.setDetectionEngine(detectionEngine);
-            }
-            
             if (snapshotManager != null) {
                 collector.setSnapshotManager(snapshotManager);
             }
@@ -123,15 +116,19 @@ public class RecursiveFileSystemCollector {
         File[] subdirs = directory.listFiles(File::isDirectory);
         if (subdirs != null) {
             for (File subdir : subdirs) {
-                // Skip private directories
+                // Skip private directories unless they are the specific monitored target
                 String name = subdir.getName();
                 String absPath = subdir.getAbsolutePath();
-                if (name.startsWith(".") || name.equals("Android") || name.equals("cache")) {
+                
+                // FIXED: Don't skip if the path is explicitly allowed or a sub-path of an allowed root
+                boolean isInternalSystem = name.equals("Android") || name.equals("cache");
+                if (name.startsWith(".") || (isInternalSystem && !absPath.startsWith(rootPath))) {
                     continue;
                 }
+                
                 // Exclude SHIELD's own private storage (Internal + External)
                 String internalPrivate = context.getFilesDir().getParentFile().getAbsolutePath();
-                File externalContextDir = context.getExternalFilesDir(null);
+                File externalContextDir = (context != null) ? context.getExternalFilesDir(null) : null;
                 String externalPrivate = (externalContextDir != null) ? 
                     externalContextDir.getParentFile().getAbsolutePath() : "";
 

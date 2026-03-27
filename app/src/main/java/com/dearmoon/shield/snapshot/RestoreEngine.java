@@ -41,31 +41,56 @@ public class RestoreEngine {
 
         RestoreResult result = new RestoreResult();
         if (attackId <= 0) {
-            Log.w(TAG, "Invalid attack ID: " + attackId);
-            result.noChanges = true;
-            return result;
+            Log.i(TAG, "No active attack ID provided. Initiating Deep System Integrity Audit...");
         }
 
         // Restore pre-attack files
         long attackStartTime = database.getAttackWindowStartTime(attackId);
         List<FileMetadata> allBackedUp = database.getAllBackedUpFiles();
         int restoreCandidates = 0;
+        // Active Healing: Proactively hunt for ransom victims
         for (FileMetadata metadata : allBackedUp) {
-            // Check pre-attack existence
-            if (metadata.lastModified <= attackStartTime) {
-                restoreCandidates++;
-                try {
+            try {
+                File onDisk = new File(metadata.filePath);
+                
+                // 🛡️ SHIELD HEALING LOGIC 🛡️
+                // 1. If we marked it during attack -> HEAL
+                // 2. If it has a ransom extension on disk (.enc, .locked) -> HEAL
+                // 3. (PROACTIVE) If file was modified recently AND hash changed from baseline -> HEAL
+                
+                boolean wasModified = (metadata.modifiedDuringAttack == attackId);
+                boolean isVictimOfRansom = isSuspectedVictimOnDisk(metadata.filePath);
+                boolean integrityFailed = false;
+
+                if (onDisk.exists()) {
+                    String currentHash = calculateQuickHash(onDisk);
+                    Log.d(TAG, "VERIFYING: " + metadata.filePath + " | OnDiskHash=" + currentHash + " | BaselineHash=" + metadata.sha256Hash);
+                    if (!currentHash.equals(metadata.sha256Hash) && !currentHash.equals("LARGE_FILE")) {
+                         Log.e(TAG, "INTEGRITY FAILURE: Hash mismatch detected for " + metadata.filePath);
+                         integrityFailed = true;
+                    }
+                } else {
+                    Log.w(TAG, "FILE MISSING: " + metadata.filePath + " - Recovery marked as mandatory");
+                    integrityFailed = true; // Heals deleted files too
+                }
+
+                if (wasModified || isVictimOfRansom || integrityFailed) {
                     RestoreAction action = restoreFile(metadata);
                     if (action == RestoreAction.RESTORED) {
                         result.restoredCount++;
-                        Log.i(TAG, "Restored: " + metadata.filePath);
+                        if (isVictimOfRansom) {
+                            Log.w(TAG, "ACTIVE HEALING: Restored ransom victim: " + metadata.filePath);
+                            cleanupRansomVictim(metadata.filePath);
+                        } else {
+                            Log.i(TAG, "Restored modified file: " + metadata.filePath);
+                        }
                     } else if (action == RestoreAction.FAILED) {
                         result.failedCount++;
                     }
-                } catch (Exception e) {
-                    Log.e(TAG, "Restore failed: " + metadata.filePath, e);
-                    result.failedCount++;
                 }
+            } catch (Exception e) {
+                Log.e(TAG, "Restore failed: " + metadata.filePath, e);
+                result.failedCount++;
             }
         }
 
@@ -177,6 +202,28 @@ public class RestoreEngine {
             return sb.toString();
         } catch (Exception e) {
             return "ERROR";
+        }
+    }
+
+    private boolean isSuspectedVictimOnDisk(String originalPath) {
+        String[] ransomExtensions = {".enc", ".locked", ".wncry", ".crypt", ".zepto", ".locky"};
+        for (String ext : ransomExtensions) {
+            if (new File(originalPath + ext).exists()) return true;
+        }
+        return false;
+    }
+
+    private void cleanupRansomVictim(String originalPath) {
+        String[] ransomExtensions = {".enc", ".locked", ".wncry", ".crypt", ".zepto", ".locky"};
+        for (String ext : ransomExtensions) {
+            File victim = new File(originalPath + ext);
+            if (victim.exists()) {
+                if (victim.delete()) {
+                    Log.w(TAG, "Deleted ransom victim: " + victim.getAbsolutePath());
+                } else {
+                    Log.e(TAG, "Failed to delete ransom victim: " + victim.getAbsolutePath());
+                }
+            }
         }
     }
 

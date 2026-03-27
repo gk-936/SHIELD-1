@@ -24,8 +24,10 @@ color yellow
 drawable bottom_fade_bg
 id btn_reset
 id btn_stop_all
+id locker_root
 id log_card
 id log_panel
+id log_scrollpane
 id main_content_root
 id password
 id passwordInput
@@ -38,6 +40,8 @@ id scenario_header
 id scenario_title
 id status_bar
 id stopTestButton
+id timer_text
+id title_text
 id toolbar
 id unlockButton
 layout activity_main

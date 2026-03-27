@@ -8,6 +8,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStreamReader;
 import java.util.zip.GZIPInputStream;
+import com.dearmoon.shield.security.RootShell;
 
 /**
  * ModeAController — pre-flight checks and daemon lifecycle for Mode-A.
@@ -56,21 +57,9 @@ public class ModeAController {
     // Root check
     // ------------------------------------------------------------------
 
-    /** Returns true if {@code su -c id} reports uid=0. Do NOT call on main thread. */
+    /** Returns true if root is available. Use RootShell for resilient checking. */
     public boolean isRootAvailable() {
-        try {
-            Process p = Runtime.getRuntime().exec(new String[]{"su", "-c", "id"});
-            BufferedReader reader = new BufferedReader(
-                    new InputStreamReader(p.getInputStream()));
-            String line = reader.readLine();
-            p.waitFor();
-            boolean ok = line != null && line.contains("uid=0");
-            Log.i(TAG, "Root check: " + (ok ? "PASS" : "FAIL") + " → " + line);
-            return ok;
-        } catch (Exception e) {
-            Log.e(TAG, "Root check exception: " + e.getMessage());
-            return false;
-        }
+        return RootShell.isAvailable();
     }
 
     // ------------------------------------------------------------------
@@ -148,7 +137,7 @@ public class ModeAController {
             String perms = executable ? "755" : "644";
             String cmd = "cp " + staging.getAbsolutePath() + " " + destPath
                        + " && chmod " + perms + " " + destPath;
-            Process p = Runtime.getRuntime().exec(new String[]{"su", "-c", cmd});
+            Process p = RootShell.execute(cmd);
             int rc = p.waitFor();
             if (rc != 0) {
                 Log.e(TAG, "su cp failed for " + assetName + " (exit=" + rc + ")");
@@ -181,7 +170,7 @@ public class ModeAController {
                 "magiskpolicy --live " +
                 "'allow untrusted_app shell_data_file sock_file { read write }' " +
                 "'allow untrusted_app magisk unix_stream_socket connectto'";
-            Process pol = Runtime.getRuntime().exec(new String[]{"su", "-c", policyCmd});
+            Process pol = RootShell.execute(policyCmd);
             int polRc = pol.waitFor();
             if (polRc != 0) {
                 Log.w(TAG, "magiskpolicy returned " + polRc + " — continuing anyway");
@@ -192,8 +181,7 @@ public class ModeAController {
             String cmd = DAEMON_PATH + " " + SOCKET_PATH + " " + BPF_OBJ_PATH
                        + " " + android.os.Process.myUid()
                        + " 2>" + DAEMON_STDERR_PATH;
-            daemonProcess = Runtime.getRuntime()
-                    .exec(new String[]{"su", "-c", cmd});
+            daemonProcess = RootShell.execute(cmd);
             Log.i(TAG, "Root daemon launched: " + cmd);
             return true;
         } catch (Exception e) {
@@ -205,8 +193,7 @@ public class ModeAController {
     /** Read the daemon's stderr log — useful for diagnosing startup failures. */
     public String readDaemonStderr() {
         try {
-            Process p = Runtime.getRuntime()
-                    .exec(new String[]{"su", "-c", "cat " + DAEMON_STDERR_PATH});
+            Process p = RootShell.execute("cat " + DAEMON_STDERR_PATH);
             BufferedReader r = new BufferedReader(
                     new InputStreamReader(p.getInputStream()));
             StringBuilder sb = new StringBuilder();
@@ -225,9 +212,7 @@ public class ModeAController {
             try {
                 daemonProcess.destroy();
                 daemonProcess = null;
-                Runtime.getRuntime()
-                       .exec(new String[]{"su", "-c",
-                               "pkill -TERM -f shield_modea_daemon"});
+                RootShell.execute("pkill -TERM -f shield_modea_daemon");
                 Log.i(TAG, "Root daemon stopped");
             } catch (Exception e) {
                 Log.w(TAG, "Error stopping daemon: " + e.getMessage());
@@ -239,5 +224,76 @@ public class ModeAController {
     /** Returns true if the daemon socket file exists (daemon is listening). */
     public boolean isDaemonRunning() {
         return new File(SOCKET_PATH).exists();
+    }
+
+    /** Force-stop a package via root 'am' command. */
+    public boolean forceStopPackage(String packageName) {
+        if (packageName == null || packageName.isEmpty()) return false;
+        try {
+            String cmd = "am force-stop " + packageName;
+            Process p = RootShell.execute(cmd);
+            int rc = p.waitFor();
+            Log.i(TAG, "Force-stop result for " + packageName + ": " + rc);
+            return rc == 0;
+        } catch (Exception e) {
+            Log.e(TAG, "Force-stop failed: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /** Critical Root Advantage: Immediate SIGKILL for a PID. */
+    public boolean privilegedKillPid(int pid) {
+        if (pid <= 0) return false;
+        try {
+            // Tier 1: Standard SIGKILL via root shell
+            String cmd = "kill -9 " + pid;
+            Process p = RootShell.execute(cmd);
+            int rc = p.waitFor();
+            Log.w(TAG, "Privileged Kill result for PID " + pid + ": " + rc);
+            return rc == 0;
+        } catch (Exception e) {
+            Log.e(TAG, "Privileged kill failed: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /** Uses pm suspend to 'Deep Freeze' an app. It cannot restart until unsuspended. */
+    public boolean suspendPackage(String packageName) {
+        if (packageName == null || packageName.isEmpty()) return false;
+        try {
+            String cmd = "pm suspend " + packageName;
+            Process p = RootShell.execute(cmd);
+            int rc = p.waitFor();
+            Log.w(TAG, "Suspending package " + packageName + " (exit=" + rc + ")");
+            return rc == 0;
+        } catch (Exception e) {
+            Log.e(TAG, "Suspend failed: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /** Strips an app of its file access 'weapon' even before it is killed. */
+    public boolean revokeStoragePermissions(String packageName) {
+        if (packageName == null || packageName.isEmpty()) return false;
+        try {
+            // Revoke all possible storage permissions
+            String[] perms = {
+                "android.permission.READ_EXTERNAL_STORAGE",
+                "android.permission.WRITE_EXTERNAL_STORAGE",
+                "android.permission.MANAGE_EXTERNAL_STORAGE"
+            };
+            boolean allOk = true;
+            for (String perm : perms) {
+                String cmd = "pm revoke " + packageName + " " + perm;
+                Process p = RootShell.execute(cmd);
+                int rc = p.waitFor();
+                if (rc != 0) allOk = false;
+            }
+            Log.w(TAG, "Permission revocation for " + packageName + " (overall=" + allOk + ")");
+            return allOk;
+        } catch (Exception e) {
+            Log.e(TAG, "Revoke failed: " + e.getMessage());
+            return false;
+        }
     }
 }

@@ -5,6 +5,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.LinearLayout;
+import android.widget.ScrollView;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -36,6 +37,9 @@ public final class ActivityMainBinding implements ViewBinding {
   public final TextView logPanel;
 
   @NonNull
+  public final ScrollView logScrollpane;
+
+  @NonNull
   public final LinearLayout mainContentRoot;
 
   @NonNull
@@ -58,15 +62,17 @@ public final class ActivityMainBinding implements ViewBinding {
 
   private ActivityMainBinding(@NonNull CoordinatorLayout rootView, @NonNull MaterialButton btnReset,
       @NonNull MaterialButton btnStopAll, @NonNull MaterialCardView logCard,
-      @NonNull TextView logPanel, @NonNull LinearLayout mainContentRoot,
-      @NonNull MaterialCardView permissionCard, @NonNull LinearLayout permissionContainer,
-      @NonNull LinearLayout scenarioContainer, @NonNull TextView scenarioHeader,
-      @NonNull TextView statusBar, @NonNull MaterialToolbar toolbar) {
+      @NonNull TextView logPanel, @NonNull ScrollView logScrollpane,
+      @NonNull LinearLayout mainContentRoot, @NonNull MaterialCardView permissionCard,
+      @NonNull LinearLayout permissionContainer, @NonNull LinearLayout scenarioContainer,
+      @NonNull TextView scenarioHeader, @NonNull TextView statusBar,
+      @NonNull MaterialToolbar toolbar) {
     this.rootView = rootView;
     this.btnReset = btnReset;
     this.btnStopAll = btnStopAll;
     this.logCard = logCard;
     this.logPanel = logPanel;
+    this.logScrollpane = logScrollpane;
     this.mainContentRoot = mainContentRoot;
     this.permissionCard = permissionCard;
     this.permissionContainer = permissionContainer;
@@ -127,6 +133,12 @@ public final class ActivityMainBinding implements ViewBinding {
         break missingId;
       }
 
+      id = R.id.log_scrollpane;
+      ScrollView logScrollpane = ViewBindings.findChildViewById(rootView, id);
+      if (logScrollpane == null) {
+        break missingId;
+      }
+
       id = R.id.main_content_root;
       LinearLayout mainContentRoot = ViewBindings.findChildViewById(rootView, id);
       if (mainContentRoot == null) {
@@ -170,8 +182,8 @@ public final class ActivityMainBinding implements ViewBinding {
       }
 
       return new ActivityMainBinding((CoordinatorLayout) rootView, btnReset, btnStopAll, logCard,
-          logPanel, mainContentRoot, permissionCard, permissionContainer, scenarioContainer,
-          scenarioHeader, statusBar, toolbar);
+          logPanel, logScrollpane, mainContentRoot, permissionCard, permissionContainer,
+          scenarioContainer, scenarioHeader, statusBar, toolbar);
     }
     String missingId = rootView.getResources().getResourceName(id);
     throw new NullPointerException("Missing required view with ID: ".concat(missingId));

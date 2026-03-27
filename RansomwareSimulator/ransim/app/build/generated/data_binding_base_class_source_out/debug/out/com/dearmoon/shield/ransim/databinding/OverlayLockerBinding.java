@@ -22,6 +22,9 @@ public final class OverlayLockerBinding implements ViewBinding {
   private final LinearLayout rootView;
 
   @NonNull
+  public final LinearLayout lockerRoot;
+
+  @NonNull
   public final TextView password;
 
   @NonNull
@@ -31,15 +34,24 @@ public final class OverlayLockerBinding implements ViewBinding {
   public final Button stopTestButton;
 
   @NonNull
+  public final TextView timerText;
+
+  @NonNull
+  public final TextView titleText;
+
+  @NonNull
   public final Button unlockButton;
 
-  private OverlayLockerBinding(@NonNull LinearLayout rootView, @NonNull TextView password,
-      @NonNull EditText passwordInput, @NonNull Button stopTestButton,
-      @NonNull Button unlockButton) {
+  private OverlayLockerBinding(@NonNull LinearLayout rootView, @NonNull LinearLayout lockerRoot,
+      @NonNull TextView password, @NonNull EditText passwordInput, @NonNull Button stopTestButton,
+      @NonNull TextView timerText, @NonNull TextView titleText, @NonNull Button unlockButton) {
     this.rootView = rootView;
+    this.lockerRoot = lockerRoot;
     this.password = password;
     this.passwordInput = passwordInput;
     this.stopTestButton = stopTestButton;
+    this.timerText = timerText;
+    this.titleText = titleText;
     this.unlockButton = unlockButton;
   }
 
@@ -70,6 +82,8 @@ public final class OverlayLockerBinding implements ViewBinding {
     // This is done to optimize the compiled bytecode for size and performance.
     int id;
     missingId: {
+      LinearLayout lockerRoot = (LinearLayout) rootView;
+
       id = R.id.password;
       TextView password = ViewBindings.findChildViewById(rootView, id);
       if (password == null) {
@@ -88,14 +102,26 @@ public final class OverlayLockerBinding implements ViewBinding {
         break missingId;
       }
 
+      id = R.id.timer_text;
+      TextView timerText = ViewBindings.findChildViewById(rootView, id);
+      if (timerText == null) {
+        break missingId;
+      }
+
+      id = R.id.title_text;
+      TextView titleText = ViewBindings.findChildViewById(rootView, id);
+      if (titleText == null) {
+        break missingId;
+      }
+
       id = R.id.unlockButton;
       Button unlockButton = ViewBindings.findChildViewById(rootView, id);
       if (unlockButton == null) {
         break missingId;
       }
 
-      return new OverlayLockerBinding((LinearLayout) rootView, password, passwordInput,
-          stopTestButton, unlockButton);
+      return new OverlayLockerBinding((LinearLayout) rootView, lockerRoot, password, passwordInput,
+          stopTestButton, timerText, titleText, unlockButton);
     }
     String missingId = rootView.getResources().getResourceName(id);
     throw new NullPointerException("Missing required view with ID: ".concat(missingId));

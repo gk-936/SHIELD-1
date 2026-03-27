@@ -209,6 +209,9 @@ public class SnapshotManager {
     public int getInfectedFileCount()    { return database.getInfectedFileCount(); }
 
     public int getTotalMonitoredFileCount(String[] directories) {
+        // Called with null from analyzeFileEvent when a quick estimate is needed.
+        // Return DB-backed total to avoid NPE that previously aborted the kill chain.
+        if (directories == null) return Math.max(database.getTotalFileCount(), 1);
         int count = 0;
         for (String dir : directories) count += countFilesRecursive(new File(dir));
         return count;
@@ -239,15 +242,24 @@ public class SnapshotManager {
     private int scanDirectory(File dir, boolean isBaseline) {
         if (!dir.exists() || !dir.isDirectory()) return 0;
         File[] files = dir.listFiles();
-        if (files == null) return 0;
+        if (files == null) {
+            Log.e(TAG, "Directory scan FAILED (Access Denied?): " + dir.getAbsolutePath());
+            return 0;
+        }
         int count = 0;
         for (File file : files) {
             if (file.isDirectory()) {
                 count += scanDirectory(file, isBaseline);
             } else if (!isTempFile(file.getName())) {
                 if (isBaseline) {
-                    createNewFileSnapshot(file);
-                    count++;
+                    // Ransom-Aware Protection: 
+                    // Do not snapshot already-encrypted files as "Originals"
+                    if (isSuspiciousRansomFile(file.getName())) {
+                        Log.w(TAG, "Ignoring suspicious ransomware extension during baseline: " + file.getName());
+                    } else {
+                        createNewFileSnapshot(file);
+                        count++;
+                    }
                 }
             }
         }
@@ -467,5 +479,12 @@ public class SnapshotManager {
         String lower = name.toLowerCase();
         return lower.startsWith(".") || lower.contains(".tmp")
                 || lower.contains("~") || lower.contains(".swp");
+    }
+
+    private boolean isSuspiciousRansomFile(String name) {
+        String lower = name.toLowerCase();
+        return lower.endsWith(".enc") || lower.endsWith(".locked")
+                || lower.endsWith(".wncry") || lower.endsWith(".crypt")
+                || lower.endsWith(".zepto") || lower.endsWith(".locky");
     }
 }

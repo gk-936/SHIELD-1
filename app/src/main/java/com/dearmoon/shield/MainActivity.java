@@ -28,6 +28,9 @@ import android.graphics.RectF;
 import android.view.MotionEvent;
 import com.dearmoon.shield.ui.FluidMenuView;
 import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.List;
+import java.io.File;
 import java.util.Locale;
 import androidx.appcompat.app.AlertDialog;
 
@@ -106,9 +109,44 @@ public class MainActivity extends AppCompatActivity {
                 }
                 initializeViews();
                 viewsInitialized = true;
+
+                // Feature: Auto-sync baseline snapshot once permissions are granted
+                triggerBaselineSnapshotIfEmpty();
             } else {
                 showPermissionBlockingDialog();
             }
+        }
+    }
+
+    private void triggerBaselineSnapshotIfEmpty() {
+        com.dearmoon.shield.snapshot.SnapshotManager sm = 
+            com.dearmoon.shield.ShieldApplication.get().getSnapshotManager();
+        
+        if (sm.getTotalFileCount() <= 0) {
+            Log.i("MainActivity", "Permissions granted and snapshot DB empty - triggering auto-baseline");
+            
+            List<String> dirs = new ArrayList<>();
+            File ext = Environment.getExternalStorageDirectory();
+            if (ext != null && ext.exists()) {
+                addIfExists(dirs, new File(ext, "Documents"));
+                addIfExists(dirs, new File(ext, "Download"));
+                addIfExists(dirs, new File(ext, "Pictures"));
+                addIfExists(dirs, new File(ext, "DCIM"));
+                
+                // Ensure RanSim sandbox is covered
+                File sandbox = new File(ext, "Documents/shield_ransim_sandbox");
+                if (sandbox.exists()) dirs.add(sandbox.getAbsolutePath());
+            }
+            
+            if (!dirs.isEmpty()) {
+                sm.createBaselineSnapshot(dirs.toArray(new String[0]));
+            }
+        }
+    }
+
+    private void addIfExists(List<String> list, File dir) {
+        if (dir != null && dir.exists() && dir.isDirectory()) {
+            list.add(dir.getAbsolutePath());
         }
     }
 
@@ -288,18 +326,8 @@ public class MainActivity extends AppCompatActivity {
                 triggerButtonRipple(btnUnifiedProtection, modeARunning);
                 authenticateBiometric(() -> stopProtection());
             } else {
-                // Enable protection
-                triggerButtonRipple(btnUnifiedProtection, canStartModeA());
-                if (canStartModeA()) {
-                    // Rooted activation
-                    android.content.Intent rootIntent = new android.content.Intent(this, ModeConfirmActivity.class);
-                    rootIntent.putExtra("mode", "ROOT");
-                    startActivityForResult(rootIntent, MODE_A_CONFIRM_REQUEST);
-                    overridePendingTransition(R.anim.slide_up_from_bottom, 0);
-                } else {
-                    // Standard activation
-                    checkPermissionsAndStartAnimation();
-                }
+                // Enable protection — check root asynchronously so Magisk can prompt
+                checkRootAndStartProtection();
             }
         });
 
@@ -431,18 +459,35 @@ public class MainActivity extends AppCompatActivity {
         securityRipple.triggerRipple(centre.first, centre.second, isRoot);
     }
 
-    // Open incident report
-    private void openIncidentReport() {
+    // Open incident report with either passed parameters (high speed) or preference defaults (fallback)
+    private void openIncidentReport(long start, long end, int score, int entropy, int kld, boolean sprt, int restored) {
         android.content.SharedPreferences prefs = getSharedPreferences("shield_prefs", MODE_PRIVATE);
-        startActivity(new Intent(this, IncidentActivity.class)
-                .putExtra("attackWindowStart",  prefs.getLong("last_attack_start", 0L))
-                .putExtra("attackWindowEnd",    prefs.getLong("last_attack_end",   0L))
-                .putExtra("compositeScore",     prefs.getInt ("last_composite_score", 0))
-                .putExtra("entropyScore",       prefs.getInt ("last_entropy_score",  0))
-                .putExtra("kldScore",           prefs.getInt ("last_kld_score",      0))
-                .putExtra("sprtAcceptedH1",     prefs.getBoolean("last_sprt_h1",    false))
-                .putExtra("restoredFileCount",  prefs.getInt ("last_restored_count", 0)));
-        Log.d(TAG, "openIncidentReport() launched");
+        
+        // Use passed values if valid (> 0), otherwise fall back to SharedPreferences
+        long fStart    = (start > 0)    ? start    : prefs.getLong("last_attack_start", 0L);
+        long fEnd      = (end > 0)      ? end      : prefs.getLong("last_attack_end",   0L);
+        int fScore     = (score >= 40)  ? score    : prefs.getInt ("last_composite_score", 0);
+        int fEntropy   = (entropy > 0)  ? entropy  : prefs.getInt ("last_entropy_score",  0);
+        int fKld       = (kld > 0)      ? kld      : prefs.getInt ("last_kld_score",      0);
+        boolean fSprt  = (score >= 70)  || sprt    || prefs.getBoolean("last_sprt_h1",    false);
+        int fRestored  = (restored > 0) ? restored : prefs.getInt ("last_restored_count", 0);
+
+        Intent intent = new Intent(this, IncidentActivity.class)
+                .putExtra("attackWindowStart",  fStart)
+                .putExtra("attackWindowEnd",    fEnd)
+                .putExtra("compositeScore",     fScore)
+                .putExtra("entropyScore",       fEntropy)
+                .putExtra("kldScore",           fKld)
+                .putExtra("sprtAcceptedH1",     fSprt)
+                .putExtra("restoredFileCount",  fRestored);
+        
+        startActivity(intent);
+        Log.d(TAG, "openIncidentReport() launched with window: " + fStart + " to " + fEnd);
+    }
+
+    // Default launcher used by menu items
+    private void openIncidentReport() {
+        openIncidentReport(-1, -1, -1, -1, -1, false, -1);
     }
 
     private void authenticateBiometric(Runnable onSuccess) {
@@ -517,12 +562,44 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    // Check root capability
-    private boolean canStartModeA() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
-            return false;  // Requires Android 11+
+    /**
+     * Runs {@code su -c id} on a background thread so the root manager
+     * (Magisk / SuperSU) can show its grant dialog.  On completion, posts
+     * back to the main thread and either starts ROOT mode or falls through
+     * to standard Mode-B start.
+     */
+    private void checkRootAndStartProtection() {
+        // Must be API 30+ for Mode-A (eBPF)
+        boolean couldBeRooted = Build.VERSION.SDK_INT >= Build.VERSION_CODES.R;
+
+        if (!couldBeRooted) {
+            // Not eligible for root mode — start Mode B directly
+            triggerButtonRipple(btnUnifiedProtection, false);
+            checkPermissionsAndStartAnimation();
+            return;
         }
-        return SecurityUtils.isDeviceRooted();
+
+        // Show a lightweight spinner while su runs
+        final android.app.ProgressDialog progress = new android.app.ProgressDialog(this);
+        progress.setMessage("Checking root access…");
+        progress.setCancelable(false);
+        progress.show();
+
+        new Thread(() -> {
+            boolean rooted = com.dearmoon.shield.security.SecurityUtils.tryExecRoot(MainActivity.this);
+            runOnUiThread(() -> {
+                try { progress.dismiss(); } catch (Exception ignored) {}
+                triggerButtonRipple(btnUnifiedProtection, rooted);
+                if (rooted) {
+                    android.content.Intent rootIntent = new android.content.Intent(this, ModeConfirmActivity.class);
+                    rootIntent.putExtra("mode", "ROOT");
+                    startActivityForResult(rootIntent, MODE_A_CONFIRM_REQUEST);
+                    overridePendingTransition(R.anim.slide_up_from_bottom, 0);
+                } else {
+                    checkPermissionsAndStartAnimation();
+                }
+            });
+        }, "RootCheckThread").start();
     }
 
     // Stop all protection
@@ -559,6 +636,9 @@ public class MainActivity extends AppCompatActivity {
             .putBoolean("intentionally_stopped", false)
             .putBoolean("shield_active", true)
             .apply();
+        
+        // Ensure Application watchdog is alive
+        com.dearmoon.shield.ShieldApplication.get().startWatchdog();
 
         if (!hasRequiredPermissions()) {
             Toast.makeText(this, "Please grant all permissions first", Toast.LENGTH_SHORT).show();
@@ -580,7 +660,13 @@ public class MainActivity extends AppCompatActivity {
         getSharedPreferences("ShieldPrefs", Context.MODE_PRIVATE)
             .edit()
             .putBoolean("shield_active", false)
+            .putBoolean("intentionally_stopped", true)
             .apply();
+        
+        // Stop all watchdog layers
+        com.dearmoon.shield.ShieldApplication.get().stopWatchdog();
+        stopService(new Intent(this, com.dearmoon.shield.services.ShieldWatchdogService.class));
+        
         stopService(new Intent(this, ShieldProtectionService.class));
         Toast.makeText(this, "Protection Disabled", Toast.LENGTH_SHORT).show();
         updateStatusDisplay();
@@ -770,11 +856,15 @@ public class MainActivity extends AppCompatActivity {
                 // Record attack detected
                 if (shieldStats != null) shieldStats.recordAttackDetected();
 
-                // Store attack window
+                // Store attack window - calculate actual start from infectionTime telemetry
                 android.content.SharedPreferences prefs =
                     MainActivity.this.getSharedPreferences("shield_prefs", MODE_PRIVATE);
-                long attackStart = System.currentTimeMillis() - 30000L;
+                
+                // Add 10s buffer to look slightly before the first anomaly for baseline
+                long windowDurationMs = (infectionTime > 0) ? (infectionTime * 1000L) + 10000L : 60000L;
+                long attackStart = System.currentTimeMillis() - windowDurationMs;
                 long attackEnd   = System.currentTimeMillis();
+                
                 prefs.edit()
                     .putLong   ("last_attack_start",     attackStart)
                     .putLong   ("last_attack_end",       attackEnd)
@@ -782,36 +872,22 @@ public class MainActivity extends AppCompatActivity {
                     .putInt    ("last_entropy_score",    intent.getIntExtra("entropy_score", 0))
                     .putInt    ("last_kld_score",        intent.getIntExtra("kld_score",     0))
                     .putBoolean("last_sprt_h1",          intent.getBooleanExtra("sprt_h1",   false))
-                    .apply();
-                Log.d(TAG, "Attack window stored in prefs: start=" + attackStart + " end=" + attackEnd);
+                    .commit(); // Synchronous write to avoid race condition with report launcher
+                Log.d(TAG, "Attack window updated with infectionTime=" + infectionTime + "s start=" + attackStart);
 
                 runOnUiThread(() -> {
-                    // Show persistent timer
                     if (infectionTime > 0) {
                         timerContainer.setVisibility(android.view.View.VISIBLE);
                         startCountdown(infectionTime);
                     }
-
-                    new android.app.AlertDialog.Builder(MainActivity.this)
-                            .setTitle("⚠️ RANSOMWARE DETECTED")
-                            .setMessage("High-risk activity detected!\n\n" +
-                                    "File: " + (filePath != null ? new java.io.File(filePath).getName() : "Unknown")
-                                    + "\n" +
-                                    "Confidence: " + score + "/100\n\n" +
-                                    "Malicious process has been terminated.\n" +
-                                    "Automated data recovery initiated.")
-                            .setPositiveButton("View Logs",
-                                    (dialog, which) -> startActivity(
-                                            new Intent(MainActivity.this, LogViewerActivity.class)))
-                            .setNegativeButton("Dismiss", null)
-                            .setCancelable(false)
-                            .show();
                 });
             } else if ("com.dearmoon.shield.RESTORE_COMPLETE".equals(action)) {
                 int restoredCount = intent.getIntExtra("restored_count", 0);
-                // Store restored count
-                MainActivity.this.getSharedPreferences("shield_prefs", MODE_PRIVATE)
-                    .edit().putInt("last_restored_count", restoredCount).apply();
+                
+                // Finalize and persist restored count synchronously
+                android.content.SharedPreferences prefs = 
+                    MainActivity.this.getSharedPreferences("shield_prefs", MODE_PRIVATE);
+                prefs.edit().putInt("last_restored_count", restoredCount).commit();
 
                 runOnUiThread(() -> {
                     // Hide timer UI
@@ -820,6 +896,17 @@ public class MainActivity extends AppCompatActivity {
 
                     Toast.makeText(MainActivity.this, "Data recovery complete: " + restoredCount + " files restored", Toast.LENGTH_LONG).show();
                     updateStatusDisplay();
+                    
+                    // Launch report with FULL telemetry passed directly to avoid I/O lag
+                    openIncidentReport(
+                        prefs.getLong("last_attack_start", 0L),
+                        prefs.getLong("last_attack_end", 0L),
+                        prefs.getInt("last_composite_score", 0),
+                        prefs.getInt("last_entropy_score", 0),
+                        prefs.getInt("last_kld_score", 0),
+                        prefs.getBoolean("last_sprt_h1", false),
+                        restoredCount
+                    );
                 });
             }
         }

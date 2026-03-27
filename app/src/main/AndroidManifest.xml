@@ -5,6 +5,7 @@
     <permission
         android:name="com.dearmoon.shield.RESTART_PERMISSION"
         android:protectionLevel="signature" />
+    <uses-permission android:name="com.dearmoon.shield.RESTART_PERMISSION" />
 
     <!-- Permissions for Mode B functionality -->
     <!-- READ/WRITE_EXTERNAL_STORAGE are only declared for Android ≤ 10 (API 29).
@@ -34,6 +35,19 @@
     <uses-feature
         android:name="android.hardware.strongbox"
         android:required="false" />
+
+
+    <!-- Android 11+ package visibility: declare root managers so PackageManager
+         can see them. Without this, getPackageInfo() throws NameNotFoundException
+         even when the package is installed, breaking root mode detection. -->
+    <queries>
+        <package android:name="com.topjohnwu.magisk" />      <!-- Magisk official -->
+        <package android:name="io.github.vvb2060.magisk" />   <!-- Magisk hidden stub -->
+        <package android:name="me.weishu.kernelsu" />         <!-- KernelSU -->
+        <package android:name="com.noshufou.android.su" />    <!-- SuperUser (AOSP) -->
+        <package android:name="eu.chainfire.supersu" />       <!-- SuperSU -->
+        <package android:name="com.koushikdutta.superuser" /> <!-- ChainsDD -->
+    </queries>
 
     <application
         android:name=".ShieldApplication"
@@ -198,6 +212,19 @@
             android:exported="false">
             <intent-filter>
                 <action android:name="com.dearmoon.shield.BLOCK_NETWORK" />
+            </intent-filter>
+        </receiver>
+
+        <!-- Debug Snapshot Recovery Receiver — EXPORTED for adb testing -->
+        <receiver
+            android:name=".receivers.DebugRecoveryReceiver"
+            android:enabled="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.dearmoon.shield.TEST_RESTORE" />
+                <action android:name="com.dearmoon.shield.TEST_SNAPSHOT" />
+                <action android:name="com.dearmoon.shield.TEST_ATTACK_START" />
+                <action android:name="com.dearmoon.shield.TEST_ATTACK_STOP" />
             </intent-filter>
         </receiver>
 

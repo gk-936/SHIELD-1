@@ -44,6 +44,7 @@ data class RansomwareDnaProfile(
     val sprtAcceptedH1: Boolean,    // true when SPRTDetector chose ACCEPT_H1
     val primaryDetector: String,    // highest-scoring subsystem name
     val confidenceLevel: String,    // "HIGH" / "MEDIUM" / "LOW"
+    val fileTypeDiversity: Int,     // unique extensions modified in window
 
     // computed field
     val normalizedScore: Int = ((compositeScore / 130f) * 100).roundToInt().coerceIn(0, 100),
@@ -72,7 +73,6 @@ data class RansomwareDnaProfile(
     val filesEncryptedEstimate: Int,
     val filesRestoredCount: Int,
     val dataLossOccurred: Boolean,
-    val estimatedRansomRupees: Long,    // totalFilesAtRisk * 15_000
 
     // ── Attribution ───────────────────────────────────────────────────────────
     val suspectPackage: String?,    // null when attribution failed
@@ -142,12 +142,6 @@ data class RansomwareDnaProfile(
             else                                        -> "SIGNIFICANT"
         }
 
-        val formattedRansom = buildString {
-            val r = estimatedRansomRupees
-            if (r >= 100_000L) append("Rs.${r / 100_000}.${(r % 100_000) / 10_000}L")
-            else append("Rs.$r")
-        }
-
         return buildString {
             appendLine("═══════════════════════════════════════════════════")
             appendLine("SHIELD THREAT INTELLIGENCE REPORT")
@@ -183,11 +177,11 @@ data class RansomwareDnaProfile(
             appendLine("  Trap Triggered    : ${if (honeyfileTriggered) "YES" else "NO"}")
             appendLine("  Trigger Delay     : $honeyfileTriggerDelaySeconds seconds")
             appendLine()
+
             appendLine("DAMAGE ASSESSMENT")
             appendLine("  Files at Risk     : $totalFilesAtRisk")
             appendLine("  Files Restored    : $filesRestoredCount")
             appendLine("  Data Loss         : $dataLossLabel")
-            appendLine("  Est. Ransom Demand: $formattedRansom")
             appendLine()
             appendLine("ATTRIBUTION")
             appendLine("  Suspect Package   : ${suspectPackage ?: "UNKNOWN"}")

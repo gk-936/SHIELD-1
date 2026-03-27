@@ -224,8 +224,10 @@ public class NetworkGuardService extends VpnService {
         String flowKey = destIp + ":" + destPort + ":" + protoName;
         if (shouldLogFlow(flowKey)) {
             if (storage != null) {
+                // Source UID unknown from packet alone — use -1 to avoid misattributing
+                // network activity to SHIELD's own process in the correlation engine.
                 NetworkEvent netEvent = new NetworkEvent(
-                        destIp, destPort, protoName, packet.remaining(), 0, android.os.Process.myUid());
+                        destIp, destPort, protoName, packet.remaining(), 0, -1);
                 storage.store(netEvent);
             }
         }
@@ -272,8 +274,10 @@ public class NetworkGuardService extends VpnService {
         String flowKey = destIp + ":" + destPort + ":" + protoName;
         if (shouldLogFlow(flowKey)) {
             if (storage != null) {
+                // Source UID unknown from packet alone — use -1 to avoid misattributing
+                // network activity to SHIELD's own process in the correlation engine.
                 NetworkEvent netEvent = new NetworkEvent(
-                        destIp, destPort, protoName + "_IPv6", packet.remaining(), 0, android.os.Process.myUid());
+                        destIp, destPort, protoName + "_IPv6", packet.remaining(), 0, -1);
                 storage.store(netEvent);
             }
         }

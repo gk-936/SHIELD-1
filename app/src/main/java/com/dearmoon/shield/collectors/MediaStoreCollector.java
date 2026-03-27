@@ -18,15 +18,14 @@ public class MediaStoreCollector extends ContentObserver {
     private static final String TAG = "MediaStoreCollector";
     private final Context context;
     private final TelemetryStorage storage;
-    private final UnifiedDetectionEngine detectionEngine;
+    private final com.dearmoon.shield.data.ShieldEventBus eventBus = com.dearmoon.shield.data.ShieldEventBus.getInstance();
     private final java.util.Map<String, Long> lastEventMap = new java.util.concurrent.ConcurrentHashMap<>();
     private static final long DEBOUNCE_DELAY_MS = 500;
 
-    public MediaStoreCollector(Context context, TelemetryStorage storage, UnifiedDetectionEngine detectionEngine) {
+    public MediaStoreCollector(Context context, TelemetryStorage storage, UnifiedDetectionEngine engine) {
         super(new Handler(Looper.getMainLooper()));
         this.context = context;
         this.storage = storage;
-        this.detectionEngine = detectionEngine;
     }
 
     public void startWatching() {
@@ -149,9 +148,9 @@ public class MediaStoreCollector extends ContentObserver {
                     storage.store(event);
                     Log.i(TAG, "Logged: " + operation + " - " + identifier + " (" + actualSize + " bytes)");
 
-                    if (operation.equals("MODIFY") && detectionEngine != null) {
-                        detectionEngine.processFileEvent(event);
-                        Log.i(TAG, "Sent to detection engine: " + identifier);
+                    if (operation.equals("MODIFY")) {
+                        eventBus.publishFileSystemEvent(event);
+                        Log.i(TAG, "Published to EventBus: " + identifier);
                     }
                 }
             } catch (Exception e) {

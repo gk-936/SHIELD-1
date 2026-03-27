@@ -8,6 +8,7 @@ public abstract class TelemetryEvent {
     protected String eventType;
     protected String mode = "MODE_B";
     protected int uid = -1;
+    protected int pid = -1;
     protected String packageName = "unknown";
     protected String appLabel = "unknown";
 
@@ -24,6 +25,7 @@ public abstract class TelemetryEvent {
         json.put("eventType", eventType);
         json.put("mode", mode);
         json.put("uid", uid);
+        json.put("pid", pid);
         json.put("packageName", packageName);
         json.put("appLabel", appLabel);
         return json;
@@ -35,6 +37,8 @@ public abstract class TelemetryEvent {
     public void   setMode(String m) { this.mode = m; }
     public int getUid() { return uid; }
     public void setUid(int uid) { this.uid = uid; }
+    public int getPid() { return pid; }
+    public void setPid(int pid) { this.pid = pid; }
     public String getPackageName() { return packageName; }
     public void setPackageName(String packageName) { this.packageName = packageName; }
     public String getAppLabel() { return appLabel; }

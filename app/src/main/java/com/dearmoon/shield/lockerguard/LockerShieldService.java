@@ -30,6 +30,7 @@ public class LockerShieldService extends AccessibilityService {
     private WindowManager windowManager;
     private View emergencyOverlay;
     private String lastForegroundPackage = "";
+    private String currentSuspectPackage = null;
 
     private boolean isVolumeUpPressed = false;
     private boolean isVolumeDownPressed = false;
@@ -50,6 +51,23 @@ public class LockerShieldService extends AccessibilityService {
 
     public static LockerShieldService getInstance() {
         return instance;
+    }
+
+    public void setCurrentSuspectPackage(String packageName) {
+        this.currentSuspectPackage = packageName;
+        Log.i(TAG, "Automation target set to: " + packageName);
+    }
+
+    /**
+     * Public accessor for window-based locker identification.
+     * Used by InterventionOrchestrator when PID/UID attribution fails.
+     */
+    public String resolveActiveLockerPackage() {
+        return findActiveLockerPackage();
+    }
+
+    public String getLastForegroundPackage() {
+        return lastForegroundPackage;
     }
 
     @Override
@@ -105,7 +123,64 @@ public class LockerShieldService extends AccessibilityService {
             // Keep track of the last foreground application package for fallback
             if (event.getEventType() == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
                 lastForegroundPackage = packageName;
+                
+                // Automation: If we are in the Settings page for our suspect package, try to auto-kill
+                if (currentSuspectPackage != null && packageName.equals("com.android.settings")) {
+                    handleAutoForceStop(event);
+                }
+            } else if (event.getEventType() == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED) {
+                if (currentSuspectPackage != null && "com.android.settings".equals(packageName)) {
+                    handleAutoForceStop(event);
+                }
             }
+        }
+    }
+
+    private void handleAutoForceStop(AccessibilityEvent event) {
+        try {
+            java.util.List<AccessibilityWindowInfo> windows = getWindows();
+            if (windows == null || windows.isEmpty()) return;
+
+            for (AccessibilityWindowInfo window : windows) {
+                AccessibilityNodeInfo root = window.getRoot();
+                if (root == null) continue;
+
+                // 1. Look for "Force Stop" button in App Info
+                java.util.List<AccessibilityNodeInfo> forceStopNodes = root.findAccessibilityNodeInfosByViewId("com.android.settings:id/force_stop_button");
+                if (forceStopNodes == null || forceStopNodes.isEmpty()) {
+                    // Fallback for some OS versions
+                    forceStopNodes = root.findAccessibilityNodeInfosByText("Force stop");
+                }
+                if (forceStopNodes == null || forceStopNodes.isEmpty()) {
+                    forceStopNodes = root.findAccessibilityNodeInfosByText("Force Stop");
+                }
+
+                if (forceStopNodes != null && !forceStopNodes.isEmpty()) {
+                    AccessibilityNodeInfo btn = forceStopNodes.get(0);
+                    if (btn.isEnabled()) {
+                        Log.w(TAG, "AUTOMATION: Clicking Force Stop button");
+                        btn.performAction(AccessibilityNodeInfo.ACTION_CLICK);
+                        return; // Found and clicked, wait for the next event for OK dialog
+                    }
+                }
+
+                // 2. Look for "OK" button in confirmation dialog
+                java.util.List<AccessibilityNodeInfo> okNodes = root.findAccessibilityNodeInfosByViewId("android:id/button1");
+                if (okNodes == null || okNodes.isEmpty()) {
+                    okNodes = root.findAccessibilityNodeInfosByText("OK");
+                }
+
+                if (okNodes != null && !okNodes.isEmpty()) {
+                    Log.w(TAG, "AUTOMATION: Clicking OK in confirmation dialog");
+                    okNodes.get(0).performAction(AccessibilityNodeInfo.ACTION_CLICK);
+                    currentSuspectPackage = null; // Mission accomplished
+                    dismissEmergencyOverlay();
+                    performNavigationEscape(); // Go home
+                    return;
+                }
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error in handleAutoForceStop", e);
         }
     }
 
@@ -133,6 +208,9 @@ public class LockerShieldService extends AccessibilityService {
     }
 
     private void handleBypass() {
+        // Reset button state immediately to prevent re-trigger on next single press
+        isVolumeUpPressed = false;
+        isVolumeDownPressed = false;
         Log.i(TAG, "Executing manual bypass (Physical Buttons)");
         dismissEmergencyOverlay();
         
@@ -148,8 +226,13 @@ public class LockerShieldService extends AccessibilityService {
             }
         }
         
-        Log.i(TAG, "Bypass triggering overlay for: " + suspectPkg);
-        showRemovalGuideOverlay(suspectPkg);
+        Log.i(TAG, "Bypass launching EmergencyRecoveryActivity for: " + suspectPkg);
+        currentSuspectPackage = suspectPkg;
+        Intent era = new Intent(this, EmergencyRecoveryActivity.class);
+        era.putExtra("SUSPICIOUS_PACKAGE", suspectPkg);
+        era.putExtra("RISK_SCORE", 0);
+        era.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        startActivity(era);
     }
 
     private String findActiveLockerPackage() {
@@ -157,33 +240,43 @@ public class LockerShieldService extends AccessibilityService {
             java.util.List<AccessibilityWindowInfo> windows = getWindows();
             if (windows == null || windows.isEmpty()) return null;
 
-            Rect screen = new Rect();
-            try {
-                android.view.Display d = (windowManager != null) ? windowManager.getDefaultDisplay() : null;
-                if (d != null) {
-                    android.graphics.Point p = new android.graphics.Point();
-                    d.getRealSize(p);
-                    screen.set(0, 0, p.x, p.y);
-                }
-            } catch (Exception e) {
-                // Ignore
-            }
-
-            for (int i = 0; i < windows.size(); i++) {
-                AccessibilityWindowInfo w = windows.get(i);
+            // Single pass: Prioritize the top-most non-whitelisted candidate.
+            // Iterating windows in Z-order (top-to-bottom).
+            for (AccessibilityWindowInfo w : windows) {
                 if (w == null) continue;
 
                 int type = w.getType();
-                if (type == AccessibilityWindowInfo.TYPE_ACCESSIBILITY_OVERLAY) continue;
-                if (type == AccessibilityWindowInfo.TYPE_INPUT_METHOD) continue;
+                // Skip known safe window types
+                if (type == AccessibilityWindowInfo.TYPE_ACCESSIBILITY_OVERLAY ||
+                    type == AccessibilityWindowInfo.TYPE_INPUT_METHOD) continue;
 
                 AccessibilityNodeInfo root = w.getRoot();
-                if (root == null || root.getPackageName() == null) continue;
-                
-                String pkg = root.getPackageName().toString();
-                if (whitelistManager.isWhitelisted(pkg) || pkg.equals(getPackageName()) || pkg.contains("systemui")) continue;
+                if (root == null || root.getPackageName() == null) {
+                    // Window has no accessible hierarchy (common for some non-interactive overlays).
+                    // We skip it for now and let the fallback mechanism (lastForegroundPackage) 
+                    // handle it if no other better candidate is found.
+                    continue;
+                }
 
+                String pkg = root.getPackageName().toString();
+                if (whitelistManager.isWhitelisted(pkg)
+                        || pkg.equals(getPackageName())
+                        || pkg.contains("systemui")
+                        || pkg.startsWith("com.android.")
+                        || pkg.equals("android")) {
+                    continue;
+                }
+
+                Log.i(TAG, "Identified suspect package (" + 
+                    (type == AccessibilityWindowInfo.TYPE_SYSTEM ? "SYSTEM_OVERLAY" : "FULLSCREEN_APP") + 
+                    "): " + pkg);
                 return pkg;
+            }
+            
+            // Final fallback: if window iteration found nothing, use the last foreground app
+            if (lastForegroundPackage != null && !lastForegroundPackage.isEmpty() && !whitelistManager.isWhitelisted(lastForegroundPackage)) {
+                Log.i(TAG, "Window inspection found no candidate, falling back to lastForegroundPackage: " + lastForegroundPackage);
+                return lastForegroundPackage;
             }
         } catch (Exception e) {
             Log.w(TAG, "Window stack inspection failed", e);
@@ -222,13 +315,9 @@ public class LockerShieldService extends AccessibilityService {
             windowManager.addView(emergencyOverlay, params);
             Log.i(TAG, "Guide overlay shown for: " + suspectPackage);
 
-            // Auto navigate
-            new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
-                Intent appInfo = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
-                appInfo.setData(Uri.parse("package:" + suspectPackage));
-                appInfo.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                startActivity(appInfo);
-            }, 2000);
+            // Auto-navigate removed: previously this unconditionally launched App Info
+            // after 2s, causing SHIELD to redirect to Settings even while the locker overlay
+            // was still showing. The user-facing buttons now handle navigation explicitly.
 
         } catch (Exception e) {
             Log.e(TAG, "Failed to show removal guide overlay", e);
@@ -250,6 +339,7 @@ public class LockerShieldService extends AccessibilityService {
         new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() ->
                 performGlobalAction(GLOBAL_ACTION_RECENTS), 300);
     }
+
 
     @Override
     public void onInterrupt() {

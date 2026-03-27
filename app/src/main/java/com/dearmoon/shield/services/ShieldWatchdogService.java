@@ -36,8 +36,12 @@ public class ShieldWatchdogService extends Service {
                 .getBoolean("intentionally_stopped", false);
 
         if (intentionallyStopped) {
-            Log.d(TAG, "Main service intentionally stopped, not restarting");
-            // Stop watchdog service
+            Log.d(TAG, "Main service intentionally stopped, shutting down watchdog");
+            if (timer != null) {
+                timer.cancel();
+                timer = null;
+            }
+            stopSelf();
             return;
         }
 

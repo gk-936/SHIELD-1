@@ -99,7 +99,12 @@ public class ShieldApplication extends Application {
         watchdogRunnable = new Runnable() {
             @Override public void run() {
                 if (!watchdogEnabled) return;
-                if (!isServiceRunning(ShieldProtectionService.class)) {
+                
+                android.content.SharedPreferences prefs = getSharedPreferences("ShieldPrefs", Context.MODE_PRIVATE);
+                boolean active = prefs.getBoolean("shield_active", false);
+                boolean stopped = prefs.getBoolean("intentionally_stopped", false);
+
+                if (active && !stopped && !isServiceRunning(ShieldProtectionService.class)) {
                     Log.w(TAG, "Watchdog: ShieldProtectionService not running — restarting");
                     Intent intent = new Intent(ShieldApplication.this, ShieldProtectionService.class);
                     try {

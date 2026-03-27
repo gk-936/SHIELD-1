@@ -63,9 +63,11 @@ public class ShieldProtectionService extends Service {
         public void onReceive(Context context, Intent intent) {
             if (ACTION_INTERVENE_CRYPTO.equals(intent.getAction())) {
                 String pkg = intent.getStringExtra("package");
-                Log.w(TAG, "MANUAL INTERVENTION: User requested kill for " + pkg);
-                if (detectionEngine != null && pkg != null) {
-                    detectionEngine.killMaliciousProcess(pkg);
+                Log.w(TAG, "MANUAL INTERVENTION: Publishing kill request for " + pkg);
+                if (pkg != null) {
+                    com.dearmoon.shield.data.ShieldEventBus.getInstance().publishLockerEvent(
+                        new com.dearmoon.shield.lockerguard.LockerShieldEvent(pkg, "MANUAL_KILL", -1, "User triggered")
+                    );
                 }
             }
         }
@@ -160,37 +162,43 @@ public class ShieldProtectionService extends Service {
     }
 
     private void initializeCollectors() {
-        // Initialize honeyfile collector
-        honeyfileCollector = new HoneyfileCollector(storage, this, detectionEngine);
-        String[] honeyfileDirs = getMonitoredDirectories();
-        honeyfileCollector.createHoneyfiles(this, honeyfileDirs);
+        // 1. Honeyfile setup - Only deploy to standard folders, NOT the simulator sandbox
+        honeyfileCollector = new HoneyfileCollector(storage, this, null); 
+        String[] standardDirs = getStandardDirectories();
+        honeyfileCollector.createHoneyfiles(this, standardDirs);
 
-        // Create baseline snapshot
-        snapshotManager.createBaselineSnapshot(honeyfileDirs);
+        // 2. Snapshot baseline - Use ALL monitored paths (including simulator)
+        String[] allMonitored = getMonitoredDirectories();
+        snapshotManager.createBaselineSnapshot(allMonitored);
 
-        // Recursive monitoring setup
-        for (String dir : honeyfileDirs) {
+        // 3. Recursive sensors
+        for (String dir : allMonitored) {
             File directory = new File(dir);
             if (directory.exists() && directory.isDirectory()) {
-                // Create recursive collector
-                RecursiveFileSystemCollector recursiveCollector = 
-                    new RecursiveFileSystemCollector(dir, storage, this);
-                recursiveCollector.setDetectionEngine(detectionEngine);
+                RecursiveFileSystemCollector recursiveCollector = new RecursiveFileSystemCollector(dir, storage, this);
                 recursiveCollector.setSnapshotManager(snapshotManager);
-                recursiveCollector.setEventMerger(
-                        com.dearmoon.shield.ShieldApplication.get().getEventMerger());
+                recursiveCollector.setEventMerger(com.dearmoon.shield.ShieldApplication.get().getEventMerger());
                 recursiveCollector.startWatching();
                 recursiveCollectors.add(recursiveCollector);
-                
-                int monitoredCount = recursiveCollector.getMonitoredDirectoryCount();
-                Log.i(TAG, "Started recursive monitoring: " + dir + " (" + monitoredCount + " directories)");
+                Log.i(TAG, "Watchdog: Monitoring directory " + dir);
             }
         }
 
-        // Enable MediaStore monitoring
-        mediaStoreCollector = new com.dearmoon.shield.collectors.MediaStoreCollector(this, storage, detectionEngine);
+        // 4. MediaStore sensor
+        mediaStoreCollector = new com.dearmoon.shield.collectors.MediaStoreCollector(this, storage, null);
         mediaStoreCollector.startWatching();
-        Log.i(TAG, "MediaStore monitoring enabled");
+    }
+
+    private String[] getStandardDirectories() {
+        List<String> dirs = new ArrayList<>();
+        File externalStorage = Environment.getExternalStorageDirectory();
+        if (externalStorage != null && externalStorage.exists()) {
+            addIfExists(dirs, new File(externalStorage, "Documents"));
+            addIfExists(dirs, new File(externalStorage, "Download"));
+            addIfExists(dirs, new File(externalStorage, "Pictures"));
+            addIfExists(dirs, new File(externalStorage, "DCIM"));
+        }
+        return dirs.toArray(new String[0]);
     }
 
     private String[] getMonitoredDirectories() {
@@ -203,13 +211,13 @@ public class ShieldProtectionService extends Service {
             addIfExists(dirs, new File(externalStorage, "Pictures"));
             addIfExists(dirs, new File(externalStorage, "DCIM"));
 
-            // Monitor RanSim sandbox
+            // Monitor RanSim sandbox (U-10.5 Relocated)
             File ransimSandbox = new File(externalStorage, 
-                "Android/data/com.dearmoon.shield.ransim/shield_ransim_sandbox"
+                "Documents/shield_ransim_sandbox"
             );
             if (ransimSandbox.exists()) {
                 dirs.add(ransimSandbox.getAbsolutePath());
-                Log.i(TAG, "Explicitly adding RanSim sandbox to monitored paths");
+                Log.i(TAG, "Explicitly adding RanSim sandbox to monitored paths: " + ransimSandbox.getAbsolutePath());
             }
         }
 

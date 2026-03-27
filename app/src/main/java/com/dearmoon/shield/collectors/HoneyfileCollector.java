@@ -26,13 +26,12 @@ public class HoneyfileCollector {
     private final List<File> honeyfiles = new ArrayList<>();
     private final String appPackageName;
     private final Context context;
-    private final UnifiedDetectionEngine detectionEngine;
+    private final com.dearmoon.shield.data.ShieldEventBus eventBus = com.dearmoon.shield.data.ShieldEventBus.getInstance();
     private static final long CREATION_GRACE_PERIOD_MS = 5000; // 5 seconds after creation
 
-    public HoneyfileCollector(TelemetryStorage storage, Context context, UnifiedDetectionEngine detectionEngine) {
+    public HoneyfileCollector(TelemetryStorage storage, Context context, UnifiedDetectionEngine engine) {
         this.storage = storage;
         this.context = context;
-        this.detectionEngine = detectionEngine;
         this.appPackageName = context.getPackageName();
         Log.i(TAG, "HoneyfileCollector initialized - Package: " + appPackageName);
     }
@@ -116,9 +115,9 @@ public class HoneyfileCollector {
                     if (currentHash != null && !currentHash.equals(originalHash)) {
                         Log.e(TAG, "Watchdog: Honeyfile TAMPERED! [Content Mismatch] " + honeyfile.getAbsolutePath());
                         // Secondary trigger if observer missed it
-                        if (detectionEngine != null) {
-                            detectionEngine.triggerHoneyfileKill(honeyfile.getAbsolutePath(), -1);
-                        }
+                        eventBus.publishHoneyfileEvent(new com.dearmoon.shield.data.HoneyfileEvent(
+                            honeyfile.getAbsolutePath(), "WRITE", -1, "unknown"
+                        ));
                     }
                 }
             }
@@ -231,21 +230,21 @@ public class HoneyfileCollector {
                 Log.w(TAG, "⚠️ HONEYFILE TRAP TRIGGERED: " + filePath + " (" + accessType + ") by UID " + callingUid);
 
                 // Immediate honeyfile kill (Verified by Hash if modified/written)
-                if (detectionEngine != null) {
-                    if (event == MODIFY || event == CLOSE_WRITE) {
-                        // RE-VERIFY HASH
-                        String currentHash = calculateFileHash(new File(filePath));
-                        SharedPreferences prefs = context.getSharedPreferences("ShieldHoneyfiles", Context.MODE_PRIVATE);
-                        String originalHash = prefs.getString("hash_" + filePath, null);
-                        
-                        if (currentHash != null && currentHash.equals(originalHash)) {
-                            Log.d(TAG, "Honeyfile access detected but content HAS NOT changed (Hash match) - Skipping alert");
-                            return; 
-                        }
-                        Log.w(TAG, "Honeyfile content CHANGED! (Old: " + originalHash + ", New: " + currentHash + ")");
+                if (event == MODIFY || event == CLOSE_WRITE) {
+                    // RE-VERIFY HASH
+                    String currentHash = calculateFileHash(new File(filePath));
+                    SharedPreferences prefs = context.getSharedPreferences("ShieldHoneyfiles", android.content.Context.MODE_PRIVATE);
+                    String originalHash = prefs.getString("hash_" + filePath, null);
+                    
+                    if (currentHash != null && currentHash.equals(originalHash)) {
+                        Log.d(TAG, "Honeyfile access detected but content HAS NOT changed (Hash match) - Skipping alert");
+                        return; 
                     }
-                    detectionEngine.triggerHoneyfileKill(filePath, callingUid);
+                    Log.w(TAG, "Honeyfile content CHANGED! (Old: " + originalHash + ", New: " + currentHash + ")");
                 }
+                
+                // Publish to framework EventBus
+                eventBus.publishHoneyfileEvent(honeyEvent);
             }
         }
 

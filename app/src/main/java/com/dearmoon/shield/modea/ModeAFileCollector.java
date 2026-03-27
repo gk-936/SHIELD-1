@@ -102,6 +102,7 @@ public class ModeAFileCollector {
             sizeApprox    // sizeAfter
         );
         event.setUid(data.uid);
+        event.setPid(data.pid);  // Preserve kernel PID through pipeline
         event.setMode("MODE_A");  // proper setter — no reflection needed
 
         // Merge with any recent Mode B event, or add as new

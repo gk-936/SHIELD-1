@@ -96,20 +96,25 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
-                app:cardBackgroundColor="#050505"
+                app:cardBackgroundColor="#1E1E1E"
                 app:cardCornerRadius="8dp"
                 app:strokeColor="@color/surface_variant"
                 app:strokeWidth="1dp">
 
-                <TextView
-                    android:id="@+id/log_panel"
+                <ScrollView
+                    android:id="@+id/log_scrollpane"
                     android:layout_width="match_parent"
-                    android:layout_height="200dp"
-                    android:padding="12dp"
-                    android:textColor="#00FF00"
-                    android:fontFamily="monospace"
-                    android:textSize="11sp"
-                    android:scrollbars="vertical" />
+                    android:layout_height="200dp">
+                    
+                    <TextView
+                        android:id="@+id/log_panel"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:padding="12dp"
+                        android:textColor="#4ADE80"
+                        android:fontFamily="monospace"
+                        android:textSize="11sp" />
+                </ScrollView>
             </com.google.android.material.card.MaterialCardView>
 
             <!-- Bottom Spacing -->
@@ -134,7 +139,9 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="STATUS: IDLE"
-            android:textColor="@color/accent_yellow"
+            android:textColor="@color/white"
+            android:background="@color/accent_red"
+            android:padding="8dp"
             android:textSize="12sp"
             android:textStyle="bold"
             android:gravity="center"

@@ -22,4 +22,7 @@ public class HoneyfileEvent extends TelemetryEvent {
         json.put("accessType", accessType);
         return json;
     }
+
+    public String getFilePath() { return filePath; }
+    public int getUid() { return uid; }
 }

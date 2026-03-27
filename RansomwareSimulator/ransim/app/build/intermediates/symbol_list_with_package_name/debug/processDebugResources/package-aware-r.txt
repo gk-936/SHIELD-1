@@ -3373,8 +3373,10 @@ id line3
 id linear
 id listMode
 id list_item
+id locker_root
 id log_card
 id log_panel
+id log_scrollpane
 id m3_side_sheet
 id main_content_root
 id marquee
@@ -3605,9 +3607,11 @@ id textinput_placeholder
 id textinput_prefix_text
 id textinput_suffix_text
 id time
+id timer_text
 id title
 id titleDividerNoCustom
 id title_template
+id title_text
 id toggle
 id toolbar
 id top

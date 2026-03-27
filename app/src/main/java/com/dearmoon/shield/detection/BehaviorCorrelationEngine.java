@@ -84,39 +84,40 @@ public class BehaviorCorrelationEngine {
                                        int honeyfileCount, int lockerCount, int uid) {
         int score = 0;
         
-        // File/network activity score
-        if (fileCount > 5 && networkCount > 0) {
-            score += 10; // File encryption + C2
-        } else if (fileCount > 3 && networkCount > 0) {
-            score += 5;
+        // 1. Mass File Activity (High frequency is inherently suspicious)
+        if (fileCount >= 20) score += 30;
+        else if (fileCount >= 10) score += 20;
+        else if (fileCount >= 5) score += 10;
+
+        // 2. Behavioral Correlation (File + Network)
+        if (fileCount > 3 && networkCount > 0) {
+            score += 15; // Encryption + C2 Leak pattern
         }
         
-        // Honeyfile access score
+        // 3. Honeyfile access (DIRECT evidence of malicious traversal)
         if (honeyfileCount > 0) {
-            score += Math.min(honeyfileCount * 5, 15); // Max 15 points
+            score += 40; // High confidence trigger
         }
         
-        // UI threat score
-        if (lockerCount > 0 && fileCount > 0) {
-            score += 5; // Locker ransomware pattern
+        // 4. UI threat (Locker behavior)
+        if (lockerCount > 0) {
+            score += 20;
         }
         
-        return Math.min(score, 30); // Cap at 30 points
+        return Math.min(score, 50); // Cap at 50 points (UnifiedDetectionEngine adds the rest)
     }
 
-    // Calculate CRI contribution
+    // Calculate CRI contribution (Sequential probability weight)
     private double calculateCriContribution(String filePath, int networkCount) {
-        double cri = 0.01; // Noise floor value
+        // Base weight corresponds to the inherent risk of a single file modification
+        double cri = WEIGHT_CREATE_WRITE; 
         
-        // Map common operations (inferred from file extension or database check)
-        // Since FileObserver only gives MODIFY/CREATE, we use frequency and 
-        // network correlation as primary signals.
-        if (networkCount > 0) cri += WEIGHT_NETWORK;
+        // Boost if network activity is correlated (C2 signaling)
+        if (networkCount > 0) {
+            cri += WEIGHT_NETWORK;
+        }
         
-        // Operation-specific bumps (requires future deeper syscall integration)
-        // Resource-specific CRI bumps
-        cri += WEIGHT_CREATE_WRITE * 0.1; // scale to prevent single-event overflow
-        
+        // Future: add entropy-based feedback here if needed
         return cri;
     }
     

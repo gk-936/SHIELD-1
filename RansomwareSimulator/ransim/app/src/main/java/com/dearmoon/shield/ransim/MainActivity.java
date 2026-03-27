@@ -55,6 +55,7 @@ public class MainActivity extends AppCompatActivity {
     private View permissionCard, scenarioHeader, btnStopAll;
     private Button btnGrantStorage, btnGrantOverlay, btnGrantNotif;
     private TextView storageStatus, overlayStatus, notifStatus, statusBar, logPanel;
+    private ScrollView logScrollPane;
 
     private final int MAX_LOG_LINES = 50;
     private final LinkedList<String> logBuffer = new LinkedList<>();
@@ -71,6 +72,7 @@ public class MainActivity extends AppCompatActivity {
         scenarioContainer = findViewById(R.id.scenario_container);
         statusBar = findViewById(R.id.status_bar);
         logPanel = findViewById(R.id.log_panel);
+        logScrollPane = findViewById(R.id.log_scrollpane);
         btnStopAll = findViewById(R.id.btn_stop_all);
 
         findViewById(R.id.btn_reset).setOnClickListener(v -> resetEnvironment());
@@ -405,7 +407,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private File getSandboxRoot() {
-        File root = new File(getExternalFilesDir(null), "shield_ransim_sandbox");
+        File docs = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS);
+        File root = new File(docs, "shield_ransim_sandbox");
         if (!root.exists()) {
             boolean created = root.mkdirs();
             if (!created) log("[WRN] Failed to create sandbox root directory");
@@ -464,6 +467,7 @@ public class MainActivity extends AppCompatActivity {
             StringBuilder sb = new StringBuilder();
             for (String line : logBuffer) sb.append(line).append("\n");
             if (logPanel != null) logPanel.setText(sb.toString());
+            if (logScrollPane != null) logScrollPane.post(() -> logScrollPane.fullScroll(View.FOCUS_DOWN));
         });
         Log.d(TAG, msg);
     }

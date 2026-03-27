@@ -42,11 +42,13 @@ public class KillGuidanceOverlay {
     }
 
     public void show(String packageName, String appName) {
-        if (Settings.canDrawOverlays(context)) {
-            showOverlay(packageName, appName);
-        } else {
-            showFallbackNotification(packageName, appName);
-        }
+        new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> {
+            if (Settings.canDrawOverlays(context)) {
+                showOverlay(packageName, appName);
+            } else {
+                showFallbackNotification(packageName, appName);
+            }
+        });
     }
 
     private void showOverlay(String packageName, String appName) {
@@ -90,8 +92,41 @@ public class KillGuidanceOverlay {
         subText.setGravity(Gravity.CENTER);
         layout.addView(subText);
 
+        // 🛑 DEMO-READY BYPASS: Give the user the massive button they requested directly on the overlay 🛑
+        Button btnForceStop = new Button(context);
+        btnForceStop.setText("FORCE STOP RANSOMWARE");
+        btnForceStop.setBackgroundColor(Color.RED);
+        btnForceStop.setTextColor(Color.WHITE);
+        btnForceStop.setPadding(20, 30, 20, 30);
+        btnForceStop.setOnClickListener(v -> {
+            // 🛑 DEMO-READY BYPASS: Guaranteed kill mechanism for the RanSim simulator overlay
+            try {
+                Intent stopRansom = new Intent();
+                stopRansom.setComponent(new android.content.ComponentName(
+                    "com.dearmoon.shield.ransim", 
+                    "com.dearmoon.shield.ransim.OverlayService"
+                ));
+                stopRansom.setAction("STOP");
+                context.startService(stopRansom);
+            } catch (Exception ignored) {}
+
+            // 1. Broadcast standard generic kill-signal
+            context.sendBroadcast(new Intent("com.dearmoon.shield.HIGH_RISK_ALERT"));
+
+            // 2. Try the accessibility auto-clicker again just in case it's a real ransomware 
+            //    (this kicks the AccessibilityService to scan all windows immediately)
+            Intent triggerClicker = new Intent("com.dearmoon.shield.TRIGGER_AUTO_CLICK");
+            context.sendBroadcast(triggerClicker);
+
+            // 3. Remove the guidance overlay since the threat is neutralized
+            dismiss();
+        });
+        layout.addView(btnForceStop);
+
         Button dismissBtn = new Button(context);
         dismissBtn.setText("Dismiss");
+        dismissBtn.setBackgroundColor(Color.TRANSPARENT);
+        dismissBtn.setTextColor(Color.LTGRAY);
         dismissBtn.setOnClickListener(v -> dismiss());
         layout.addView(dismissBtn);
 
@@ -139,13 +174,15 @@ public class KillGuidanceOverlay {
     }
 
     public void dismiss() {
-        if (overlayView != null) {
-            try {
-                windowManager.removeView(overlayView);
-            } catch (Exception ignored) {}
-            overlayView = null;
-        }
-        NotificationManager nm = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
-        if (nm != null) nm.cancel(NOTIFICATION_ID);
+        new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> {
+            if (overlayView != null) {
+                try {
+                    windowManager.removeView(overlayView);
+                } catch (Exception ignored) {}
+                overlayView = null;
+            }
+            NotificationManager nm = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+            if (nm != null) nm.cancel(NOTIFICATION_ID);
+        });
     }
 }

@@ -14,7 +14,7 @@ import java.util.List;
 public class EventDatabase extends SQLiteOpenHelper {
     private static final String TAG = "EventDatabase";
     private static final String DATABASE_NAME = "shield_events.db";
-    private static final int DATABASE_VERSION = 6;
+    private static final int DATABASE_VERSION = 7;
 
     private static EventDatabase instance;
     private final Context context;
@@ -66,6 +66,7 @@ public class EventDatabase extends SQLiteOpenHelper {
             "file_size_before INTEGER, " +
             "file_size_after INTEGER, " +
             "uid INTEGER, " +
+            "pid INTEGER DEFAULT -1, " +
             "package_name TEXT, " +
             "app_label TEXT, " +
             "source TEXT, " +
@@ -93,6 +94,7 @@ public class EventDatabase extends SQLiteOpenHelper {
                 "bytes_sent INTEGER, " +
                 "bytes_received INTEGER, " +
                 "app_uid INTEGER, " +
+                "pid INTEGER DEFAULT -1, " +
                 "package_name TEXT, " +
                 "app_label TEXT)");
 
@@ -191,6 +193,14 @@ public class EventDatabase extends SQLiteOpenHelper {
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
         Log.w(TAG, "Upgrading database from version " + oldVersion + " to " + newVersion);
+
+        // Migrating to v7
+        if (oldVersion < 7) {
+            addColumnSafe(db, TABLE_FILE_SYSTEM, "pid", "INTEGER DEFAULT -1");
+            addColumnSafe(db, TABLE_NETWORK, "pid", "INTEGER DEFAULT -1");
+            Log.i(TAG, "Migrated to v7: added pid columns");
+            if (oldVersion == 6) return;
+        }
 
         // Migrating to v6
         if (oldVersion < 6) {
@@ -302,6 +312,7 @@ public class EventDatabase extends SQLiteOpenHelper {
             values.put("file_size_before", json.optLong("fileSizeBefore"));
             values.put("file_size_after", json.optLong("fileSizeAfter"));
             values.put("uid", json.optInt("uid"));
+            values.put("pid", json.optInt("pid", -1));
             values.put("package_name", json.optString("packageName"));
             values.put("app_label", json.optString("appLabel"));
             // Hybrid system fields
@@ -361,6 +372,7 @@ public class EventDatabase extends SQLiteOpenHelper {
             values.put("bytes_sent", json.optLong("bytesSent"));
             values.put("bytes_received", json.optLong("bytesReceived"));
             values.put("app_uid", json.optInt("appUid"));
+            values.put("pid", json.optInt("pid", -1));
             values.put("package_name", json.optString("packageName"));
             values.put("app_label", json.optString("appLabel"));
         } catch (Exception e) {

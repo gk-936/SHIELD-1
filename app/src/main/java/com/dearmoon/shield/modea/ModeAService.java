@@ -34,6 +34,9 @@ public class ModeAService extends Service {
     public static final String ACTION_STARTED     = "com.dearmoon.shield.MODEA_STARTED";
     public static final String ACTION_UNAVAILABLE = "com.dearmoon.shield.MODEA_UNAVAILABLE";
     public static final String ACTION_KILL_PID    = "com.dearmoon.shield.MODEA_KILL_PID";
+    public static final String ACTION_FORCE_STOP_PACKAGE = "com.dearmoon.shield.MODEA_FORCE_STOP_PACKAGE";
+    public static final String ACTION_SUSPEND_PACKAGE = "com.dearmoon.shield.MODEA_SUSPEND_PACKAGE";
+    public static final String ACTION_REVOKE_PERMISSIONS = "com.dearmoon.shield.MODEA_REVOKE_PERMISSIONS";
 
     // ------------------------------------------------------------------
     private ModeAController        controller;
@@ -61,11 +64,35 @@ public class ModeAService extends Service {
     private final BroadcastReceiver killReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            if (!ACTION_KILL_PID.equals(intent.getAction())) return;
-            int pid = intent.getIntExtra("pid", -1);
-            if (pid > 0 && jni != null) {
-                Log.w(TAG, "Kill command received for PID " + pid);
-                jni.nativeSendKill(pid);
+            String action = intent.getAction();
+            if (ACTION_KILL_PID.equals(action)) {
+                int pid = intent.getIntExtra("pid", -1);
+                if (pid > 0) {
+                    Log.w(TAG, "Kill command received for PID " + pid);
+                    // Layer 2a: Try JNI daemon kill (Low latency)
+                    if (jni != null) jni.nativeSendKill(pid);
+                    
+                    // Layer 2b: Absolute Root Kill (Reliable fallback)
+                    if (controller != null) controller.privilegedKillPid(pid);
+                }
+            } else if (ACTION_FORCE_STOP_PACKAGE.equals(action)) {
+                String pkg = intent.getStringExtra("package");
+                if (pkg != null && controller != null) {
+                    Log.w(TAG, "Force-stop command received for package: " + pkg);
+                    controller.forceStopPackage(pkg);
+                }
+            } else if (ACTION_SUSPEND_PACKAGE.equals(action)) {
+                String pkg = intent.getStringExtra("package");
+                if (pkg != null && controller != null) {
+                    Log.w(TAG, "Suspend command received for package: " + pkg);
+                    controller.suspendPackage(pkg);
+                }
+            } else if (ACTION_REVOKE_PERMISSIONS.equals(action)) {
+                String pkg = intent.getStringExtra("package");
+                if (pkg != null && controller != null) {
+                    Log.w(TAG, "Revoke permissions command received for package: " + pkg);
+                    controller.revokeStoragePermissions(pkg);
+                }
             }
         }
     };
@@ -86,7 +113,12 @@ public class ModeAService extends Service {
                 detectionEngine,
                 com.dearmoon.shield.ShieldApplication.get().getEventMerger());
 
-        IntentFilter filter = new IntentFilter(ACTION_KILL_PID);
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(ACTION_KILL_PID);
+        filter.addAction(ACTION_FORCE_STOP_PACKAGE);
+        filter.addAction(ACTION_SUSPEND_PACKAGE);
+        filter.addAction(ACTION_REVOKE_PERMISSIONS);
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             registerReceiver(killReceiver, filter, "com.dearmoon.shield.RESTART_PERMISSION", null, Context.RECEIVER_NOT_EXPORTED);
         } else {

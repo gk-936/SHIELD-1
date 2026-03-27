@@ -62,8 +62,8 @@ public class RecoveryActivity extends AppCompatActivity {
         });
 
         // ── Init engines ────────────────────────────────────────────────────
-        restoreEngine  = new RestoreEngine(this);
-        snapshotManager = new SnapshotManager(this);
+        restoreEngine   = new RestoreEngine(this);
+        snapshotManager = com.dearmoon.shield.ShieldApplication.get().getSnapshotManager();
 
         // ── Find views ──────────────────────────────────────────────────────
         LinearLayout headerSection = findViewById(R.id.headerSection);
@@ -201,14 +201,14 @@ public class RecoveryActivity extends AppCompatActivity {
                 return;
             }
             long restoreId = attackId > 0 ? attackId : snapshotManager.getActiveAttackId();
-            if (restoreId <= 0) {
-                tvStatus.setText("System Integrity Intact");
-                tvStatus.setTextColor(Color.parseColor("#00E676"));
-                return;
-            }
             tileRestore.setEnabled(false);
-            tvStatus.setText("Executing Rescue Protocol…");
-            tvStatus.setTextColor(Color.parseColor("#00C8FF"));
+            if (restoreId <= 0) {
+                tvStatus.setText("Executing Deep System Integrity Audit…");
+                tvStatus.setTextColor(Color.parseColor("#00C8FF"));
+            } else {
+                tvStatus.setText("Executing Rescue Protocol…");
+                tvStatus.setTextColor(Color.parseColor("#00C8FF"));
+            }
             
             animateRestoreRipple(tileRestore, density);
 
@@ -462,6 +462,12 @@ public class RecoveryActivity extends AppCompatActivity {
             dirs.add(new java.io.File(ext, "Download").getAbsolutePath());
             dirs.add(new java.io.File(ext, "Pictures").getAbsolutePath());
             dirs.add(new java.io.File(ext, "DCIM").getAbsolutePath());
+
+            // Add RanSim sandbox (matching the protect service)
+            java.io.File ransimSandbox = new java.io.File(ext, "Documents/shield_ransim_sandbox");
+            if (ransimSandbox.exists()) {
+                dirs.add(ransimSandbox.getAbsolutePath());
+            }
         }
         return dirs.toArray(new String[0]);
     }

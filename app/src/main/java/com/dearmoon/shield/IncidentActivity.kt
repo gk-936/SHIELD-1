@@ -211,6 +211,16 @@ class IncidentActivity : AppCompatActivity() {
         // Obtain shared ViewModel
         viewModel = ViewModelProvider(this)[IncidentViewModel::class.java]
 
+        val tabButtonContainer = findViewById<FrameLayout>(R.id.tabButtonContainer)
+        val hudHeaderContainer = findViewById<View>(R.id.hudHeaderContainer)
+        val threatAlertHeader = findViewById<View>(R.id.threatAlertHeader)
+
+        // Initial state: hide everything until we know the profile
+        tabButtonContainer.visibility = View.GONE
+        hudHeaderContainer.visibility = View.GONE
+        threatAlertHeader.visibility = View.GONE
+        viewPager.visibility = View.GONE
+
         // Read attack-window parameters from Intent (set by MainActivity)
         val attackWindowStart  = intent.getLongExtra("attackWindowStart",  0L)
         val attackWindowEnd    = intent.getLongExtra("attackWindowEnd",    0L)
@@ -220,40 +230,12 @@ class IncidentActivity : AppCompatActivity() {
         val sprtAcceptedH1     = intent.getBooleanExtra("sprtAcceptedH1",  false)
         val restoredFileCount  = intent.getIntExtra ("restoredFileCount",  0)
 
-        // ── Data Sanitization & Conditional UI Logic ────────────────────────────
-        val onRansomwareDetected = attackWindowStart > 0L && compositeScore > 0
-
-        val tabButtonContainer = findViewById<FrameLayout>(R.id.tabButtonContainer)
-        val hudHeaderContainer = findViewById<View>(R.id.hudHeaderContainer)
-        val threatAlertHeader = findViewById<View>(R.id.threatAlertHeader)
-
-        if (!onRansomwareDetected) {
-            // Standard Terminal View (Buttons & Threat Alert Hidden, Header Shown)
-            tabButtonContainer.visibility = View.GONE
-            hudHeaderContainer.visibility = View.VISIBLE
-            threatAlertHeader.visibility = View.GONE
-            // Only show Timeline (1 page), disable swiping
-            viewPager.adapter = IncidentPagerAdapter(this, 1)
-            viewPager.isUserInputEnabled = false
-            viewModel.profile.value = null
-        } else {
-            // Ransomware Detected: UI transitioned, buttons & threat alert activated, HUD hidden
-            tabButtonContainer.visibility = View.VISIBLE
-            hudHeaderContainer.visibility = View.GONE
-            threatAlertHeader.visibility = View.VISIBLE
-            // Show both pages (Timeline + DNA Report), enable swiping
-            viewPager.adapter = IncidentPagerAdapter(this, 2)
-            viewPager.isUserInputEnabled = true
-            // Bind to hidden TabLayout for ViewPager2 sync
-            TabLayoutMediator(tabLayout, viewPager) { tab, position ->
-                tab.text = if (position == 0) "TIMELINE" else "DNA REPORT"
-            }.attach()
-
-            Log.d(TAG, "Building profile — window=[$attackWindowStart,$attackWindowEnd]")
-            
-            // Build profile on IO without dummy values
-            lifecycleScope.launch(Dispatchers.IO) {
-                val profile = RansomwareDnaProfiler.buildProfile(
+        lifecycleScope.launch {
+            // Build profile from parameters ONLY if a valid window is provided; 
+            // otherwise, fall back to the most recent comprehensive detection in the database.
+            val profile = if (attackWindowStart > 0L && attackWindowEnd > 0L) {
+                // Specific incident requested
+                RansomwareDnaProfiler.buildProfile(
                     context           = this@IncidentActivity,
                     attackWindowStart = attackWindowStart,
                     attackWindowEnd   = attackWindowEnd,
@@ -263,10 +245,35 @@ class IncidentActivity : AppCompatActivity() {
                     sprtAcceptedH1    = sprtAcceptedH1,
                     restoredFileCount = restoredFileCount
                 )
-                withContext(Dispatchers.Main) {
-                    viewModel.profile.value = profile
-                    Log.d(TAG, "Profile posted to ViewModel — family=${profile.attackFamily.name}")
-                }
+            } else {
+                // Fallback: try loading latest incident from DB
+                RansomwareDnaProfiler.buildProfileFromLatestAttack(this@IncidentActivity)
+            }
+
+            if (profile != null) {
+                // ── Setup Attack UI ──────────────────────────────────────────
+                tabButtonContainer.visibility = View.VISIBLE
+                threatAlertHeader.visibility = View.VISIBLE
+                viewPager.visibility = View.VISIBLE
+                
+                // Show both pages (Timeline + DNA Report), enable swiping
+                viewPager.adapter = IncidentPagerAdapter(this@IncidentActivity, 2)
+                viewPager.isUserInputEnabled = true
+                
+                TabLayoutMediator(tabLayout, viewPager) { tab, position ->
+                    tab.text = if (position == 0) "TIMELINE" else "DNA REPORT"
+                }.attach()
+
+                viewModel.profile.value = profile
+                Log.d(TAG, "Profile loaded — family=${profile.attackFamily.name}")
+            } else {
+                // ── Setup Empty UI ────────────────────────────────────────────
+                hudHeaderContainer.visibility = View.VISIBLE
+                viewPager.visibility = View.VISIBLE
+                viewPager.adapter = IncidentPagerAdapter(this@IncidentActivity, 1)
+                viewPager.isUserInputEnabled = false
+                viewModel.profile.value = null
+                Log.d(TAG, "No profile found — showing empty state")
             }
         }
     }
@@ -1221,7 +1228,6 @@ class DnaReportFragment : Fragment() {
         }
         metricsRow.addView(buildMetricPill("${p.detectionTimeSeconds}s", "DETECTION", "#00E676"))
         metricsRow.addView(buildMetricPill("${p.filesRestoredCount}", "PROTECTED", "#00C8FF"))
-        metricsRow.addView(buildMetricPill(formatRupees(p.estimatedRansomRupees), "RISK", "#FFB300"))
         metricsRow.addView(buildMetricPill("${p.totalFilesAtRisk}", "AT RISK", "#FF6B6B"))
         metricsScroll.addView(metricsRow)
         root.addView(metricsScroll)
@@ -1236,8 +1242,7 @@ class DnaReportFragment : Fragment() {
                 Pair("CERT-In Category", p.attackFamily.certInCategory),
                 Pair("Primary Detector", p.primaryDetector),
                 Pair("SPRT Decision", if (p.sprtAcceptedH1) "ACCEPT H1" else "ACCEPT H0"),
-                Pair("Entropy Score", "${p.entropyScore}/40"),
-                Pair("KLD Score", "${p.kldScore}/30")
+                Pair("Type Diversity", "${p.fileTypeDiversity} types")
             )
         ))
 
@@ -1275,8 +1280,7 @@ class DnaReportFragment : Fragment() {
             listOf(
                 Pair("Files Modified", p.filesEncryptedEstimate.toString()),
                 Pair("Files Restored", p.filesRestoredCount.toString()),
-                Pair("Data Loss", dataLoss),
-                Pair("Ransom Demand", formatRupees(p.estimatedRansomRupees))
+                Pair("Data Loss", dataLoss)
             )
         ))
 
@@ -1645,8 +1649,4 @@ class DnaReportFragment : Fragment() {
             LinearLayout.LayoutParams.MATCH_PARENT, (dp * resources.displayMetrics.density).toInt()
         )
     }
-
-    private fun formatRupees(amount: Long): String = if (amount >= 100_000L)
-        "₹${amount / 100_000}.${(amount % 100_000) / 10_000}L"
-    else "₹$amount"
 }

@@ -85,13 +85,24 @@ public class EmergencyRecoveryActivity extends AppCompatActivity {
         // the user can tap Force Stop and then Uninstall without navigating
         // through the full Settings tree.
         btnOpenSettings.setText("FORCE STOP / UNINSTALL");
-        btnOpenSettings.setOnClickListener(v -> {
+        btnDismiss.setOnClickListener(v -> finish());
+
+        // CRITICAL FIX: Since some modern ransomware overlays (TYPE_APPLICATION_OVERLAY)
+        // are drawn with Z-orders higher than any Activity, this activity might be buried.
+        // We deploy our own counter-overlay immediately to ensure the user gets an escape hatch
+        // that floats above the attacker's overlay.
+        com.dearmoon.shield.ui.KillGuidanceOverlay.getInstance(this)
+            .show(suspiciousPackage, "Suspicious App");
+
+        // AUTOMATION: Automatically launch the hidden Settings window right now so that 
+        // the LockerShieldService Accessibility auto-clicker can find it behind the overlay.
+        try {
             Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
             intent.setData(Uri.parse("package:" + suspiciousPackage));
             startActivity(intent);
-        });
-
-        btnDismiss.setOnClickListener(v -> finish());
+        } catch (Exception e) {
+            Log.w(TAG, "Failed to auto-launch Settings app", e);
+        }
 
         Log.i(TAG, "EmergencyRecoveryActivity shown above lockscreen for: " + suspiciousPackage);
     }

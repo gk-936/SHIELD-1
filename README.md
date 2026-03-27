@@ -1,9 +1,9 @@
-# SHIELD - Ransomware Detection System
+# SHIELD - Autonomous Ransomware Defense & Recovery System
 
 ## Project Overview
-SHIELD is an Android ransomware detection application that implements "Mode B" functionality - a comprehensive behavioral analysis system for detecting ransomware activity on Android devices.
+SHIELD is an industrial-grade Android ransomware protection system. Originally starting as "Mode B" (behavioral analysis), it has evolved into a fully autonomous security suite featuring precise "Privilege-First" containment, robust kernel-level interventions (Mode-A), automated file rollback (Active Healing), and CERT-In compliant forensic reporting.
 
-## Mode B Architecture
+## Advanced Architecture
 
 ### Core Components
 
@@ -71,20 +71,19 @@ SHIELD is an Android ransomware detection application that implements "Mode B" f
 
 #### 5. User Interface
 - **MainActivity** - Control center
-  - Start/Stop protection
-  - Request runtime permissions
-  - Start VPN service
-  - **Toggle network blocking** (ON/OFF)
-  - View detection logs
-  - Real-time status display
+  - Dual-mode activation (Mode A Root / Mode B Behavioral)
+  - Real-time GlitchUI threat status display
+  - Fluid bottom navigation menu
+  
+- **IncidentActivity (Cyber HUD)** - Post-Incident Intelligence
+  - Automatically loads upon successful automated recovery
+  - Generates CERT-In compliant **Threat DNA Profiles**
+  - Displays localized chronological attack timelines
+  - Exports PDF dossiers detailing C2 endpoints, mitigation savings, and anomaly scores
 
-- **LogViewerActivity** - Comprehensive event log viewer
-  - Real-time display of all monitoring events
-  - Color-coded severity indicators (CRITICAL, HIGH, MEDIUM, LOW)
-  - Event filtering (ALL, FILE_SYSTEM, HONEYFILE_ACCESS, NETWORK, DETECTION)
-  - Detailed event information with timestamps
-  - Parses both telemetry and detection logs
-  - User-friendly card-based interface
+- **RecoveryActivity**
+  - Snapshot controls for securing structural baselines
+  - Visual ripple-effects for immediate structural rollback
 
 ## Detection Algorithm
 
@@ -300,13 +299,13 @@ In case of a false positive, SHIELD provides two robust ways to regain control:
 17. **Auto-Restart Mechanism** - Boot receiver & service restart
 18. **Emergency Network Blocking** - Auto-triggered on ransomware detection
 
-### 🎯 Ready for Testing
-The project is now complete and ready for:
-- Device installation
-- Runtime permission testing
-- File system monitoring verification (Filtered to modified/deleted)
-- Detection algorithm validation
-- Network monitoring testing
+### 🎯 Finalized Autonomous Defense Systems
+The system has achieved fully autonomous response capabilities:
+1. **Privilege-First Containment**: Before process kills are initiated, SHIELD safely strips `MANAGE_EXTERNAL_STORAGE` via root `appops`, neutralizing the threat's ability to encrypt files instantly.
+2. **Deep Freeze & Force Stop**: `ModeAService` utilizes `pm suspend` to freeze memory allocation before executing a clean `am force-stop` via universal `RootShell`.
+3. **Active Healing Engine**: `SnapshotManager` filters out suspicious variables during baseline scans. During a rollback, `RestoreEngine` actively hunts and scrubs `.enc` ransom remnants from the disk automatically.
+4. **CERT-In PDF Reporting**: Generates exhaustive DNA profiles of the ransomware, aggregating SPRT, entropy, and network telemetry immediately after recovery.
+5. **Fail-Safe Hardware Bypass**: Simultaneous Volume Up + Volume Down triggers an absolute emergency escape from any overlapping locker threat.
 
 ## Notes
 - The project successfully builds with `./gradlew assembleDebug`

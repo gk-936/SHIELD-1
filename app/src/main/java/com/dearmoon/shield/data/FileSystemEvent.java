@@ -104,8 +104,4 @@ public class FileSystemEvent extends TelemetryEvent {
         return fileSizeAfter;
     }
 
-    // EventMerger compatibility PID
-    public int getPid() {
-        return -1;
-    }
 }
